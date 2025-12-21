@@ -11,6 +11,16 @@ Each member has three hidden stats (0-100):
 
 **Maximum 2 roles per user** are assigned at any time, prioritized by importance.
 
+## Role Colors
+
+Each category has a distinct color for visual differentiation:
+- **Mood** - Gold (#FFD700)
+- **Energy** - Spring Green (#00FF7F)
+- **Activity** - Dodger Blue (#1E90FF)
+- **Time** - Medium Purple (#9370DB)
+- **Chaos** - Orange Red (#FF4500)
+- **Achievement** - White (#FFFFFF)
+
 ## Role Categories & Assignment Rules
 
 ### Mood Roles
@@ -109,6 +119,46 @@ Processes only **online members**:
 - Role updates are limited to 1 per user per 30 seconds
 - Prevents API spam and Discord rate limits
 
+## Activity Decay Prevention
+
+Active members receive reduced stat decay:
+- Activity 80-100: 70% reduction in decay
+- Activity 60-79: 50% reduction in decay
+- Activity 40-59: 30% reduction in decay
+- Activity 20-39: 15% reduction in decay
+- Activity 0-19: No reduction (full decay)
+
+## Custom Triggers
+
+Admins can create custom triggers that modify stats server-wide:
+- Triggers can boost or drain any stat
+- Can be temporary (with duration) or permanent
+- Multiple triggers can stack
+- Use `/trigger create` to create new triggers
+
+## Achievements
+
+Permanent roles awarded for milestones:
+
+| Achievement | Requirement | Role Reward |
+|-------------|-------------|-------------|
+| Voice Rookie | 10 hours in voice | Voice Rookie |
+| Voice Regular | 50 hours in voice | Voice Regular |
+| Voice Veteran | 100 hours in voice | Voice Veteran |
+| Mood Master | Reach 100 mood | Mood Master |
+| Energy King | Reach 100 energy | Energy King |
+| Hyperactive | Reach 100 activity | Hyperactive |
+
+Achievement roles are permanent and don't count toward the 2-role limit.
+
+## User Commands
+
+| Command | Description |
+|---------|-------------|
+| `/stats` | View your hidden stats and progress |
+| `/leaderboard mood\|energy\|activity` | View server rankings |
+| `/achievements` | View your achievement progress |
+
 ## Admin Commands
 
 | Command | Description |
@@ -119,9 +169,12 @@ Processes only **online members**:
 | `/roles import` | Create missing roles in Discord |
 | `/roles export` | Export Discord roles to JSON |
 | `/roles reload` | Reload role definitions from disk |
+| `/trigger create` | Create a stat modifier trigger |
+| `/trigger list` | List all triggers |
+| `/trigger stop` | Stop an active trigger |
 
 ## Data Persistence
 
-- **SQLite** - Member statistics (survives restarts)
+- **SQLite** - Member statistics, progress, achievements, triggers
 - **JSON files** - Role definitions (editable, hot-reloadable)
 - Both stored in Docker volumes for persistence

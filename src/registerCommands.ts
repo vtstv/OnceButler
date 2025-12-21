@@ -40,6 +40,53 @@ const commands = [
       sub.setName('export').setDescription('Export Discord roles to JSON'))
     .addSubcommand(sub =>
       sub.setName('reload').setDescription('Reload role definitions from disk')),
+
+  new SlashCommandBuilder()
+    .setName('stats')
+    .setDescription('View your current stats'),
+
+  new SlashCommandBuilder()
+    .setName('leaderboard')
+    .setDescription('View the server leaderboard')
+    .addStringOption(opt =>
+      opt.setName('stat')
+        .setDescription('Stat to rank by')
+        .setRequired(true)
+        .addChoices(
+          { name: 'Mood', value: 'mood' },
+          { name: 'Energy', value: 'energy' },
+          { name: 'Activity', value: 'activity' },
+        )),
+
+  new SlashCommandBuilder()
+    .setName('trigger')
+    .setDescription('Manage custom stat triggers')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addSubcommand(sub =>
+      sub.setName('create')
+        .setDescription('Create a new trigger')
+        .addStringOption(opt => opt.setName('name').setDescription('Trigger name').setRequired(true))
+        .addStringOption(opt =>
+          opt.setName('stat')
+            .setDescription('Stat to modify')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Mood', value: 'mood' },
+              { name: 'Energy', value: 'energy' },
+              { name: 'Activity', value: 'activity' },
+            ))
+        .addNumberOption(opt => opt.setName('modifier').setDescription('Stat modifier per tick (can be negative)').setRequired(true))
+        .addIntegerOption(opt => opt.setName('duration').setDescription('Duration in minutes (empty = permanent)')))
+    .addSubcommand(sub =>
+      sub.setName('list').setDescription('List all triggers'))
+    .addSubcommand(sub =>
+      sub.setName('stop')
+        .setDescription('Stop a trigger')
+        .addIntegerOption(opt => opt.setName('id').setDescription('Trigger ID').setRequired(true))),
+
+  new SlashCommandBuilder()
+    .setName('achievements')
+    .setDescription('View your achievements'),
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
