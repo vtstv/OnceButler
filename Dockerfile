@@ -25,6 +25,7 @@ RUN npm install --omit=dev
 
 COPY --from=builder /app/dist ./dist
 COPY data ./data
+COPY src/locales ./dist/locales
 
 ENV NODE_ENV=production
 ENV DATA_PATH=/app/data

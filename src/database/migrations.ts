@@ -52,5 +52,11 @@ export function runMigrations(): void {
 
     CREATE INDEX IF NOT EXISTS idx_triggers_guild
     ON custom_triggers(guild_id, active);
+
+    CREATE TABLE IF NOT EXISTS guild_settings (
+      guildId TEXT PRIMARY KEY,
+      language TEXT DEFAULT 'en',
+      managerRoles TEXT DEFAULT '[]'
+    );
   `);
 }

@@ -89,6 +89,37 @@ const commands = [
   new SlashCommandBuilder()
     .setName('achievements')
     .setDescription('View your achievements'),
+
+  new SlashCommandBuilder()
+    .setName('settings')
+    .setDescription('Bot settings for this server')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addSubcommand(sub =>
+      sub.setName('language')
+        .setDescription('Set bot language for this server')
+        .addStringOption(opt =>
+          opt.setName('lang')
+            .setDescription('Language')
+            .setRequired(true)
+            .addChoices(
+              { name: '🇺🇸 English', value: 'en' },
+              { name: '🇷🇺 Русский', value: 'ru' },
+              { name: '🇩🇪 Deutsch', value: 'de' },
+            )))
+    .addSubcommandGroup(group =>
+      group.setName('managers')
+        .setDescription('Manage bot manager roles')
+        .addSubcommand(sub =>
+          sub.setName('add')
+            .setDescription('Add a manager role')
+            .addRoleOption(opt => opt.setName('role').setDescription('Role to add').setRequired(true)))
+        .addSubcommand(sub =>
+          sub.setName('remove')
+            .setDescription('Remove a manager role')
+            .addRoleOption(opt => opt.setName('role').setDescription('Role to remove').setRequired(true)))
+        .addSubcommand(sub =>
+          sub.setName('list')
+            .setDescription('List all manager roles'))),
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);

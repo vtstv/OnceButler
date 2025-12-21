@@ -11,6 +11,15 @@ Each member has three hidden stats (0-100):
 
 **Maximum 2 roles per user** are assigned at any time, prioritized by importance.
 
+## Localization
+
+Bot supports multiple languages per server:
+- 🇺🇸 English (default)
+- 🇷🇺 Русский
+- 🇩🇪 Deutsch
+
+Use `/settings language` to change the server language.
+
 ## Role Colors
 
 Each category has a distinct color for visual differentiation:
@@ -169,12 +178,43 @@ Achievement roles are permanent and don't count toward the 2-role limit.
 | `/roles import` | Create missing roles in Discord |
 | `/roles export` | Export Discord roles to JSON |
 | `/roles reload` | Reload role definitions from disk |
+| `/roles purge` | **Delete ALL bot-managed roles from Discord** |
 | `/trigger create` | Create a stat modifier trigger |
 | `/trigger list` | List all triggers |
 | `/trigger stop` | Stop an active trigger |
+| `/settings language` | Set bot language for server |
+| `/settings managers add/remove/list` | Manage bot manager roles |
+
+## Manager Roles
+
+Server admins can designate Discord roles as "manager roles":
+- Members with manager roles can use admin bot commands
+- Useful for delegating bot management without server admin perms
+- Use `/settings managers add @role` to add a manager role
 
 ## Data Persistence
 
-- **SQLite** - Member statistics, progress, achievements, triggers
-- **JSON files** - Role definitions (editable, hot-reloadable)
+- **SQLite** - Member statistics, progress, achievements, triggers, server settings
+- **JSON files** - Role definitions (editable, hot-reloadable), localization
 - Both stored in Docker volumes for persistence
+
+## Docker Deployment
+
+```bash
+# Build and run
+docker-compose up -d
+
+# Register slash commands
+docker exec once-butler node dist/registerCommands.js
+
+# View logs
+docker logs -f once-butler
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `DISCORD_TOKEN` | Bot token from Discord Developer Portal |
+| `DISCORD_CLIENT_ID` | Application ID |
+| `TICK_INTERVAL` | Stat update interval in ms (default: 60000) |

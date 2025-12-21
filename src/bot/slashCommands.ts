@@ -8,6 +8,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ComponentType,
+  GuildMember,
 } from 'discord.js';
 import { getRoles, addRole, removeRole, loadRoles } from '../roles/roleStore.js';
 import { importRolesToGuild, exportRolesFromGuild } from '../roles/roleImporter.js';
@@ -16,7 +17,15 @@ import { getMemberStats, getAllGuildMembers } from '../database/repositories/mem
 import { getMemberProgress } from '../database/repositories/progressRepo.js';
 import { getUserAchievements, ACHIEVEMENTS } from '../database/repositories/achievementsRepo.js';
 import { createTrigger, listGuildTriggers, deactivateTrigger } from '../database/repositories/triggersRepo.js';
-import { t, detectLocale, type Locale } from '../utils/i18n.js';
+import { 
+  getGuildLanguage, 
+  setGuildLanguage, 
+  getManagerRoles, 
+  addManagerRole, 
+  removeManagerRole,
+  isManager 
+} from '../database/repositories/settingsRepo.js';
+import { t, isValidLocale, getLocaleName, type Locale } from '../utils/i18n.js';
 import type { RoleCategory, RoleDefinition } from '../roles/types.js';
 
 export const commands = [
@@ -103,10 +112,55 @@ export const commands = [
   new SlashCommandBuilder()
     .setName('achievements')
     .setDescription('View your achievements'),
+
+  new SlashCommandBuilder()
+    .setName('settings')
+    .setDescription('Bot settings for this server')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addSubcommand(sub =>
+      sub.setName('language')
+        .setDescription('Set bot language for this server')
+        .addStringOption(opt =>
+          opt.setName('lang')
+            .setDescription('Language')
+            .setRequired(true)
+            .addChoices(
+              { name: '🇺🇸 English', value: 'en' },
+              { name: '🇷🇺 Русский', value: 'ru' },
+              { name: '🇩🇪 Deutsch', value: 'de' },
+            )))
+    .addSubcommandGroup(group =>
+      group.setName('managers')
+        .setDescription('Manage bot manager roles')
+        .addSubcommand(sub =>
+          sub.setName('add')
+            .setDescription('Add a manager role')
+            .addRoleOption(opt => opt.setName('role').setDescription('Role to add').setRequired(true)))
+        .addSubcommand(sub =>
+          sub.setName('remove')
+            .setDescription('Remove a manager role')
+            .addRoleOption(opt => opt.setName('role').setDescription('Role to remove').setRequired(true)))
+        .addSubcommand(sub =>
+          sub.setName('list')
+            .setDescription('List all manager roles'))),
 ];
 
 function getLocale(interaction: ChatInputCommandInteraction): Locale {
-  return detectLocale(interaction.locale);
+  if (!interaction.guildId) return 'en';
+  const lang = getGuildLanguage(interaction.guildId);
+  return isValidLocale(lang) ? lang : 'en';
+}
+
+function hasAdminPermission(interaction: ChatInputCommandInteraction): boolean {
+  if (!interaction.guild || !interaction.member) return false;
+  const member = interaction.member as GuildMember;
+  
+  // Server admin always has permission
+  if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;
+  
+  // Check if member has a manager role
+  const memberRoleIds = member.roles.cache.map(r => r.id);
+  return isManager(interaction.guild.id, memberRoleIds);
 }
 
 export async function handleInteraction(interaction: Interaction): Promise<void> {
@@ -128,10 +182,21 @@ export async function handleInteraction(interaction: Interaction): Promise<void>
     case 'achievements':
       await handleAchievements(interaction);
       break;
+    case 'settings':
+      await handleSettingsCommand(interaction);
+      break;
   }
 }
 
 async function handleRolesCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
+  
+  // Check admin permission for all roles commands
+  if (!hasAdminPermission(interaction)) {
+    await interaction.reply({ content: t(locale, 'common.noPermission'), ephemeral: true });
+    return;
+  }
+  
   const subcommand = interaction.options.getSubcommand();
 
   switch (subcommand) {
@@ -382,6 +447,12 @@ async function handleTriggerCommand(interaction: ChatInputCommandInteraction): P
     return;
   }
 
+  // Check admin permission
+  if (!hasAdminPermission(interaction)) {
+    await interaction.reply({ content: t(locale, 'common.noPermission'), ephemeral: true });
+    return;
+  }
+
   const subcommand = interaction.options.getSubcommand();
 
   switch (subcommand) {
@@ -459,4 +530,99 @@ async function handleAchievements(interaction: ChatInputCommandInteraction): Pro
     .setTimestamp();
 
   await interaction.reply({ embeds: [embed], ephemeral: true });
+}
+
+async function handleSettingsCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
+  if (!interaction.guild) {
+    await interaction.reply({ content: t(locale, 'common.serverOnly'), ephemeral: true });
+    return;
+  }
+
+  const subcommandGroup = interaction.options.getSubcommandGroup();
+  const subcommand = interaction.options.getSubcommand();
+
+  if (subcommand === 'language') {
+    // Check admin permission
+    if (!hasAdminPermission(interaction)) {
+      await interaction.reply({ content: t(locale, 'common.noPermission'), ephemeral: true });
+      return;
+    }
+
+    const lang = interaction.options.getString('lang', true);
+    if (!isValidLocale(lang)) {
+      await interaction.reply({ content: t(locale, 'settings.language.invalid'), ephemeral: true });
+      return;
+    }
+
+    setGuildLanguage(interaction.guild.id, lang);
+    const newLocale = lang as Locale;
+    await interaction.reply({ 
+      content: t(newLocale, 'settings.language.changed', { language: getLocaleName(newLocale) }), 
+      ephemeral: true 
+    });
+    return;
+  }
+
+  if (subcommandGroup === 'managers') {
+    const member = interaction.member as GuildMember;
+    // Only server admins can manage managers
+    if (!member.permissions.has(PermissionFlagsBits.Administrator)) {
+      await interaction.reply({ content: t(locale, 'settings.managers.adminOnly'), ephemeral: true });
+      return;
+    }
+
+    switch (subcommand) {
+      case 'add': {
+        const role = interaction.options.getRole('role', true);
+        const added = addManagerRole(interaction.guild.id, role.id);
+        if (added) {
+          await interaction.reply({ 
+            content: t(locale, 'settings.managers.added', { role: role.name }), 
+            ephemeral: true 
+          });
+        } else {
+          await interaction.reply({ 
+            content: t(locale, 'settings.managers.alreadyExists', { role: role.name }), 
+            ephemeral: true 
+          });
+        }
+        break;
+      }
+      case 'remove': {
+        const role = interaction.options.getRole('role', true);
+        const removed = removeManagerRole(interaction.guild.id, role.id);
+        if (removed) {
+          await interaction.reply({ 
+            content: t(locale, 'settings.managers.removed', { role: role.name }), 
+            ephemeral: true 
+          });
+        } else {
+          await interaction.reply({ 
+            content: t(locale, 'settings.managers.notFound', { role: role.name }), 
+            ephemeral: true 
+          });
+        }
+        break;
+      }
+      case 'list': {
+        const managerRoleIds = getManagerRoles(interaction.guild.id);
+        if (managerRoleIds.length === 0) {
+          await interaction.reply({ content: t(locale, 'settings.managers.empty'), ephemeral: true });
+          return;
+        }
+
+        const roleNames = managerRoleIds
+          .map(id => interaction.guild!.roles.cache.get(id))
+          .filter(Boolean)
+          .map(r => `• <@&${r!.id}>`);
+
+        await interaction.reply({ 
+          content: t(locale, 'settings.managers.list', { roles: roleNames.join('\n') }), 
+          ephemeral: true 
+        });
+        break;
+      }
+    }
+  }
 }

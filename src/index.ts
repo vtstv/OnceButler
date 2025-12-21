@@ -4,12 +4,15 @@ import { runMigrations } from './database/migrations.js';
 import { loadRoles } from './roles/roleStore.js';
 import { closeDb } from './database/db.js';
 import { stopTickScheduler } from './scheduler/tickScheduler.js';
+import { initLocales } from './utils/i18n.js';
 
 async function main(): Promise<void> {
   console.log('Starting OnceButler...');
 
   runMigrations();
   console.log('Database migrations complete.');
+
+  initLocales();
 
   loadRoles();
   console.log('Role definitions loaded.');
