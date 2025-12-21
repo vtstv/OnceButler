@@ -1,0 +1,17 @@
+services:
+  bot:
+    build: .
+    container_name: once-butler
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DATA_PATH=/app/data
+    volumes:
+      - bot-data:/app/data
+    mem_limit: 256m
+    cpus: 0.5
+
+volumes:
+  bot-data:
