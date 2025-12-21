@@ -39,7 +39,9 @@ const commands = [
     .addSubcommand(sub =>
       sub.setName('export').setDescription('Export Discord roles to JSON'))
     .addSubcommand(sub =>
-      sub.setName('reload').setDescription('Reload role definitions from disk')),
+      sub.setName('reload').setDescription('Reload role definitions from disk'))
+    .addSubcommand(sub =>
+      sub.setName('purge').setDescription('Delete ALL bot-managed roles from Discord')),
 
   new SlashCommandBuilder()
     .setName('stats')

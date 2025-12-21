@@ -154,3 +154,33 @@ export function clearExpiredChaosRole(stats: MemberStats): boolean {
   }
   return false;
 }
+
+export function getAllManagedRoleNames(): string[] {
+  return [...ALL_MANAGED_ROLES, ...getAchievementRoles()];
+}
+
+export async function purgeAllRoles(guild: Guild): Promise<{ deleted: number; failed: number }> {
+  const allRoleNames = getAllManagedRoleNames();
+  let deleted = 0;
+  let failed = 0;
+
+  for (const roleName of allRoleNames) {
+    const role = guild.roles.cache.find(r => r.name === roleName);
+    if (role) {
+      try {
+        await role.delete('OnceButler role purge');
+        deleted++;
+      } catch (err) {
+        console.error(`Failed to delete role ${roleName}:`, err);
+        failed++;
+      }
+    }
+  }
+
+  return { deleted, failed };
+}
+
+export function countManagedRoles(guild: Guild): number {
+  const allRoleNames = getAllManagedRoleNames();
+  return guild.roles.cache.filter(r => allRoleNames.includes(r.name)).size;
+}

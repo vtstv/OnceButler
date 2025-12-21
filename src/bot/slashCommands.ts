@@ -4,13 +4,19 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ComponentType,
 } from 'discord.js';
 import { getRoles, addRole, removeRole, loadRoles } from '../roles/roleStore.js';
 import { importRolesToGuild, exportRolesFromGuild } from '../roles/roleImporter.js';
+import { purgeAllRoles, countManagedRoles } from '../roles/roleEngine.js';
 import { getMemberStats, getAllGuildMembers } from '../database/repositories/memberStatsRepo.js';
 import { getMemberProgress } from '../database/repositories/progressRepo.js';
 import { getUserAchievements, ACHIEVEMENTS } from '../database/repositories/achievementsRepo.js';
 import { createTrigger, listGuildTriggers, deactivateTrigger } from '../database/repositories/triggersRepo.js';
+import { t, detectLocale, type Locale } from '../utils/i18n.js';
 import type { RoleCategory, RoleDefinition } from '../roles/types.js';
 
 export const commands = [
@@ -47,7 +53,9 @@ export const commands = [
     .addSubcommand(sub =>
       sub.setName('export').setDescription('Export Discord roles to JSON'))
     .addSubcommand(sub =>
-      sub.setName('reload').setDescription('Reload role definitions from disk')),
+      sub.setName('reload').setDescription('Reload role definitions from disk'))
+    .addSubcommand(sub =>
+      sub.setName('purge').setDescription('Delete ALL bot-managed roles from Discord')),
 
   new SlashCommandBuilder()
     .setName('stats')
@@ -97,6 +105,10 @@ export const commands = [
     .setDescription('View your achievements'),
 ];
 
+function getLocale(interaction: ChatInputCommandInteraction): Locale {
+  return detectLocale(interaction.locale);
+}
+
 export async function handleInteraction(interaction: Interaction): Promise<void> {
   if (!interaction.isChatInputCommand()) return;
 
@@ -141,13 +153,17 @@ async function handleRolesCommand(interaction: ChatInputCommandInteraction): Pro
     case 'reload':
       await handleReload(interaction);
       break;
+    case 'purge':
+      await handlePurge(interaction);
+      break;
   }
 }
 
 async function handleList(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
   const roles = getRoles();
   if (roles.length === 0) {
-    await interaction.reply({ content: 'No roles defined.', ephemeral: true });
+    await interaction.reply({ content: t(locale, 'roles.list.empty'), ephemeral: true });
     return;
   }
 
@@ -156,11 +172,12 @@ async function handleList(interaction: ChatInputCommandInteraction): Promise<voi
     return acc;
   }, {} as Record<string, RoleDefinition[]>);
 
-  let response = '**Managed Roles:**\n';
+  let response = `**${t(locale, 'roles.list.title')}**\n`;
   for (const [cat, list] of Object.entries(grouped)) {
     response += `\n__${cat}__\n`;
     for (const r of list) {
-      response += `• ${r.roleId} (priority: ${r.priority}${r.temporary ? ', temp' : ''})\n`;
+      const temp = r.temporary ? `, ${t(locale, 'roles.list.temp')}` : '';
+      response += `• ${r.roleId} (${t(locale, 'roles.list.priority')}: ${r.priority}${temp})\n`;
     }
   }
 
@@ -168,6 +185,7 @@ async function handleList(interaction: ChatInputCommandInteraction): Promise<voi
 }
 
 async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
   const name = interaction.options.getString('name', true);
   const category = interaction.options.getString('category', true) as RoleCategory;
   const priority = interaction.options.getInteger('priority', true);
@@ -175,23 +193,25 @@ async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void
   const duration = interaction.options.getInteger('duration') ?? null;
 
   addRole({ roleId: name, category, priority, temporary, durationMinutes: duration });
-  await interaction.reply({ content: `Role **${name}** added/updated.`, ephemeral: true });
+  await interaction.reply({ content: t(locale, 'roles.add.success', { name }), ephemeral: true });
 }
 
 async function handleRemove(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
   const name = interaction.options.getString('name', true);
   const removed = removeRole(name);
 
   if (removed) {
-    await interaction.reply({ content: `Role **${name}** removed from storage.`, ephemeral: true });
+    await interaction.reply({ content: t(locale, 'roles.remove.success', { name }), ephemeral: true });
   } else {
-    await interaction.reply({ content: `Role **${name}** not found.`, ephemeral: true });
+    await interaction.reply({ content: t(locale, 'roles.remove.notFound', { name }), ephemeral: true });
   }
 }
 
 async function handleImport(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
   if (!interaction.guild) {
-    await interaction.reply({ content: 'This command must be used in a server.', ephemeral: true });
+    await interaction.reply({ content: t(locale, 'common.serverOnly'), ephemeral: true });
     return;
   }
 
@@ -199,33 +219,86 @@ async function handleImport(interaction: ChatInputCommandInteraction): Promise<v
   const created = await importRolesToGuild(interaction.guild);
 
   if (created.length === 0) {
-    await interaction.editReply('All roles already exist in Discord.');
+    await interaction.editReply(t(locale, 'roles.import.allExist'));
   } else {
-    await interaction.editReply(`Created roles: ${created.join(', ')}`);
+    await interaction.editReply(t(locale, 'roles.import.success', { roles: created.join(', ') }));
   }
 }
 
 async function handleExport(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
   if (!interaction.guild) {
-    await interaction.reply({ content: 'This command must be used in a server.', ephemeral: true });
+    await interaction.reply({ content: t(locale, 'common.serverOnly'), ephemeral: true });
     return;
   }
 
   const exported = exportRolesFromGuild(interaction.guild);
   await interaction.reply({
-    content: `Exported ${exported.length} roles to JSON storage.`,
+    content: t(locale, 'roles.export.success', { count: exported.length.toString() }),
     ephemeral: true,
   });
 }
 
 async function handleReload(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
   const roles = loadRoles();
-  await interaction.reply({ content: `Reloaded ${roles.length} role definitions.`, ephemeral: true });
+  await interaction.reply({ content: t(locale, 'roles.reload.success', { count: roles.length.toString() }), ephemeral: true });
+}
+
+async function handlePurge(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
+  if (!interaction.guild) {
+    await interaction.reply({ content: t(locale, 'common.serverOnly'), ephemeral: true });
+    return;
+  }
+
+  const roleCount = countManagedRoles(interaction.guild);
+  if (roleCount === 0) {
+    await interaction.reply({ content: t(locale, 'roles.purge.noRoles'), ephemeral: true });
+    return;
+  }
+
+  // Confirmation with button
+  const confirmButton = new ButtonBuilder()
+    .setCustomId('purge_confirm')
+    .setLabel(t(locale, 'roles.purge.confirmButton', { count: roleCount.toString() }))
+    .setStyle(ButtonStyle.Danger);
+
+  const cancelButton = new ButtonBuilder()
+    .setCustomId('purge_cancel')
+    .setLabel(t(locale, 'common.cancel'))
+    .setStyle(ButtonStyle.Secondary);
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton, cancelButton);
+
+  const response = await interaction.reply({
+    content: t(locale, 'roles.purge.warning', { count: roleCount.toString() }),
+    components: [row],
+    ephemeral: true,
+  });
+
+  try {
+    const buttonInteraction = await response.awaitMessageComponent({
+      componentType: ComponentType.Button,
+      time: 30_000,
+    });
+
+    if (buttonInteraction.customId === 'purge_confirm') {
+      await buttonInteraction.update({ content: t(locale, 'roles.purge.inProgress'), components: [] });
+      const deleted = await purgeAllRoles(interaction.guild);
+      await buttonInteraction.editReply(t(locale, 'roles.purge.success', { count: deleted.toString() }));
+    } else {
+      await buttonInteraction.update({ content: t(locale, 'roles.purge.cancelled'), components: [] });
+    }
+  } catch {
+    await interaction.editReply({ content: t(locale, 'roles.purge.timeout'), components: [] });
+  }
 }
 
 async function handleStats(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
   if (!interaction.guild || !interaction.member) {
-    await interaction.reply({ content: 'This command must be used in a server.', ephemeral: true });
+    await interaction.reply({ content: t(locale, 'common.serverOnly'), ephemeral: true });
     return;
   }
 
@@ -237,20 +310,20 @@ async function handleStats(interaction: ChatInputCommandInteraction): Promise<vo
   const activityBar = createProgressBar(stats.activity);
 
   const embed = new EmbedBuilder()
-    .setTitle(`📊 Stats for ${interaction.user.displayName}`)
+    .setTitle(t(locale, 'stats.title', { user: interaction.user.displayName }))
     .setColor(0x5865F2)
     .addFields(
-      { name: '😊 Mood', value: `${moodBar} ${stats.mood.toFixed(1)}`, inline: false },
-      { name: '⚡ Energy', value: `${energyBar} ${stats.energy.toFixed(1)}`, inline: false },
-      { name: '🎯 Activity', value: `${activityBar} ${stats.activity.toFixed(1)}`, inline: false },
-      { name: '🎤 Voice Time', value: `${Math.floor(progress.voiceMinutes / 60)}h ${progress.voiceMinutes % 60}m`, inline: true },
-      { name: '🟢 Online Time', value: `${Math.floor(progress.onlineMinutes / 60)}h ${progress.onlineMinutes % 60}m`, inline: true },
+      { name: `😊 ${t(locale, 'stats.mood')}`, value: `${moodBar} ${stats.mood.toFixed(1)}`, inline: false },
+      { name: `⚡ ${t(locale, 'stats.energy')}`, value: `${energyBar} ${stats.energy.toFixed(1)}`, inline: false },
+      { name: `🎯 ${t(locale, 'stats.activity')}`, value: `${activityBar} ${stats.activity.toFixed(1)}`, inline: false },
+      { name: `🎤 ${t(locale, 'stats.voiceTime')}`, value: `${Math.floor(progress.voiceMinutes / 60)}${t(locale, 'common.hours')} ${progress.voiceMinutes % 60}${t(locale, 'common.minutes')}`, inline: true },
+      { name: `🟢 ${t(locale, 'stats.onlineTime')}`, value: `${Math.floor(progress.onlineMinutes / 60)}${t(locale, 'common.hours')} ${progress.onlineMinutes % 60}${t(locale, 'common.minutes')}`, inline: true },
     )
     .setTimestamp();
 
   if (stats.chaosRole && stats.chaosExpires > Date.now()) {
     const remaining = Math.ceil((stats.chaosExpires - Date.now()) / 60000);
-    embed.addFields({ name: '🎲 Chaos Effect', value: `${stats.chaosRole} (${remaining}m left)`, inline: false });
+    embed.addFields({ name: `🎲 ${t(locale, 'stats.chaosEffect')}`, value: `${stats.chaosRole} (${remaining}${t(locale, 'common.minutesShort')} ${t(locale, 'common.left')})`, inline: false });
   }
 
   await interaction.reply({ embeds: [embed], ephemeral: true });
@@ -263,8 +336,9 @@ function createProgressBar(value: number): string {
 }
 
 async function handleLeaderboard(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
   if (!interaction.guild) {
-    await interaction.reply({ content: 'This command must be used in a server.', ephemeral: true });
+    await interaction.reply({ content: t(locale, 'common.serverOnly'), ephemeral: true });
     return;
   }
 
@@ -276,11 +350,12 @@ async function handleLeaderboard(interaction: ChatInputCommandInteraction): Prom
     .slice(0, 10);
 
   if (sorted.length === 0) {
-    await interaction.reply({ content: 'No members found.', ephemeral: true });
+    await interaction.reply({ content: t(locale, 'leaderboard.noMembers'), ephemeral: true });
     return;
   }
 
   const statEmoji = { mood: '😊', energy: '⚡', activity: '🎯' }[stat];
+  const statName = t(locale, `stats.${stat}` as 'stats.mood' | 'stats.energy' | 'stats.activity');
   const lines: string[] = [];
 
   for (let i = 0; i < sorted.length; i++) {
@@ -292,7 +367,7 @@ async function handleLeaderboard(interaction: ChatInputCommandInteraction): Prom
   }
 
   const embed = new EmbedBuilder()
-    .setTitle(`${statEmoji} ${stat.charAt(0).toUpperCase() + stat.slice(1)} Leaderboard`)
+    .setTitle(`${statEmoji} ${statName} ${t(locale, 'leaderboard.title')}`)
     .setColor(0x5865F2)
     .setDescription(lines.join('\n'))
     .setTimestamp();
@@ -301,8 +376,9 @@ async function handleLeaderboard(interaction: ChatInputCommandInteraction): Prom
 }
 
 async function handleTriggerCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
   if (!interaction.guild) {
-    await interaction.reply({ content: 'This command must be used in a server.', ephemeral: true });
+    await interaction.reply({ content: t(locale, 'common.serverOnly'), ephemeral: true });
     return;
   }
 
@@ -316,9 +392,12 @@ async function handleTriggerCommand(interaction: ChatInputCommandInteraction): P
       const duration = interaction.options.getInteger('duration') ?? null;
 
       const id = createTrigger(interaction.guild.id, name, stat, modifier, duration);
-      const durationText = duration ? `for ${duration} minutes` : 'permanently';
+      const durationText = duration 
+        ? t(locale, 'trigger.durationMinutes', { minutes: duration.toString() })
+        : t(locale, 'trigger.permanent');
+      const modifierText = `${modifier > 0 ? '+' : ''}${modifier}`;
       await interaction.reply({
-        content: `✅ Trigger **${name}** created (ID: ${id}). ${stat} will change by ${modifier > 0 ? '+' : ''}${modifier} per tick ${durationText}.`,
+        content: t(locale, 'trigger.create.success', { name, id: id.toString(), stat, modifier: modifierText, duration: durationText }),
         ephemeral: true,
       });
       break;
@@ -326,26 +405,28 @@ async function handleTriggerCommand(interaction: ChatInputCommandInteraction): P
     case 'list': {
       const triggers = listGuildTriggers(interaction.guild.id);
       if (triggers.length === 0) {
-        await interaction.reply({ content: 'No triggers found.', ephemeral: true });
+        await interaction.reply({ content: t(locale, 'trigger.list.empty'), ephemeral: true });
         return;
       }
 
-      const lines = triggers.map(t => {
-        const status = t.active ? '🟢' : '🔴';
-        const expires = t.expiresAt ? ` (expires <t:${Math.floor(t.expiresAt / 1000)}:R>)` : ' (permanent)';
-        return `${status} **#${t.id}** ${t.name} — ${t.statType} ${t.modifier > 0 ? '+' : ''}${t.modifier}${expires}`;
+      const lines = triggers.map(tr => {
+        const status = tr.active ? '🟢' : '🔴';
+        const expires = tr.expiresAt 
+          ? ` (${t(locale, 'trigger.expires')} <t:${Math.floor(tr.expiresAt / 1000)}:R>)` 
+          : ` (${t(locale, 'trigger.permanent')})`;
+        return `${status} **#${tr.id}** ${tr.name} — ${tr.statType} ${tr.modifier > 0 ? '+' : ''}${tr.modifier}${expires}`;
       });
 
-      await interaction.reply({ content: `**Triggers:**\n${lines.join('\n')}`, ephemeral: true });
+      await interaction.reply({ content: `**${t(locale, 'trigger.list.title')}**\n${lines.join('\n')}`, ephemeral: true });
       break;
     }
     case 'stop': {
       const id = interaction.options.getInteger('id', true);
       const stopped = deactivateTrigger(id);
       if (stopped) {
-        await interaction.reply({ content: `✅ Trigger #${id} stopped.`, ephemeral: true });
+        await interaction.reply({ content: t(locale, 'trigger.stop.success', { id: id.toString() }), ephemeral: true });
       } else {
-        await interaction.reply({ content: `❌ Trigger #${id} not found.`, ephemeral: true });
+        await interaction.reply({ content: t(locale, 'trigger.stop.notFound', { id: id.toString() }), ephemeral: true });
       }
       break;
     }
@@ -353,8 +434,9 @@ async function handleTriggerCommand(interaction: ChatInputCommandInteraction): P
 }
 
 async function handleAchievements(interaction: ChatInputCommandInteraction): Promise<void> {
+  const locale = getLocale(interaction);
   if (!interaction.guild) {
-    await interaction.reply({ content: 'This command must be used in a server.', ephemeral: true });
+    await interaction.reply({ content: t(locale, 'common.serverOnly'), ephemeral: true });
     return;
   }
 
@@ -371,7 +453,7 @@ async function handleAchievements(interaction: ChatInputCommandInteraction): Pro
   const total = ACHIEVEMENTS.length;
 
   const embed = new EmbedBuilder()
-    .setTitle(`🏆 Achievements (${unlocked}/${total})`)
+    .setTitle(t(locale, 'achievements.title', { unlocked: unlocked.toString(), total: total.toString() }))
     .setColor(unlocked === total ? 0xFFD700 : 0x5865F2)
     .setDescription(lines.join('\n'))
     .setTimestamp();
