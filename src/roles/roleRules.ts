@@ -1,5 +1,7 @@
 import type { MemberStats } from '../database/repositories/memberStatsRepo.js';
 import { getTimePeriod, type TimePeriod } from '../utils/time.js';
+import { getMapping, getRoles } from './roleStore.js';
+import type { RoleMapping } from './types.js';
 
 export interface RoleAssignment {
   mood: string | null;
@@ -13,56 +15,57 @@ interface RolePriority {
   priority: number;
 }
 
-export function getMoodRole(mood: number): string | null {
-  if (mood >= 80) return 'Optimist 3';
-  if (mood >= 60) return 'Optimist 2';
-  if (mood >= 40) return 'Optimist 1';
-  if (mood >= 20) return 'Feeling blue 1';
-  return 'Feeling blue 2';
+export function getMoodRole(mood: number, mapping: RoleMapping): string | null {
+  if (mood >= 80) return mapping.mood.high2;
+  if (mood >= 60) return mapping.mood.high1;
+  if (mood >= 40) return mapping.mood.mid;
+  if (mood >= 20) return mapping.mood.low1;
+  return mapping.mood.low2;
 }
 
-export function getEnergyRole(energy: number): string | null {
-  if (energy < 15) return 'Worn-out 2';
-  if (energy < 30) return 'Worn-out';
-  if (energy < 60) return 'Stable Energy';
-  if (energy < 80) return 'Power Rewind 1';
-  return 'Power Rewind 2';
+export function getEnergyRole(energy: number, mapping: RoleMapping): string | null {
+  if (energy < 15) return mapping.energy.low2;
+  if (energy < 30) return mapping.energy.low1;
+  if (energy < 60) return mapping.energy.mid;
+  if (energy < 80) return mapping.energy.high1;
+  return mapping.energy.high2;
 }
 
-export function getActivityRole(activity: number): string | null {
-  if (activity >= 80) return 'Come As One';
-  if (activity >= 50) return 'Little Helper';
-  if (activity >= 20) return 'Panovision';
-  return 'Holding the team back';
+export function getActivityRole(activity: number, mapping: RoleMapping): string | null {
+  if (activity >= 80) return mapping.activity.high;
+  if (activity >= 50) return mapping.activity.mid1;
+  if (activity >= 20) return mapping.activity.mid2;
+  return mapping.activity.low;
 }
 
-export function getTimeRole(period: TimePeriod = getTimePeriod()): string {
+export function getTimeRole(mapping: RoleMapping, period: TimePeriod = getTimePeriod()): string {
   switch (period) {
-    case 'night': return 'Lunar Oracle';
-    case 'day': return 'Praise the Sun';
-    case 'evening': return 'Two-Shift System';
+    case 'night': return mapping.time.night;
+    case 'day': return mapping.time.day;
+    case 'evening': return mapping.time.evening;
   }
 }
 
-export function calculateRoleAssignment(stats: MemberStats): RoleAssignment {
+export function calculateRoleAssignment(stats: MemberStats, preset: string = 'en'): RoleAssignment {
+  const mapping = getMapping(preset);
   return {
-    mood: getMoodRole(stats.mood),
-    energy: getEnergyRole(stats.energy),
-    activity: getActivityRole(stats.activity),
-    time: getTimeRole(),
+    mood: getMoodRole(stats.mood, mapping),
+    energy: getEnergyRole(stats.energy, mapping),
+    activity: getActivityRole(stats.activity, mapping),
+    time: getTimeRole(mapping),
   };
 }
 
 function getRolePriority(role: string, category: string): number {
   if (category === 'chaos') return 100;
   if (category === 'mood') {
-    if (role.includes('3')) return 50;
-    if (role.includes('2')) return 40;
+    if (role.includes('3') || role.includes('3')) return 50;
+    if (role.includes('2') || role.includes('2')) return 40;
     return 30;
   }
   if (category === 'energy') {
-    if (role.includes('2')) return 45;
-    if (role.includes('1')) return 35;
+    if (role.includes('2') || role.includes('2')) return 45;
+    if (role.includes('1') || role.includes('1')) return 35;
     return 25;
   }
   if (category === 'activity') return 20;
@@ -99,17 +102,46 @@ export function selectPriorityRoles(
   return uniqueRoles.slice(0, maxRoles);
 }
 
-export const MOOD_ROLES = ['Optimist 3', 'Optimist 2', 'Optimist 1', 'Feeling blue 1', 'Feeling blue 2'];
-export const ENERGY_ROLES = ['Power Rewind 2', 'Power Rewind 1', 'Stable Energy', 'Worn-out', 'Worn-out 2'];
-export const ACTIVITY_ROLES = ['Come As One', 'Little Helper', 'Panovision', 'Holding the team back'];
-export const TIME_ROLES = ['Lunar Oracle', 'Praise the Sun', 'Two-Shift System'];
-export const CHAOS_ROLES = ['Worn-out', 'Lazy', 'Snooze Aficionado', 'Optimist 1', 'Unplanned Production'];
+export function getMoodRoles(preset: string = 'en'): string[] {
+  const mapping = getMapping(preset);
+  return [mapping.mood.high2, mapping.mood.high1, mapping.mood.mid, mapping.mood.low1, mapping.mood.low2];
+}
 
-export function getRoleCategory(roleName: string): string | null {
-  if (MOOD_ROLES.includes(roleName)) return 'mood';
-  if (ENERGY_ROLES.includes(roleName)) return 'energy';
-  if (ACTIVITY_ROLES.includes(roleName)) return 'activity';
-  if (TIME_ROLES.includes(roleName)) return 'time';
-  if (CHAOS_ROLES.includes(roleName)) return 'chaos';
+export function getEnergyRoles(preset: string = 'en'): string[] {
+  const mapping = getMapping(preset);
+  return [mapping.energy.high2, mapping.energy.high1, mapping.energy.mid, mapping.energy.low1, mapping.energy.low2];
+}
+
+export function getActivityRoles(preset: string = 'en'): string[] {
+  const mapping = getMapping(preset);
+  return [mapping.activity.high, mapping.activity.mid1, mapping.activity.mid2, mapping.activity.low];
+}
+
+export function getTimeRoles(preset: string = 'en'): string[] {
+  const mapping = getMapping(preset);
+  return [mapping.time.night, mapping.time.day, mapping.time.evening];
+}
+
+export function getChaosRoles(preset: string = 'en'): string[] {
+  const mapping = getMapping(preset);
+  return mapping.chaos;
+}
+
+export function getAllBotRoles(preset: string = 'en'): string[] {
+  return [
+    ...getMoodRoles(preset),
+    ...getEnergyRoles(preset),
+    ...getActivityRoles(preset),
+    ...getTimeRoles(preset),
+    ...getChaosRoles(preset),
+  ];
+}
+
+export function getRoleCategory(roleName: string, preset: string = 'en'): string | null {
+  if (getMoodRoles(preset).includes(roleName)) return 'mood';
+  if (getEnergyRoles(preset).includes(roleName)) return 'energy';
+  if (getActivityRoles(preset).includes(roleName)) return 'activity';
+  if (getTimeRoles(preset).includes(roleName)) return 'time';
+  if (getChaosRoles(preset).includes(roleName)) return 'chaos';
   return null;
 }

@@ -23,9 +23,12 @@ import {
   getManagerRoles, 
   addManagerRole, 
   removeManagerRole,
-  isManager 
+  isManager,
+  getGuildRolePreset,
+  setGuildRolePreset,
 } from '../database/repositories/settingsRepo.js';
 import { t, isValidLocale, getLocaleName, type Locale } from '../utils/i18n.js';
+import { getAvailablePresets, clearPresetCache } from '../roles/roleStore.js';
 import type { RoleCategory, RoleDefinition } from '../roles/types.js';
 
 export const commands = [
@@ -159,7 +162,15 @@ function hasAdminPermission(interaction: ChatInputCommandInteraction): boolean {
   if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;
   
   // Check if member has a manager role
-  const memberRoleIds = member.roles.cache.map(r => r.id);
+  // member.roles can be a Collection or an APIGuildMember with string array
+  let memberRoleIds: string[];
+  if ('cache' in member.roles) {
+    memberRoleIds = member.roles.cache.map(r => r.id);
+  } else {
+    // API response returns array of role IDs
+    memberRoleIds = member.roles as unknown as string[];
+  }
+  
   return isManager(interaction.guild.id, memberRoleIds);
 }
 
@@ -226,7 +237,8 @@ async function handleRolesCommand(interaction: ChatInputCommandInteraction): Pro
 
 async function handleList(interaction: ChatInputCommandInteraction): Promise<void> {
   const locale = getLocale(interaction);
-  const roles = getRoles();
+  const preset = interaction.guild ? getGuildRolePreset(interaction.guild.id) : 'en';
+  const roles = getRoles(preset);
   if (roles.length === 0) {
     await interaction.reply({ content: t(locale, 'roles.list.empty'), ephemeral: true });
     return;
@@ -237,7 +249,7 @@ async function handleList(interaction: ChatInputCommandInteraction): Promise<voi
     return acc;
   }, {} as Record<string, RoleDefinition[]>);
 
-  let response = `**${t(locale, 'roles.list.title')}**\n`;
+  let response = `**${t(locale, 'roles.list.title')}** (preset: ${preset})\n`;
   for (const [cat, list] of Object.entries(grouped)) {
     response += `\n__${cat}__\n`;
     for (const r of list) {
@@ -559,6 +571,34 @@ async function handleSettingsCommand(interaction: ChatInputCommandInteraction): 
     const newLocale = lang as Locale;
     await interaction.reply({ 
       content: t(newLocale, 'settings.language.changed', { language: getLocaleName(newLocale) }), 
+      ephemeral: true 
+    });
+    return;
+  }
+
+  if (subcommand === 'preset') {
+    // Check admin permission
+    if (!hasAdminPermission(interaction)) {
+      await interaction.reply({ content: t(locale, 'common.noPermission'), ephemeral: true });
+      return;
+    }
+
+    const preset = interaction.options.getString('preset', true);
+    const availablePresets = getAvailablePresets();
+    if (!availablePresets.includes(preset)) {
+      await interaction.reply({ 
+        content: t(locale, 'settings.preset.invalid', { presets: availablePresets.join(', ') }), 
+        ephemeral: true 
+      });
+      return;
+    }
+
+    setGuildRolePreset(interaction.guild.id, preset);
+    clearPresetCache(); // Clear cache to reload new preset
+    
+    const presetNames: Record<string, string> = { en: '🇺🇸 English', ru: '🇷🇺 Русский' };
+    await interaction.reply({ 
+      content: t(locale, 'settings.preset.changed', { preset: presetNames[preset] ?? preset }), 
       ephemeral: true 
     });
     return;

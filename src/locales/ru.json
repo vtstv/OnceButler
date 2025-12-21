@@ -63,6 +63,8 @@
   "settings.language.current": "Текущий язык сервера: **{language}**",
   "settings.language.changed": "✅ Язык сервера изменён на **{language}**",
   "settings.language.invalid": "❌ Неверный язык. Доступны: en, ru, de",
+  "settings.preset.changed": "✅ Пресет ролей изменён на **{preset}**. Новые роли будут использовать эти названия. Выполните `/roles purge`, затем `/roles import` для пересоздания ролей с новыми именами.",
+  "settings.preset.invalid": "❌ Неверный пресет. Доступны: {presets}",
   "settings.managers.added": "✅ Роль **{role}** добавлена как менеджер бота.",
   "settings.managers.removed": "✅ Роль **{role}** удалена из менеджеров бота.",
   "settings.managers.notFound": "❌ Роль **{role}** не является менеджером бота.",

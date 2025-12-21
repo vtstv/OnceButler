@@ -4,18 +4,20 @@ export interface GuildSettings {
   guildId: string;
   language: string;
   managerRoles: string[];
+  rolePreset: string;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   language: 'en',
   managerRoles: [],
+  rolePreset: 'en',
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
   const db = getDb();
   const row = db.prepare(`
-    SELECT language, managerRoles FROM guild_settings WHERE guildId = ?
-  `).get(guildId) as { language: string; managerRoles: string } | undefined;
+    SELECT language, managerRoles, rolePreset FROM guild_settings WHERE guildId = ?
+  `).get(guildId) as { language: string; managerRoles: string; rolePreset: string } | undefined;
 
   if (!row) {
     return { guildId, ...DEFAULT_SETTINGS };
@@ -25,6 +27,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
     guildId,
     language: row.language,
     managerRoles: row.managerRoles ? JSON.parse(row.managerRoles) : [],
+    rolePreset: row.rolePreset ?? 'en',
   };
 }
 
@@ -37,10 +40,25 @@ export function getGuildLanguage(guildId: string): string {
 export function setGuildLanguage(guildId: string, language: string): void {
   const db = getDb();
   db.prepare(`
-    INSERT INTO guild_settings (guildId, language, managerRoles)
-    VALUES (?, ?, '[]')
+    INSERT INTO guild_settings (guildId, language, managerRoles, rolePreset)
+    VALUES (?, ?, '[]', 'en')
     ON CONFLICT(guildId) DO UPDATE SET language = excluded.language
   `).run(guildId, language);
+}
+
+export function getGuildRolePreset(guildId: string): string {
+  const db = getDb();
+  const row = db.prepare(`SELECT rolePreset FROM guild_settings WHERE guildId = ?`).get(guildId) as { rolePreset: string } | undefined;
+  return row?.rolePreset ?? 'en';
+}
+
+export function setGuildRolePreset(guildId: string, preset: string): void {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO guild_settings (guildId, language, managerRoles, rolePreset)
+    VALUES (?, 'en', '[]', ?)
+    ON CONFLICT(guildId) DO UPDATE SET rolePreset = excluded.rolePreset
+  `).run(guildId, preset);
 }
 
 export function getManagerRoles(guildId: string): string[] {
@@ -56,8 +74,8 @@ export function addManagerRole(guildId: string, roleId: string): boolean {
   
   current.push(roleId);
   db.prepare(`
-    INSERT INTO guild_settings (guildId, language, managerRoles)
-    VALUES (?, 'en', ?)
+    INSERT INTO guild_settings (guildId, language, managerRoles, rolePreset)
+    VALUES (?, 'en', ?, 'en')
     ON CONFLICT(guildId) DO UPDATE SET managerRoles = excluded.managerRoles
   `).run(guildId, JSON.stringify(current));
   return true;

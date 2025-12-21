@@ -1,6 +1,7 @@
 import { Client, GuildMember } from 'discord.js';
 import { getMemberStats, upsertMemberStats } from '../database/repositories/memberStatsRepo.js';
 import { incrementVoiceTime, incrementOnlineTime, updateMemberProgress } from '../database/repositories/progressRepo.js';
+import { getGuildRolePreset } from '../database/repositories/settingsRepo.js';
 import { processTick, type StatModifiers } from './statEngine.js';
 import { syncMemberRoles, clearExpiredChaosRole, checkAndGrantAchievements } from '../roles/roleEngine.js';
 import { applyChaosEvent } from './chaosEngine.js';
@@ -31,6 +32,7 @@ export async function processGuildTick(client: Client): Promise<void> {
 
 async function processMemberTick(member: GuildMember): Promise<void> {
   const stats = getMemberStats(member.guild.id, member.id);
+  const preset = getGuildRolePreset(member.guild.id);
   const inVoice = isInVoice(member);
 
   const modifiers: StatModifiers = {
@@ -41,7 +43,7 @@ async function processMemberTick(member: GuildMember): Promise<void> {
 
   processTick(stats, modifiers);
   clearExpiredChaosRole(stats);
-  applyChaosEvent(stats);
+  applyChaosEvent(stats, preset);
   upsertMemberStats(stats);
 
   incrementOnlineTime(member.guild.id, member.id, 1);

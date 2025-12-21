@@ -56,7 +56,15 @@ export function runMigrations(): void {
     CREATE TABLE IF NOT EXISTS guild_settings (
       guildId TEXT PRIMARY KEY,
       language TEXT DEFAULT 'en',
-      managerRoles TEXT DEFAULT '[]'
+      managerRoles TEXT DEFAULT '[]',
+      rolePreset TEXT DEFAULT 'en'
     );
   `);
+
+  // Migration: add rolePreset column if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE guild_settings ADD COLUMN rolePreset TEXT DEFAULT 'en'`);
+  } catch {
+    // Column already exists
+  }
 }

@@ -9,7 +9,6 @@ const commands = [
   new SlashCommandBuilder()
     .setName('roles')
     .setDescription('Manage OnceButler roles')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(sub =>
       sub.setName('list').setDescription('List all managed roles'))
     .addSubcommand(sub =>
@@ -63,7 +62,6 @@ const commands = [
   new SlashCommandBuilder()
     .setName('trigger')
     .setDescription('Manage custom stat triggers')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(sub =>
       sub.setName('create')
         .setDescription('Create a new trigger')
@@ -93,7 +91,6 @@ const commands = [
   new SlashCommandBuilder()
     .setName('settings')
     .setDescription('Bot settings for this server')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(sub =>
       sub.setName('language')
         .setDescription('Set bot language for this server')
@@ -105,6 +102,17 @@ const commands = [
               { name: '🇺🇸 English', value: 'en' },
               { name: '🇷🇺 Русский', value: 'ru' },
               { name: '🇩🇪 Deutsch', value: 'de' },
+            )))
+    .addSubcommand(sub =>
+      sub.setName('preset')
+        .setDescription('Set role names preset (language for role names)')
+        .addStringOption(opt =>
+          opt.setName('preset')
+            .setDescription('Preset')
+            .setRequired(true)
+            .addChoices(
+              { name: '🇺🇸 English roles', value: 'en' },
+              { name: '🇷🇺 Русские роли', value: 'ru' },
             )))
     .addSubcommandGroup(group =>
       group.setName('managers')

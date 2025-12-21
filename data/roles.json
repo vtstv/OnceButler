@@ -24,5 +24,41 @@
     { "roleId": "Lazy", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 },
     { "roleId": "Snooze Aficionado", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 },
     { "roleId": "Unplanned Production", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 }
-  ]
+  ],
+  "mapping": {
+    "mood": {
+      "high2": "Optimist 3",
+      "high1": "Optimist 2",
+      "mid": "Optimist 1",
+      "low1": "Feeling blue 1",
+      "low2": "Feeling blue 2"
+    },
+    "energy": {
+      "high2": "Power Rewind 2",
+      "high1": "Power Rewind 1",
+      "mid": "Stable Energy",
+      "low1": "Worn-out",
+      "low2": "Worn-out 2"
+    },
+    "activity": {
+      "high": "Come As One",
+      "mid1": "Little Helper",
+      "mid2": "Panovision",
+      "low": "Holding the team back"
+    },
+    "time": {
+      "night": "Lunar Oracle",
+      "day": "Praise the Sun",
+      "evening": "Two-Shift System"
+    },
+    "chaos": ["Worn-out", "Lazy", "Snooze Aficionado", "Optimist 1", "Unplanned Production"]
+  },
+  "achievements": {
+    "voice_rookie": "Voice Rookie",
+    "voice_regular": "Voice Regular",
+    "voice_veteran": "Voice Veteran",
+    "mood_master": "Mood Master",
+    "energy_king": "Energy King",
+    "hyperactive": "Hyperactive"
+  }
 }

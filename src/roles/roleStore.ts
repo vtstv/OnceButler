@@ -1,20 +1,53 @@
 import { join } from 'path';
 import { env } from '../config/env.js';
-import { readJson, writeJson } from '../utils/file.js';
-import type { RoleDefinition, RoleStore } from './types.js';
+import { readJson, writeJson, fileExists } from '../utils/file.js';
+import type { RoleDefinition, RoleStore, RoleMapping, AchievementMapping } from './types.js';
 
+const presetCache = new Map<string, RoleStore>();
 let cachedRoles: RoleDefinition[] = [];
-const rolesFilePath = (): string => join(env.dataPath, 'roles.json');
+const rolesFilePath = (preset?: string): string => {
+  if (preset && preset !== 'en') {
+    return join(env.dataPath, `roles_${preset}.json`);
+  }
+  return join(env.dataPath, 'roles.json');
+};
 
-export function loadRoles(): RoleDefinition[] {
-  const data = readJson<RoleStore>(rolesFilePath());
-  cachedRoles = data?.roles ?? getDefaultRoles();
+export function loadPreset(preset: string): RoleStore {
+  if (presetCache.has(preset)) {
+    return presetCache.get(preset)!;
+  }
+  
+  const path = rolesFilePath(preset);
+  if (!fileExists(path)) {
+    // Fall back to English preset
+    return loadPreset('en');
+  }
+  
+  const data = readJson<RoleStore>(path);
+  const store = data ?? { roles: getDefaultRoles(), mapping: getDefaultMapping(), achievements: getDefaultAchievements() };
+  presetCache.set(preset, store);
+  return store;
+}
+
+export function getMapping(preset: string = 'en'): RoleMapping {
+  const store = loadPreset(preset);
+  return store.mapping ?? getDefaultMapping();
+}
+
+export function getAchievementNames(preset: string = 'en'): AchievementMapping {
+  const store = loadPreset(preset);
+  return store.achievements ?? getDefaultAchievements();
+}
+
+export function loadRoles(preset: string = 'en'): RoleDefinition[] {
+  const store = loadPreset(preset);
+  cachedRoles = store.roles;
   return cachedRoles;
 }
 
-export function getRoles(): RoleDefinition[] {
-  if (cachedRoles.length === 0) loadRoles();
-  return cachedRoles;
+export function getRoles(preset: string = 'en'): RoleDefinition[] {
+  const store = loadPreset(preset);
+  return store.roles;
 }
 
 export function saveRoles(roles: RoleDefinition[]): void {
@@ -36,8 +69,37 @@ export function removeRole(roleId: string): boolean {
   return true;
 }
 
-export function getRolesByCategory(category: string): RoleDefinition[] {
-  return getRoles().filter(r => r.category === category);
+export function getRolesByCategory(category: string, preset: string = 'en'): RoleDefinition[] {
+  return getRoles(preset).filter(r => r.category === category);
+}
+
+export function clearPresetCache(): void {
+  presetCache.clear();
+}
+
+export function getAvailablePresets(): string[] {
+  return ['en', 'ru'];
+}
+
+function getDefaultMapping(): RoleMapping {
+  return {
+    mood: { high2: 'Optimist 3', high1: 'Optimist 2', mid: 'Optimist 1', low1: 'Feeling blue 1', low2: 'Feeling blue 2' },
+    energy: { high2: 'Power Rewind 2', high1: 'Power Rewind 1', mid: 'Stable Energy', low1: 'Worn-out', low2: 'Worn-out 2' },
+    activity: { high: 'Come As One', mid1: 'Little Helper', mid2: 'Panovision', low: 'Holding the team back' },
+    time: { night: 'Lunar Oracle', day: 'Praise the Sun', evening: 'Two-Shift System' },
+    chaos: ['Worn-out', 'Lazy', 'Snooze Aficionado', 'Optimist 1', 'Unplanned Production'],
+  };
+}
+
+function getDefaultAchievements(): AchievementMapping {
+  return {
+    voice_rookie: 'Voice Rookie',
+    voice_regular: 'Voice Regular',
+    voice_veteran: 'Voice Veteran',
+    mood_master: 'Mood Master',
+    energy_king: 'Energy King',
+    hyperactive: 'Hyperactive',
+  };
 }
 
 function getDefaultRoles(): RoleDefinition[] {

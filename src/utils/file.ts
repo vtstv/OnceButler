@@ -20,3 +20,7 @@ export function writeJson<T>(path: string, data: T): void {
 export function ensureDir(path: string): void {
   if (!existsSync(path)) mkdirSync(path, { recursive: true });
 }
+
+export function fileExists(path: string): boolean {
+  return existsSync(path);
+}

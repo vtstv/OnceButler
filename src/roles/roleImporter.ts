@@ -1,12 +1,14 @@
-import { Guild } from 'discord.js';
+import { Guild, Role } from 'discord.js';
 import { getRoles, saveRoles } from './roleStore.js';
 import { getRoleCategory } from './roleRules.js';
+import { getGuildRolePreset } from '../database/repositories/settingsRepo.js';
 import type { RoleDefinition, RoleCategory } from './types.js';
 
 export async function importRolesToGuild(guild: Guild): Promise<string[]> {
-  const roles = getRoles();
+  const preset = getGuildRolePreset(guild.id);
+  const roles = getRoles(preset);
   const created: string[] = [];
-  const existingNames = guild.roles.cache.map(r => r.name);
+  const existingNames = guild.roles.cache.map((r: Role) => r.name);
 
   for (const def of roles) {
     if (!existingNames.includes(def.roleId)) {
@@ -26,7 +28,8 @@ export async function importRolesToGuild(guild: Guild): Promise<string[]> {
 }
 
 export function exportRolesFromGuild(guild: Guild): RoleDefinition[] {
-  const existingDefs = getRoles();
+  const preset = getGuildRolePreset(guild.id);
+  const existingDefs = getRoles(preset);
   const exported: RoleDefinition[] = [];
 
   for (const role of guild.roles.cache.values()) {
@@ -34,7 +37,7 @@ export function exportRolesFromGuild(guild: Guild): RoleDefinition[] {
     if (existing) {
       exported.push(existing);
     } else {
-      const category = getRoleCategory(role.name);
+      const category = getRoleCategory(role.name, preset);
       if (category) {
         exported.push({
           roleId: role.name,

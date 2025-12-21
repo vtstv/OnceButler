@@ -1,20 +1,22 @@
 import { Guild, GuildMember, Role } from 'discord.js';
 import { getMemberStats, upsertMemberStats, type MemberStats } from '../database/repositories/memberStatsRepo.js';
 import { getMemberProgress } from '../database/repositories/progressRepo.js';
-import { ACHIEVEMENTS, unlockAchievement, getUserAchievements, getAchievementRoles } from '../database/repositories/achievementsRepo.js';
+import { ACHIEVEMENTS, unlockAchievement, getUserAchievements } from '../database/repositories/achievementsRepo.js';
+import { getGuildRolePreset } from '../database/repositories/settingsRepo.js';
 import { env } from '../config/env.js';
 import {
   calculateRoleAssignment,
   selectPriorityRoles,
-  MOOD_ROLES,
-  ENERGY_ROLES,
-  ACTIVITY_ROLES,
-  TIME_ROLES,
-  CHAOS_ROLES,
+  getMoodRoles,
+  getEnergyRoles,
+  getActivityRoles,
+  getTimeRoles,
+  getChaosRoles,
+  getAllBotRoles,
 } from './roleRules.js';
+import { getAchievementNames } from './roleStore.js';
 
 const MAX_ROLES_PER_USER = 2;
-const ALL_MANAGED_ROLES = [...MOOD_ROLES, ...ENERGY_ROLES, ...ACTIVITY_ROLES, ...TIME_ROLES, ...CHAOS_ROLES];
 
 const ROLE_COLORS: Record<string, number> = {
   mood: 0xFFD700,
@@ -25,12 +27,12 @@ const ROLE_COLORS: Record<string, number> = {
   achievement: 0xFFFFFF,
 };
 
-function getCategoryColor(roleName: string): number {
-  if (MOOD_ROLES.includes(roleName)) return ROLE_COLORS.mood;
-  if (ENERGY_ROLES.includes(roleName)) return ROLE_COLORS.energy;
-  if (ACTIVITY_ROLES.includes(roleName)) return ROLE_COLORS.activity;
-  if (TIME_ROLES.includes(roleName)) return ROLE_COLORS.time;
-  if (CHAOS_ROLES.includes(roleName)) return ROLE_COLORS.chaos;
+function getCategoryColor(roleName: string, preset: string): number {
+  if (getMoodRoles(preset).includes(roleName)) return ROLE_COLORS.mood;
+  if (getEnergyRoles(preset).includes(roleName)) return ROLE_COLORS.energy;
+  if (getActivityRoles(preset).includes(roleName)) return ROLE_COLORS.activity;
+  if (getTimeRoles(preset).includes(roleName)) return ROLE_COLORS.time;
+  if (getChaosRoles(preset).includes(roleName)) return ROLE_COLORS.chaos;
   return ROLE_COLORS.achievement;
 }
 
@@ -38,7 +40,8 @@ export async function syncMemberRoles(member: GuildMember, stats: MemberStats): 
   const now = Date.now();
   if (now - stats.lastRoleUpdate < env.roleUpdateCooldownMs) return;
 
-  const assignment = calculateRoleAssignment(stats);
+  const preset = getGuildRolePreset(member.guild.id);
+  const assignment = calculateRoleAssignment(stats, preset);
   const hasChaos = stats.chaosRole && stats.chaosExpires > now;
   
   const targetRoles = selectPriorityRoles(
@@ -48,21 +51,22 @@ export async function syncMemberRoles(member: GuildMember, stats: MemberStats): 
   );
 
   const guild = member.guild;
+  const allManagedRoles = getAllBotRoles(preset);
   const currentRoleNames = member.roles.cache
-    .filter(r => ALL_MANAGED_ROLES.includes(r.name))
-    .map(r => r.name);
+    .filter((r: Role) => allManagedRoles.includes(r.name))
+    .map((r: Role) => r.name);
 
-  const rolesToAdd = targetRoles.filter(name => !currentRoleNames.includes(name));
-  const rolesToRemove = currentRoleNames.filter(name => !targetRoles.includes(name));
+  const rolesToAdd = targetRoles.filter((name: string) => !currentRoleNames.includes(name));
+  const rolesToRemove = currentRoleNames.filter((name: string) => !targetRoles.includes(name));
 
   if (rolesToAdd.length === 0 && rolesToRemove.length === 0) return;
 
   const addRoleObjects = rolesToAdd
-    .map(name => guild.roles.cache.find(r => r.name === name))
+    .map((name: string) => guild.roles.cache.find((r: Role) => r.name === name))
     .filter((r): r is Role => r !== undefined);
 
   const removeRoleObjects = rolesToRemove
-    .map(name => guild.roles.cache.find(r => r.name === name))
+    .map((name: string) => guild.roles.cache.find((r: Role) => r.name === name))
     .filter((r): r is Role => r !== undefined);
 
   try {
@@ -81,15 +85,16 @@ export async function syncMemberRoles(member: GuildMember, stats: MemberStats): 
 }
 
 export async function ensureRolesExist(guild: Guild): Promise<void> {
-  const existingNames = guild.roles.cache.map(r => r.name);
-  const allRoles = [...ALL_MANAGED_ROLES, ...getAchievementRoles()];
+  const preset = getGuildRolePreset(guild.id);
+  const existingNames = guild.roles.cache.map((r: Role) => r.name);
+  const allRoles = [...getAllBotRoles(preset), ...getAchievementRolesForPreset(preset)];
 
   for (const roleName of allRoles) {
     if (!existingNames.includes(roleName)) {
       try {
         await guild.roles.create({
           name: roleName,
-          color: getCategoryColor(roleName),
+          color: getCategoryColor(roleName, preset) as import('discord.js').ColorResolvable,
           reason: 'OnceButler role creation',
         });
         console.log(`Created role: ${roleName}`);
@@ -100,10 +105,17 @@ export async function ensureRolesExist(guild: Guild): Promise<void> {
   }
 }
 
+function getAchievementRolesForPreset(preset: string): string[] {
+  const achNames = getAchievementNames(preset);
+  return Object.values(achNames);
+}
+
 export async function checkAndGrantAchievements(member: GuildMember): Promise<void> {
+  const preset = getGuildRolePreset(member.guild.id);
   const progress = getMemberProgress(member.guild.id, member.id);
   const stats = getMemberStats(member.guild.id, member.id);
   const currentAchievements = getUserAchievements(member.guild.id, member.id);
+  const achNames = getAchievementNames(preset);
 
   for (const achievement of ACHIEVEMENTS) {
     if (currentAchievements.includes(achievement.id)) continue;
@@ -132,11 +144,13 @@ export async function checkAndGrantAchievements(member: GuildMember): Promise<vo
     if (qualified) {
       const unlocked = unlockAchievement(member.guild.id, member.id, achievement.id);
       if (unlocked && achievement.roleReward) {
-        const role = member.guild.roles.cache.find(r => r.name === achievement.roleReward);
+        // Get localized role name from preset
+        const roleRewardName = achNames[achievement.id as keyof typeof achNames] ?? achievement.roleReward;
+        const role = member.guild.roles.cache.find((r: Role) => r.name === roleRewardName);
         if (role && !member.roles.cache.has(role.id)) {
           try {
             await member.roles.add(role);
-            console.log(`Granted achievement role ${achievement.roleReward} to ${member.user.tag}`);
+            console.log(`Granted achievement role ${roleRewardName} to ${member.user.tag}`);
           } catch (err) {
             console.error(`Failed to grant achievement role:`, err);
           }
@@ -155,17 +169,18 @@ export function clearExpiredChaosRole(stats: MemberStats): boolean {
   return false;
 }
 
-export function getAllManagedRoleNames(): string[] {
-  return [...ALL_MANAGED_ROLES, ...getAchievementRoles()];
+export function getAllManagedRoleNames(guildId: string): string[] {
+  const preset = getGuildRolePreset(guildId);
+  return [...getAllBotRoles(preset), ...getAchievementRolesForPreset(preset)];
 }
 
 export async function purgeAllRoles(guild: Guild): Promise<{ deleted: number; failed: number }> {
-  const allRoleNames = getAllManagedRoleNames();
+  const allRoleNames = getAllManagedRoleNames(guild.id);
   let deleted = 0;
   let failed = 0;
 
   for (const roleName of allRoleNames) {
-    const role = guild.roles.cache.find(r => r.name === roleName);
+    const role = guild.roles.cache.find((r: Role) => r.name === roleName);
     if (role) {
       try {
         await role.delete('OnceButler role purge');
@@ -181,6 +196,6 @@ export async function purgeAllRoles(guild: Guild): Promise<{ deleted: number; fa
 }
 
 export function countManagedRoles(guild: Guild): number {
-  const allRoleNames = getAllManagedRoleNames();
-  return guild.roles.cache.filter(r => allRoleNames.includes(r.name)).size;
+  const allRoleNames = getAllManagedRoleNames(guild.id);
+  return guild.roles.cache.filter((r: Role) => allRoleNames.includes(r.name)).size;
 }

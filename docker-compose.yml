@@ -10,6 +10,8 @@ services:
       - DATA_PATH=/app/data
     volumes:
       - bot-data:/app/data
+      - ./data/roles.json:/app/data/roles.json:ro
+      - ./data/roles_ru.json:/app/data/roles_ru.json:ro
     mem_limit: 256m
     cpus: 0.5
 

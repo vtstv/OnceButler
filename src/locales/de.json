@@ -63,6 +63,8 @@
   "settings.language.current": "Aktuelle Serversprache: **{language}**",
   "settings.language.changed": "✅ Serversprache geändert auf **{language}**",
   "settings.language.invalid": "❌ Ungültige Sprache. Verfügbar: en, ru, de",
+  "settings.preset.changed": "✅ Rollen-Preset geändert auf **{preset}**. Neue Rollen verwenden diese Namen. Führen Sie `/roles purge` und dann `/roles import` aus, um Rollen mit neuen Namen neu zu erstellen.",
+  "settings.preset.invalid": "❌ Ungültiges Preset. Verfügbar: {presets}",
   "settings.managers.added": "✅ Rolle **{role}** als Bot-Manager hinzugefügt.",
   "settings.managers.removed": "✅ Rolle **{role}** von Bot-Managern entfernt.",
   "settings.managers.notFound": "❌ Rolle **{role}** ist kein Bot-Manager.",

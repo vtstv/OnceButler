@@ -1,0 +1,64 @@
+{
+  "roles": [
+    { "roleId": "Оптимист 3", "category": "mood", "priority": 5, "temporary": false, "durationMinutes": null },
+    { "roleId": "Оптимист 2", "category": "mood", "priority": 4, "temporary": false, "durationMinutes": null },
+    { "roleId": "Оптимист 1", "category": "mood", "priority": 3, "temporary": false, "durationMinutes": null },
+    { "roleId": "Хандра 1", "category": "mood", "priority": 2, "temporary": false, "durationMinutes": null },
+    { "roleId": "Хандра 2", "category": "mood", "priority": 1, "temporary": false, "durationMinutes": null },
+
+    { "roleId": "Полон сил 2", "category": "energy", "priority": 5, "temporary": false, "durationMinutes": null },
+    { "roleId": "Полон сил 1", "category": "energy", "priority": 4, "temporary": false, "durationMinutes": null },
+    { "roleId": "Стабильная энергия", "category": "energy", "priority": 3, "temporary": false, "durationMinutes": null },
+    { "roleId": "Устал", "category": "energy", "priority": 2, "temporary": false, "durationMinutes": null },
+    { "roleId": "Истощён", "category": "energy", "priority": 1, "temporary": false, "durationMinutes": null },
+
+    { "roleId": "Душа компании", "category": "activity", "priority": 4, "temporary": false, "durationMinutes": null },
+    { "roleId": "Активист", "category": "activity", "priority": 3, "temporary": false, "durationMinutes": null },
+    { "roleId": "Наблюдатель", "category": "activity", "priority": 2, "temporary": false, "durationMinutes": null },
+    { "roleId": "Тянет команду назад", "category": "activity", "priority": 1, "temporary": false, "durationMinutes": null },
+
+    { "roleId": "Лунный оракул", "category": "time", "priority": 1, "temporary": false, "durationMinutes": null },
+    { "roleId": "Хвала Солнцу", "category": "time", "priority": 2, "temporary": false, "durationMinutes": null },
+    { "roleId": "Двухсменка", "category": "time", "priority": 3, "temporary": false, "durationMinutes": null },
+
+    { "roleId": "Лентяй", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 },
+    { "roleId": "Соня", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 },
+    { "roleId": "Внеплановое производство", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 }
+  ],
+  "mapping": {
+    "mood": {
+      "high2": "Оптимист 3",
+      "high1": "Оптимист 2",
+      "mid": "Оптимист 1",
+      "low1": "Хандра 1",
+      "low2": "Хандра 2"
+    },
+    "energy": {
+      "high2": "Полон сил 2",
+      "high1": "Полон сил 1",
+      "mid": "Стабильная энергия",
+      "low1": "Устал",
+      "low2": "Истощён"
+    },
+    "activity": {
+      "high": "Душа компании",
+      "mid1": "Активист",
+      "mid2": "Наблюдатель",
+      "low": "Тянет команду назад"
+    },
+    "time": {
+      "night": "Лунный оракул",
+      "day": "Хвала Солнцу",
+      "evening": "Двухсменка"
+    },
+    "chaos": ["Устал", "Лентяй", "Соня", "Оптимист 1", "Внеплановое производство"]
+  },
+  "achievements": {
+    "voice_rookie": "Голосовой новичок",
+    "voice_regular": "Голосовой завсегдатай",
+    "voice_veteran": "Голосовой ветеран",
+    "mood_master": "Мастер настроения",
+    "energy_king": "Король энергии",
+    "hyperactive": "Гиперактивный"
+  }
+}
