@@ -78,6 +78,12 @@ async function processMemberTick(member: GuildMember): Promise<void> {
 }
 
 function isOnline(member: GuildMember): boolean {
+  // If member is in voice channel, they're active regardless of presence status
+  // This handles invisible users who are in voice
+  if (member.voice?.channelId) {
+    return true;
+  }
+  
   const status = member.presence?.status;
   return status === 'online' || status === 'idle' || status === 'dnd';
 }
