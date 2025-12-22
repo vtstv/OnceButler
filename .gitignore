@@ -6,5 +6,19 @@ dist/
 data/*.db
 data/*.db-wal
 data/*.db-shm
+
+# Sensitive files
 .env
+.env.*
 bot.md
+explain.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+*.bak
