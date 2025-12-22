@@ -38,7 +38,7 @@ export function applyIdleModifiers(stats: MemberStats, modifiers: StatModifiers)
 export function applyVoiceModifiers(stats: MemberStats, modifiers: StatModifiers): void {
   if (modifiers.isInVoice) {
     stats.mood = clamp(stats.mood + 0.5, 0, 100);
-    stats.activity = clamp(stats.activity + 0.5, 0, 100);
+    stats.activity = clamp(stats.activity + 1.0, 0, 100); // Higher activity gain for voice participation
     stats.energy = clamp(stats.energy + 1.5, 0, 100); // Voice chat restores energy
   }
 }

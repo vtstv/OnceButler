@@ -29,9 +29,9 @@ export function getMemberStats(guildId: string, userId: string): MemberStats {
     return {
       guildId,
       userId,
-      mood: 50,
-      energy: 50,
-      activity: 50,
+      mood: 30,
+      energy: 30,
+      activity: 0,
       lastRoleUpdate: 0,
       lastChaosEvent: 0,
       chaosRole: null,

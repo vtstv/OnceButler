@@ -28,9 +28,9 @@ export function getMemberProgress(guildId: string, userId: string): MemberProgre
       userId,
       voiceMinutes: 0,
       onlineMinutes: 0,
-      peakMood: 50,
-      peakEnergy: 50,
-      peakActivity: 50,
+      peakMood: 30,
+      peakEnergy: 30,
+      peakActivity: 0,
     };
   }
 
