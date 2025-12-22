@@ -4,7 +4,6 @@
 
 import { 
   ChatInputCommandInteraction, 
-  EmbedBuilder, 
   MessageFlags,
   ActionRowBuilder,
   ButtonBuilder,
@@ -74,21 +73,21 @@ export async function handleDuel(interaction: ChatInputCommandInteraction): Prom
   // Calculate bet amount (10-30% of challenger's energy)
   const betAmount = Math.max(MIN_ENERGY_TO_DUEL, Math.floor(challengerStats.energy * (randomInt(10, 30) / 100)));
 
-  // Create challenge embed
-  const challengeEmbed = new EmbedBuilder()
-    .setColor(0xFF4500) // Orange-red for battle
-    .setTitle(t(locale, 'duel.challengeTitle'))
-    .setDescription(t(locale, 'duel.challengeDesc', {
+  // Create challenge message
+  const challengeText = [
+    `**⚔️ ${t(locale, 'duel.challengeTitle')}**`,
+    '',
+    t(locale, 'duel.challengeDesc', {
       challenger: challenger.displayName,
       opponent: opponent.displayName,
       bet: betAmount.toString()
-    }))
-    .addFields(
-      { name: challenger.displayName, value: `⚡ ${challengerStats.energy}`, inline: true },
-      { name: opponent.displayName, value: `⚡ ${opponentStats.energy}`, inline: true }
-    )
-    .setFooter({ text: t(locale, 'duel.expiresIn', { seconds: '60' }) })
-    .setTimestamp();
+    }),
+    '',
+    `├─ ${challenger.displayName}: ⚡ ${challengerStats.energy.toFixed(1)}`,
+    `└─ ${opponent.displayName}: ⚡ ${opponentStats.energy.toFixed(1)}`,
+    '',
+    `-# ${t(locale, 'duel.expiresIn', { seconds: '60' })}`,
+  ].join('\n');
 
   const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
@@ -104,8 +103,7 @@ export async function handleDuel(interaction: ChatInputCommandInteraction): Prom
   );
 
   const response = await interaction.reply({ 
-    content: `<@${opponent.id}>`,
-    embeds: [challengeEmbed], 
+    content: `<@${opponent.id}>\n\n${challengeText}`,
     components: [buttons],
     fetchReply: true
   });
@@ -118,12 +116,13 @@ export async function handleDuel(interaction: ChatInputCommandInteraction): Prom
     });
 
     if (buttonInteraction.customId === 'duel_decline') {
-      const declineEmbed = new EmbedBuilder()
-        .setColor(0x808080)
-        .setTitle(t(locale, 'duel.declinedTitle'))
-        .setDescription(t(locale, 'duel.declined', { opponent: opponent.displayName }));
+      const declineText = [
+        `**🏃 ${t(locale, 'duel.declinedTitle')}**`,
+        '',
+        t(locale, 'duel.declined', { opponent: opponent.displayName }),
+      ].join('\n');
       
-      await buttonInteraction.update({ embeds: [declineEmbed], components: [] });
+      await buttonInteraction.update({ content: declineText, components: [] });
       return;
     }
 
@@ -133,11 +132,9 @@ export async function handleDuel(interaction: ChatInputCommandInteraction): Prom
     // Check opponent's energy
     const freshOpponentStats = getMemberStats(guildId, opponent.id);
     if (freshOpponentStats.energy < MIN_ENERGY_TO_DUEL) {
-      const noEnergyEmbed = new EmbedBuilder()
-        .setColor(0x808080)
-        .setDescription(t(locale, 'duel.opponentNoEnergy', { opponent: opponent.displayName }));
+      const noEnergyText = t(locale, 'duel.opponentNoEnergy', { opponent: opponent.displayName });
       
-      await interaction.editReply({ embeds: [noEnergyEmbed], components: [] });
+      await interaction.editReply({ content: noEnergyText, components: [] });
       return;
     }
 
@@ -148,34 +145,29 @@ export async function handleDuel(interaction: ChatInputCommandInteraction): Prom
     duelCooldowns.set(cooldownKey, now);
     duelCooldowns.set(`${guildId}:${opponent.id}`, now);
 
-    const resultEmbed = new EmbedBuilder()
-      .setColor(result.winnerId === challenger.id ? 0x00FF00 : 0xFF0000)
-      .setTitle(t(locale, 'duel.resultTitle'))
-      .setDescription(result.narrative)
-      .addFields(
-        { 
-          name: `🏆 ${result.winnerId === challenger.id ? challenger.displayName : opponent.displayName}`, 
-          value: `+${result.prize} ⚡`, 
-          inline: true 
-        },
-        { 
-          name: `💀 ${result.winnerId === challenger.id ? opponent.displayName : challenger.displayName}`, 
-          value: `-${result.loss} ⚡`, 
-          inline: true 
-        }
-      )
-      .setTimestamp();
+    const winnerName = result.winnerId === challenger.id ? challenger.displayName : opponent.displayName;
+    const loserName = result.winnerId === challenger.id ? opponent.displayName : challenger.displayName;
 
-    await interaction.editReply({ embeds: [resultEmbed], components: [] });
+    const resultText = [
+      `**⚔️ ${t(locale, 'duel.resultTitle')}**`,
+      '',
+      result.narrative,
+      '',
+      `🏆 **${winnerName}** +${result.prize} ⚡`,
+      `💀 **${loserName}** -${result.loss} ⚡`,
+    ].join('\n');
+
+    await interaction.editReply({ content: resultText, components: [] });
 
   } catch (error) {
     // Timeout
-    const timeoutEmbed = new EmbedBuilder()
-      .setColor(0x808080)
-      .setTitle(t(locale, 'duel.timeoutTitle'))
-      .setDescription(t(locale, 'duel.timeout', { opponent: opponent.displayName }));
+    const timeoutText = [
+      `**⏰ ${t(locale, 'duel.timeoutTitle')}**`,
+      '',
+      t(locale, 'duel.timeout', { opponent: opponent.displayName }),
+    ].join('\n');
     
-    await interaction.editReply({ embeds: [timeoutEmbed], components: [] });
+    await interaction.editReply({ content: timeoutText, components: [] });
   }
 }
 

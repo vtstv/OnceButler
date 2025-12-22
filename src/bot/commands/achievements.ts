@@ -2,7 +2,7 @@
 // OnceButler Discord Bot - Achievements Command
 // Licensed under MIT License
 
-import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
+import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { getUserAchievements, ACHIEVEMENTS } from '../../database/repositories/achievementsRepo.js';
 import { t } from '../../utils/i18n.js';
 import { getLocale } from './utils.js';
@@ -39,11 +39,11 @@ export async function handleAchievements(interaction: ChatInputCommandInteractio
   const unlocked = userAchievements.length;
   const total = ACHIEVEMENTS.length;
 
-  const embed = new EmbedBuilder()
-    .setTitle(t(locale, 'achievements.title', { unlocked: unlocked.toString(), total: total.toString() }))
-    .setColor(unlocked === total ? 0xFFD700 : 0x5865F2)
-    .setDescription(lines.join('\n'))
-    .setTimestamp();
+  const content = [
+    `**🏆 ${t(locale, 'achievements.title', { unlocked: unlocked.toString(), total: total.toString() })}**`,
+    '',
+    lines.join('\n'),
+  ].join('\n');
 
-  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+  await interaction.reply({ content, flags: MessageFlags.Ephemeral });
 }
