@@ -12,6 +12,7 @@ data/*.db-shm
 .env.*
 bot.md
 explain.md
+deploy.ps1
 
 # IDE
 .idea/

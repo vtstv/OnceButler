@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler - Discord client initialization
+// Licensed under MIT License
+
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { env } from '../config/env.js';
 

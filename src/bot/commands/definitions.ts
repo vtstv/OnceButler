@@ -115,4 +115,8 @@ export const commands = [
         .addSubcommand(sub =>
           sub.setName('list')
             .setDescription('List all manager roles'))),
+
+  new SlashCommandBuilder()
+    .setName('version')
+    .setDescription('Display bot version and system information'),
 ];

@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler - Discord event handlers
+// Licensed under MIT License
+
 import { Client, Events, GuildMember } from 'discord.js';
 import { handleVoiceStateUpdate } from '../voice/voiceTracker.js';
 import { startTickScheduler } from '../scheduler/tickScheduler.js';

@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler - Command handler
+// Licensed under MIT License
+
 import { Interaction, MessageFlags } from 'discord.js';
 import { commands } from './definitions.js';
 import { handleRolesCommand } from './roles.js';
@@ -5,6 +9,7 @@ import { handleStats, handleLeaderboard } from './stats.js';
 import { handleTriggerCommand } from './triggers.js';
 import { handleAchievements } from './achievements.js';
 import { handleSettingsCommand } from './settings.js';
+import { handleVersion } from './version.js';
 
 export { commands };
 
@@ -32,6 +37,9 @@ export async function handleInteraction(interaction: Interaction): Promise<void>
         break;
       case 'settings':
         await handleSettingsCommand(interaction);
+        break;
+      case 'version':
+        await handleVersion(interaction);
         break;
     }
     console.log(`[CMD] /${interaction.commandName} completed successfully`);

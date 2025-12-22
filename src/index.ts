@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler - Discord bot for dynamic role management
+// Licensed under MIT License
+
 import { createClient, loginClient } from './bot/client.js';
 import { registerEvents } from './bot/events.js';
 import { runMigrations } from './database/migrations.js';

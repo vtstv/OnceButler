@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler - Slash commands registration
+// Licensed under MIT License
+
 import { REST, Routes, SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 import { config } from 'dotenv';
 config();
@@ -128,6 +132,10 @@ const commands = [
         .addSubcommand(sub =>
           sub.setName('list')
             .setDescription('List all manager roles'))),
+
+  new SlashCommandBuilder()
+    .setName('version')
+    .setDescription('Display bot version and system information'),
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
