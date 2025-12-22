@@ -38,6 +38,8 @@
 
   "leaderboard.title": "Leaderboard",
   "leaderboard.noMembers": "No members found.",
+  "leaderboard.autoTitle": "Activity Leaderboard",
+  "leaderboard.autoFooter": "Updated automatically",
 
   "trigger.create.success": "✅ Trigger **{name}** created (ID: {id}). {stat} will change by {modifier} per tick {duration}.",
   "trigger.durationMinutes": "for {minutes} minutes",

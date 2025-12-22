@@ -14,6 +14,9 @@ export interface GuildSettings {
   enableChaosRoles: boolean;
   enableAchievements: boolean;
   maxRolesPerUser: number;
+  enableAutoLeaderboard: boolean;
+  leaderboardChannelId: string | null;
+  leaderboardIntervalMinutes: number;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -25,13 +28,17 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   enableChaosRoles: true,
   enableAchievements: true,
   maxRolesPerUser: 2,
+  enableAutoLeaderboard: false,
+  leaderboardChannelId: null,
+  leaderboardIntervalMinutes: 60,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
   const db = getDb();
   const row = db.prepare(`
     SELECT language, managerRoles, rolePreset, setupComplete, 
-           enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser 
+           enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser,
+           enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as { 
     language: string; 
@@ -42,6 +49,9 @@ export function getGuildSettings(guildId: string): GuildSettings {
     enableChaosRoles: number;
     enableAchievements: number;
     maxRolesPerUser: number;
+    enableAutoLeaderboard: number;
+    leaderboardChannelId: string | null;
+    leaderboardIntervalMinutes: number;
   } | undefined;
 
   if (!row) {
@@ -58,6 +68,9 @@ export function getGuildSettings(guildId: string): GuildSettings {
     enableChaosRoles: row.enableChaosRoles !== 0,
     enableAchievements: row.enableAchievements !== 0,
     maxRolesPerUser: row.maxRolesPerUser ?? 2,
+    enableAutoLeaderboard: row.enableAutoLeaderboard === 1,
+    leaderboardChannelId: row.leaderboardChannelId ?? null,
+    leaderboardIntervalMinutes: row.leaderboardIntervalMinutes ?? 60,
   };
 }
 
@@ -82,8 +95,9 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
   
   db.prepare(`
     INSERT INTO guild_settings (guildId, language, managerRoles, rolePreset, setupComplete, 
-                                enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser,
+                                enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -91,7 +105,10 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       enableRoleColors = excluded.enableRoleColors,
       enableChaosRoles = excluded.enableChaosRoles,
       enableAchievements = excluded.enableAchievements,
-      maxRolesPerUser = excluded.maxRolesPerUser
+      maxRolesPerUser = excluded.maxRolesPerUser,
+      enableAutoLeaderboard = excluded.enableAutoLeaderboard,
+      leaderboardChannelId = excluded.leaderboardChannelId,
+      leaderboardIntervalMinutes = excluded.leaderboardIntervalMinutes
   `).run(
     guildId,
     merged.language,
@@ -101,7 +118,10 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.enableRoleColors ? 1 : 0,
     merged.enableChaosRoles ? 1 : 0,
     merged.enableAchievements ? 1 : 0,
-    merged.maxRolesPerUser
+    merged.maxRolesPerUser,
+    merged.enableAutoLeaderboard ? 1 : 0,
+    merged.leaderboardChannelId,
+    merged.leaderboardIntervalMinutes
   );
 }
 

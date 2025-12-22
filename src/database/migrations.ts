@@ -78,6 +78,9 @@ export function runMigrations(): void {
     `ALTER TABLE guild_settings ADD COLUMN enableChaosRoles INTEGER DEFAULT 1`,
     `ALTER TABLE guild_settings ADD COLUMN enableAchievements INTEGER DEFAULT 1`,
     `ALTER TABLE guild_settings ADD COLUMN maxRolesPerUser INTEGER DEFAULT 2`,
+    `ALTER TABLE guild_settings ADD COLUMN enableAutoLeaderboard INTEGER DEFAULT 0`,
+    `ALTER TABLE guild_settings ADD COLUMN leaderboardChannelId TEXT DEFAULT NULL`,
+    `ALTER TABLE guild_settings ADD COLUMN leaderboardIntervalMinutes INTEGER DEFAULT 60`,
   ];
 
   for (const migration of migrations) {

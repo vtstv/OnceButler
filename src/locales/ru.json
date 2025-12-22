@@ -38,6 +38,8 @@
 
   "leaderboard.title": "Рейтинг",
   "leaderboard.noMembers": "Участники не найдены.",
+  "leaderboard.autoTitle": "Рейтинг активности",
+  "leaderboard.autoFooter": "Обновляется автоматически",
 
   "trigger.create.success": "✅ Триггер **{name}** создан (ID: {id}). {stat} будет меняться на {modifier} за тик {duration}.",
   "trigger.durationMinutes": "в течение {minutes} минут",

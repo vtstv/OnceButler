@@ -5,6 +5,7 @@
 import { Client } from 'discord.js';
 import { env } from '../config/env.js';
 import { processGuildTick } from '../stats/statTick.js';
+import { processAutoLeaderboards } from './leaderboardScheduler.js';
 
 let tickInterval: NodeJS.Timeout | null = null;
 
@@ -16,6 +17,7 @@ export function startTickScheduler(client: Client): void {
   tickInterval = setInterval(async () => {
     try {
       await processGuildTick(client);
+      await processAutoLeaderboards(client);
     } catch (err) {
       console.error('Tick scheduler error:', err);
     }
