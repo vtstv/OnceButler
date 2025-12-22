@@ -11,6 +11,8 @@ import { handleAchievements } from './achievements.js';
 import { handleSettingsCommand } from './settings.js';
 import { handleVersion } from './version.js';
 import { handleSetup } from './setup.js';
+import { handleHug } from './hug.js';
+import { handleDuel } from './duel.js';
 
 export { commands };
 
@@ -44,6 +46,12 @@ export async function handleInteraction(interaction: Interaction): Promise<void>
         break;
       case 'setup':
         await handleSetup(interaction);
+        break;
+      case 'hug':
+        await handleHug(interaction);
+        break;
+      case 'duel':
+        await handleDuel(interaction);
         break;
     }
     console.log(`[CMD] /${interaction.commandName} completed successfully`);

@@ -140,6 +140,16 @@ const commands = [
   new SlashCommandBuilder()
     .setName('setup')
     .setDescription('Configure OnceButler for this server (required before bot starts working)'),
+
+  new SlashCommandBuilder()
+    .setName('hug')
+    .setDescription('Give someone a warm hug and share your mood!')
+    .addUserOption(opt => opt.setName('user').setDescription('User to hug').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('duel')
+    .setDescription('Challenge another user to a duel!')
+    .addUserOption(opt => opt.setName('opponent').setDescription('User to challenge').setRequired(true)),
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
