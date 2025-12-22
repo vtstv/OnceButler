@@ -2,7 +2,7 @@
 // OnceButler - Version command
 // Licensed under MIT License
 
-import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
+import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { BOT_VERSION } from '../../config/version.js';
 import os from 'os';
 import process from 'process';
@@ -16,52 +16,20 @@ export async function handleVersion(interaction: ChatInputCommandInteraction): P
   
   const rss = Math.round(process.memoryUsage().rss / 1024 / 1024);
 
-  const embed = new EmbedBuilder()
-    .setColor(0x5865F2)
-    .setTitle('🤖 OnceButler Version')
-    .addFields(
-      { 
-        name: '📦 Version', 
-        value: `**v${BOT_VERSION}**`, 
-        inline: true 
-      },
-      { 
-        name: '⏱️ Uptime', 
-        value: uptimeFormatted, 
-        inline: true 
-      },
-      { 
-        name: '💾 Memory', 
-        value: `${rss} MB`, 
-        inline: true 
-      },
-      { 
-        name: '📊 Platform', 
-        value: `${os.type()} ${os.release()}`, 
-        inline: true 
-      },
-      { 
-        name: '🟢 Node.js', 
-        value: process.version, 
-        inline: true 
-      },
-      { 
-        name: '⚙️ Environment', 
-        value: process.env.NODE_ENV || 'development', 
-        inline: true 
-      },
-      {
-        name: '\u200B',
-        value: '**Made with ❤️ by Murr (murr01)**',
-        inline: false
-      }
-    )
-    .setFooter({ 
-      text: `Bot ID: ${interaction.client.user?.id}` 
-    })
-    .setTimestamp();
+  const lines = [
+    '**🤖 OnceButler Version**',
+    '',
+    `📦 **Version:** v${BOT_VERSION}`,
+    `⏱️ **Uptime:** ${uptimeFormatted}`,
+    `💾 **Memory:** ${rss} MB`,
+    `📊 **Platform:** ${os.type()} ${os.release()}`,
+    `🟢 **Node.js:** ${process.version}`,
+    `⚙️ **Environment:** ${process.env.NODE_ENV || 'development'}`,
+    '',
+    '-# Made with ❤️ by Murr (murr01) • Bot ID: ' + interaction.client.user?.id,
+  ];
 
-  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+  await interaction.reply({ content: lines.join('\n'), flags: MessageFlags.Ephemeral });
 }
 
 function formatUptime(seconds: number): string {

@@ -2,7 +2,7 @@
 // OnceButler Discord Bot - Hug Command (Mood Contagion)
 // Licensed under MIT License
 
-import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
+import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { getMemberStats, upsertMemberStats } from '../../database/repositories/memberStatsRepo.js';
 import { t } from '../../utils/i18n.js';
 import { getLocale } from './utils.js';
@@ -76,23 +76,14 @@ export async function handleHug(interaction: ChatInputCommandInteraction): Promi
     target: `<@${target.id}>` 
   });
 
-  const embed = new EmbedBuilder()
-    .setColor(0xFF69B4) // Hot pink for hugs
-    .setTitle(t(locale, 'hug.title'))
-    .setDescription(phrase)
-    .addFields(
-      { 
-        name: target.displayName, 
-        value: `🌟 ${t(locale, 'hug.moodGained', { amount: moodBonus.toString() })} (${oldTargetMood} → ${targetStats.mood})`,
-        inline: true
-      },
-      {
-        name: interaction.user.displayName,
-        value: `⚡ ${t(locale, 'hug.energySpent', { amount: energyCost.toString() })}`,
-        inline: true
-      }
-    )
-    .setTimestamp();
+  const lines = [
+    `**🫶 ${t(locale, 'hug.title')}**`,
+    '',
+    phrase,
+    '',
+    `└─ ${target.displayName}: 🌟 ${t(locale, 'hug.moodGained', { amount: moodBonus.toString() })} (${oldTargetMood.toFixed(1)} → ${targetStats.mood.toFixed(1)})`,
+    `└─ ${interaction.user.displayName}: ⚡ ${t(locale, 'hug.energySpent', { amount: energyCost.toString() })}`,
+  ];
 
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({ content: lines.join('\n') });
 }

@@ -2,7 +2,7 @@
 // OnceButler Discord Bot - Stats Command
 // Licensed under MIT License
 
-import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
+import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { getMemberStats, getAllGuildMembers } from '../../database/repositories/memberStatsRepo.js';
 import { getMemberProgress } from '../../database/repositories/progressRepo.js';
 import { t } from '../../utils/i18n.js';
@@ -25,24 +25,28 @@ export async function handleStats(interaction: ChatInputCommandInteraction): Pro
   const energyBar = createProgressBar(stats.energy);
   const activityBar = createProgressBar(stats.activity);
 
-  const embed = new EmbedBuilder()
-    .setTitle(t(locale, 'stats.title', { user: interaction.user.displayName }))
-    .setColor(0x5865F2)
-    .addFields(
-      { name: `😊 ${t(locale, 'stats.mood')}`, value: `${moodBar} ${stats.mood.toFixed(1)}`, inline: false },
-      { name: `⚡ ${t(locale, 'stats.energy')}`, value: `${energyBar} ${stats.energy.toFixed(1)}`, inline: false },
-      { name: `🎯 ${t(locale, 'stats.activity')}`, value: `${activityBar} ${stats.activity.toFixed(1)}`, inline: false },
-      { name: `🎤 ${t(locale, 'stats.voiceTime')}`, value: `${Math.floor(progress.voiceMinutes / 60)}${t(locale, 'common.hours')} ${progress.voiceMinutes % 60}${t(locale, 'common.minutes')}`, inline: true },
-      { name: `🟢 ${t(locale, 'stats.onlineTime')}`, value: `${Math.floor(progress.onlineMinutes / 60)}${t(locale, 'common.hours')} ${progress.onlineMinutes % 60}${t(locale, 'common.minutes')}`, inline: true },
-    )
-    .setTimestamp();
+  const voiceHours = Math.floor(progress.voiceMinutes / 60);
+  const voiceMins = progress.voiceMinutes % 60;
+  const onlineHours = Math.floor(progress.onlineMinutes / 60);
+  const onlineMins = progress.onlineMinutes % 60;
+
+  const lines = [
+    `**📊 ${t(locale, 'stats.title', { user: interaction.user.displayName })}**`,
+    '',
+    `😊 **${t(locale, 'stats.mood')}** ${moodBar} ${stats.mood.toFixed(1)}`,
+    `⚡ **${t(locale, 'stats.energy')}** ${energyBar} ${stats.energy.toFixed(1)}`,
+    `🎯 **${t(locale, 'stats.activity')}** ${activityBar} ${stats.activity.toFixed(1)}`,
+    '',
+    `🎤 ${t(locale, 'stats.voiceTime')}: ${voiceHours}${t(locale, 'common.hours')} ${voiceMins}${t(locale, 'common.minutes')}`,
+    `🟢 ${t(locale, 'stats.onlineTime')}: ${onlineHours}${t(locale, 'common.hours')} ${onlineMins}${t(locale, 'common.minutes')}`,
+  ];
 
   if (stats.chaosRole && stats.chaosExpires > Date.now()) {
     const remaining = Math.ceil((stats.chaosExpires - Date.now()) / 60000);
-    embed.addFields({ name: `🎲 ${t(locale, 'stats.chaosEffect')}`, value: `${stats.chaosRole} (${remaining}${t(locale, 'common.minutesShort')} ${t(locale, 'common.left')})`, inline: false });
+    lines.push('', `🎲 **${t(locale, 'stats.chaosEffect')}:** ${stats.chaosRole} (${remaining}${t(locale, 'common.minutesShort')} ${t(locale, 'common.left')})`);
   }
 
-  await interaction.editReply({ embeds: [embed] });
+  await interaction.editReply({ content: lines.join('\n') });
 }
 
 export async function handleLeaderboard(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -66,21 +70,17 @@ export async function handleLeaderboard(interaction: ChatInputCommandInteraction
 
   const statEmoji = { mood: '😊', energy: '⚡', activity: '🎯' }[stat];
   const statName = t(locale, `stats.${stat}` as 'stats.mood' | 'stats.energy' | 'stats.activity');
-  const lines: string[] = [];
+  
+  const header = `**${statEmoji} ${statName} ${t(locale, 'leaderboard.title')}**\n`;
+  const entries: string[] = [];
 
   for (let i = 0; i < sorted.length; i++) {
     const s = sorted[i];
     const member = interaction.guild.members.cache.get(s.userId);
     const name = member?.displayName ?? `User ${s.userId.slice(-4)}`;
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
-    lines.push(`${medal} **${name}** — ${s[stat].toFixed(1)}`);
+    entries.push(`${medal} **${name}** — ${s[stat].toFixed(1)}`);
   }
 
-  const embed = new EmbedBuilder()
-    .setTitle(`${statEmoji} ${statName} ${t(locale, 'leaderboard.title')}`)
-    .setColor(0x5865F2)
-    .setDescription(lines.join('\n'))
-    .setTimestamp();
-
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({ content: header + entries.join('\n') });
 }
