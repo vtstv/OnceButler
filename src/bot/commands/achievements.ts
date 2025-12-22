@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Achievements Command
+// Licensed under MIT License
+
 import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getUserAchievements, ACHIEVEMENTS } from '../../database/repositories/achievementsRepo.js';
 import { t } from '../../utils/i18n.js';

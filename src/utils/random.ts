@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Random Utilities
+// Licensed under MIT License
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }

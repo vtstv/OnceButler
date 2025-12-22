@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Progress Repository
+// Licensed under MIT License
+
 import { getDb } from '../db.js';
 
 export interface MemberProgress {

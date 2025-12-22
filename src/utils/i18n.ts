@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Internationalization
+// Licensed under MIT License
+
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';

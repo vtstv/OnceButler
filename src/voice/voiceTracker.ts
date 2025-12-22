@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Voice Tracker
+// Licensed under MIT License
+
 import { GuildMember, VoiceState } from 'discord.js';
 
 const voiceMembers = new Set<string>();

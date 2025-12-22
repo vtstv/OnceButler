@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Chaos Engine
+// Licensed under MIT License
+
 import type { MemberStats } from '../database/repositories/memberStatsRepo.js';
 import { env } from '../config/env.js';
 import { chance, pickRandom } from '../utils/random.js';

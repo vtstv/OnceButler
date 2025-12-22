@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Settings Command
+// Licensed under MIT License
+
 import { ChatInputCommandInteraction, GuildMember, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { 
   getGuildLanguage, 

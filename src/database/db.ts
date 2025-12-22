@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Database Connection
+// Licensed under MIT License
+
 import Database from 'better-sqlite3';
 import { join } from 'path';
 import { env } from '../config/env.js';

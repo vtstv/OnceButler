@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Command Definitions
+// Licensed under MIT License
+
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 
 export const commands = [

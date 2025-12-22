@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Environment Configuration
+// Licensed under MIT License
+
 import { config } from 'dotenv';
 config();
 

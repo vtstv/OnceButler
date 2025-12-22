@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Stat Tick Processing
+// Licensed under MIT License
+
 import { Client, GuildMember } from 'discord.js';
 import { getMemberStats, upsertMemberStats } from '../database/repositories/memberStatsRepo.js';
 import { incrementVoiceTime, incrementOnlineTime, updateMemberProgress } from '../database/repositories/progressRepo.js';

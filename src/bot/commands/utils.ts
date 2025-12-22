@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Command Utilities
+// Licensed under MIT License
+
 import { ChatInputCommandInteraction, GuildMember, PermissionFlagsBits } from 'discord.js';
 import { getGuildLanguage, isManager } from '../../database/repositories/settingsRepo.js';
 import { isValidLocale, type Locale } from '../../utils/i18n.js';

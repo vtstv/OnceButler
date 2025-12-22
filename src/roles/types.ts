@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Role Types
+// Licensed under MIT License
+
 export type RoleCategory = 'mood' | 'energy' | 'activity' | 'time' | 'chaos';
 
 export interface RoleDefinition {

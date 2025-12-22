@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Role Importer
+// Licensed under MIT License
+
 import { Guild, Role } from 'discord.js';
 import { getRoles, saveRoles } from './roleStore.js';
 import { getRoleCategory } from './roleRules.js';

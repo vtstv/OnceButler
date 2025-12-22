@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Triggers Command
+// Licensed under MIT License
+
 import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { createTrigger, listGuildTriggers, deactivateTrigger } from '../../database/repositories/triggersRepo.js';
 import { t } from '../../utils/i18n.js';

@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Stats Command
+// Licensed under MIT License
+
 import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getMemberStats, getAllGuildMembers } from '../../database/repositories/memberStatsRepo.js';
 import { getMemberProgress } from '../../database/repositories/progressRepo.js';

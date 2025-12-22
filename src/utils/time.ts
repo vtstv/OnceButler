@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Time Utilities
+// Licensed under MIT License
+
 export type TimePeriod = 'night' | 'day' | 'evening';
 
 export function getCurrentHour(): number {

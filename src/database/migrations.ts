@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Database Migrations
+// Licensed under MIT License
+
 import { getDb } from './db.js';
 
 export function runMigrations(): void {

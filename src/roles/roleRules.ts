@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Role Rules
+// Licensed under MIT License
+
 import type { MemberStats } from '../database/repositories/memberStatsRepo.js';
 import { getTimePeriod, type TimePeriod } from '../utils/time.js';
 import { getMapping, getRoles } from './roleStore.js';

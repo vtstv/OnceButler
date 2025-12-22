@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Stat Engine
+// Licensed under MIT License
+
 import type { MemberStats } from '../database/repositories/memberStatsRepo.js';
 import { getActiveTriggers } from '../database/repositories/triggersRepo.js';
 import { clamp } from '../utils/random.js';

@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Role Engine
+// Licensed under MIT License
+
 import { Guild, GuildMember, Role } from 'discord.js';
 import { getMemberStats, upsertMemberStats, type MemberStats } from '../database/repositories/memberStatsRepo.js';
 import { getMemberProgress } from '../database/repositories/progressRepo.js';

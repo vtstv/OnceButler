@@ -1,7 +1,7 @@
 {
   "name": "once-butler",
   "version": "1.0.0",
-  "description": "Discord bot with dynamic role assignment based on Once Human status effects",
+  "description": "Dynamic role management Discord bot with activity-based role assignment",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
@@ -10,9 +10,15 @@
     "dev": "tsx watch src/index.ts",
     "register": "tsx src/registerCommands.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "discord",
+    "bot",
+    "discord.js",
+    "roles",
+    "automation"
+  ],
+  "author": "Murr <https://github.com/vtstv>",
+  "license": "MIT",
   "dependencies": {
     "discord.js": "^14.16.3",
     "better-sqlite3": "^11.6.0",

@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Roles Command
+// Licensed under MIT License
+
 import {
   ChatInputCommandInteraction,
   EmbedBuilder,

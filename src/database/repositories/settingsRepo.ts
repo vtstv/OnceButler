@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Settings Repository
+// Licensed under MIT License
+
 import { getDb } from '../db.js';
 
 export interface GuildSettings {

@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// OnceButler Discord Bot - Role Store
+// Licensed under MIT License
+
 import { join } from 'path';
 import { env } from '../config/env.js';
 import { readJson, writeJson, fileExists } from '../utils/file.js';

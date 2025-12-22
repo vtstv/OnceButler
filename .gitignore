@@ -10,9 +10,9 @@ data/*.db-shm
 # Sensitive files
 .env
 .env.*
-bot.md
-explain.md
+!.env.example
 deploy.ps1
+docs/
 
 # IDE
 .idea/
@@ -23,3 +23,6 @@ deploy.ps1
 # OS
 Thumbs.db
 *.bak
+
+# Build artifacts
+*.tsbuildinfo
