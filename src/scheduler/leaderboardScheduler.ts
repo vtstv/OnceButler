@@ -2,7 +2,7 @@
 // OnceButler Discord Bot - Leaderboard Scheduler
 // Licensed under MIT License
 
-import { Client, EmbedBuilder, TextChannel } from 'discord.js';
+import { Client, TextChannel } from 'discord.js';
 import { getDb } from '../database/db.js';
 import { getGuildSettings } from '../database/repositories/settingsRepo.js';
 import { getAllGuildMembers } from '../database/repositories/memberStatsRepo.js';
@@ -63,30 +63,29 @@ async function postLeaderboard(channel: TextChannel, guildId: string): Promise<v
     .sort((a, b) => b.activity - a.activity)
     .slice(0, 10);
 
-  const lines: string[] = [];
   const medals = ['🥇', '🥈', '🥉'];
+  const lines: string[] = [
+    `**📊 ${t(locale, 'leaderboard.autoTitle')}**`,
+    '',
+  ];
 
   for (let i = 0; i < sorted.length; i++) {
     const s = sorted[i];
     const member = channel.guild.members.cache.get(s.userId);
     const name = member?.displayName ?? `User ${s.userId.slice(-4)}`;
-    const rank = i < 3 ? medals[i] : `\`${i + 1}.\``;
+    const rank = i < 3 ? medals[i] : `\`${(i + 1).toString().padStart(2)}.\``;
     
-    // Clean formatted line with proper spacing
-    const activityStr = s.activity.toFixed(1).padStart(5);
-    const moodStr = s.mood.toFixed(1).padStart(5);
-    const energyStr = s.energy.toFixed(1).padStart(5);
+    const activity = s.activity.toFixed(1);
+    const mood = s.mood.toFixed(1);
+    const energy = s.energy.toFixed(1);
     
     lines.push(`${rank} **${name}**`);
-    lines.push(`    ╰ 🎯 \`${activityStr}\`  😊 \`${moodStr}\`  ⚡ \`${energyStr}\``);
+    lines.push(`┗━ 🎯 ${activity}  •  😊 ${mood}  •  ⚡ ${energy}`);
+    if (i < sorted.length - 1) lines.push(''); // Add spacing between entries
   }
 
-  const embed = new EmbedBuilder()
-    .setTitle(`📊 ${t(locale, 'leaderboard.autoTitle')}`)
-    .setColor(0x5865F2)
-    .setDescription(lines.join('\n'))
-    .setFooter({ text: t(locale, 'leaderboard.autoFooter') })
-    .setTimestamp();
+  lines.push('');
+  lines.push(`-# ${t(locale, 'leaderboard.autoFooter')} • <t:${Math.floor(Date.now() / 1000)}:t>`);
 
-  await channel.send({ embeds: [embed] });
+  await channel.send({ content: lines.join('\n') });
 }
