@@ -177,55 +177,64 @@ async function showSetupMenu(
       return;
     }
 
-    const guildId = interaction.guild!.id;
-    const currentSettings = getGuildSettings(guildId);
+    try {
+      const guildId = interaction.guild!.id;
+      const currentSettings = getGuildSettings(guildId);
 
-    if (i.isStringSelectMenu()) {
-      switch (i.customId) {
-        case 'setup_language':
-          updateGuildSettings(guildId, { language: i.values[0] });
-          break;
-        case 'setup_preset':
-          updateGuildSettings(guildId, { rolePreset: i.values[0] });
-          break;
-        case 'setup_maxroles':
-          updateGuildSettings(guildId, { maxRolesPerUser: parseInt(i.values[0]) });
-          break;
+      if (i.isStringSelectMenu()) {
+        switch (i.customId) {
+          case 'setup_language':
+            updateGuildSettings(guildId, { language: i.values[0] });
+            break;
+          case 'setup_preset':
+            updateGuildSettings(guildId, { rolePreset: i.values[0] });
+            break;
+          case 'setup_maxroles':
+            updateGuildSettings(guildId, { maxRolesPerUser: parseInt(i.values[0]) });
+            break;
+        }
+        await showSetupMenu(i, getGuildSettings(guildId));
+      } else if (i.isButton()) {
+        switch (i.customId) {
+          case 'setup_toggle_colors':
+            updateGuildSettings(guildId, { enableRoleColors: !currentSettings.enableRoleColors });
+            await showSetupMenu(i, getGuildSettings(guildId));
+            break;
+          case 'setup_toggle_chaos':
+            updateGuildSettings(guildId, { enableChaosRoles: !currentSettings.enableChaosRoles });
+            await showSetupMenu(i, getGuildSettings(guildId));
+            break;
+          case 'setup_toggle_achievements':
+            updateGuildSettings(guildId, { enableAchievements: !currentSettings.enableAchievements });
+            await showSetupMenu(i, getGuildSettings(guildId));
+            break;
+          case 'setup_create_roles':
+            await i.deferUpdate();
+            const created = await importRolesToGuild(interaction.guild!);
+            const updatedSettings = getGuildSettings(guildId);
+            
+            const resultEmbed = new EmbedBuilder()
+              .setTitle('📥 Role Import Complete')
+              .setDescription(created.length > 0 
+                ? `Created ${created.length} roles:\n${created.map(r => `• ${r}`).join('\n')}`
+                : 'All roles already exist.')
+              .setColor(0x00FF00);
+            
+            await i.followUp({ embeds: [resultEmbed], flags: MessageFlags.Ephemeral });
+            break;
+          case 'setup_complete':
+            completeSetup(guildId);
+            await showSetupMenu(i, getGuildSettings(guildId));
+            break;
+        }
       }
-      await showSetupMenu(i, getGuildSettings(guildId));
-    } else if (i.isButton()) {
-      switch (i.customId) {
-        case 'setup_toggle_colors':
-          updateGuildSettings(guildId, { enableRoleColors: !currentSettings.enableRoleColors });
-          await showSetupMenu(i, getGuildSettings(guildId));
-          break;
-        case 'setup_toggle_chaos':
-          updateGuildSettings(guildId, { enableChaosRoles: !currentSettings.enableChaosRoles });
-          await showSetupMenu(i, getGuildSettings(guildId));
-          break;
-        case 'setup_toggle_achievements':
-          updateGuildSettings(guildId, { enableAchievements: !currentSettings.enableAchievements });
-          await showSetupMenu(i, getGuildSettings(guildId));
-          break;
-        case 'setup_create_roles':
-          await i.deferUpdate();
-          const created = await importRolesToGuild(interaction.guild!);
-          const updatedSettings = getGuildSettings(guildId);
-          
-          const resultEmbed = new EmbedBuilder()
-            .setTitle('📥 Role Import Complete')
-            .setDescription(created.length > 0 
-              ? `Created ${created.length} roles:\n${created.map(r => `• ${r}`).join('\n')}`
-              : 'All roles already exist.')
-            .setColor(0x00FF00);
-          
-          await i.followUp({ embeds: [resultEmbed], flags: MessageFlags.Ephemeral });
-          break;
-        case 'setup_complete':
-          completeSetup(guildId);
-          await showSetupMenu(i, getGuildSettings(guildId));
-          break;
+    } catch (error: any) {
+      // Ignore interaction timeout errors (user took too long)
+      if (error.code === 10062) {
+        console.warn(`[SETUP] Interaction expired for ${i.user.tag}`);
+        return;
       }
+      console.error('[SETUP] Error handling interaction:', error);
     }
   });
 
