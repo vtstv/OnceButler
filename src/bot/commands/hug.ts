@@ -72,8 +72,8 @@ export async function handleHug(interaction: ChatInputCommandInteraction): Promi
   // Pick a random funny phrase
   const phraseIndex = randomInt(1, 10);
   const phrase = t(locale, `hug.phrase${phraseIndex}`, { 
-    hugger: interaction.user.displayName,
-    target: target.displayName 
+    hugger: `<@${interaction.user.id}>`,
+    target: `<@${target.id}>` 
   });
 
   const embed = new EmbedBuilder()
@@ -82,12 +82,12 @@ export async function handleHug(interaction: ChatInputCommandInteraction): Promi
     .setDescription(phrase)
     .addFields(
       { 
-        name: `${target.displayName}`, 
+        name: target.displayName, 
         value: `🌟 ${t(locale, 'hug.moodGained', { amount: moodBonus.toString() })} (${oldTargetMood} → ${targetStats.mood})`,
         inline: true
       },
       {
-        name: `${interaction.user.displayName}`,
+        name: interaction.user.displayName,
         value: `⚡ ${t(locale, 'hug.energySpent', { amount: energyCost.toString() })}`,
         inline: true
       }
