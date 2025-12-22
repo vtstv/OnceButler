@@ -7,6 +7,8 @@
   "common.cancel": "Cancel",
   "common.noPermission": "You don't have permission to use this command.",
 
+  "errors.adminOnly": "Only server administrators or bot managers can use this command.",
+
   "roles.list.title": "Managed Roles",
   "roles.list.empty": "No roles defined.",
   "roles.list.priority": "priority",

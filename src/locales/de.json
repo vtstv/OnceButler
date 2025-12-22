@@ -7,6 +7,8 @@
   "common.cancel": "Abbrechen",
   "common.noPermission": "Sie haben keine Berechtigung, diesen Befehl zu verwenden.",
 
+  "errors.adminOnly": "Nur Serveradministratoren oder Bot-Manager können diesen Befehl verwenden.",
+
   "roles.list.title": "Verwaltete Rollen",
   "roles.list.empty": "Keine Rollen definiert.",
   "roles.list.priority": "Priorität",
