@@ -4,6 +4,7 @@
 
 import {
   ChatInputCommandInteraction,
+  EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,

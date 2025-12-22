@@ -4,6 +4,7 @@
 
 import {
   ChatInputCommandInteraction,
+  EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -49,7 +50,7 @@ export async function handleSetup(interaction: ChatInputCommandInteraction): Pro
   await startCollector(message, interaction.user.id, interaction.guild.id);
 }
 
-function buildCategoryView(category: SetupCategory, settings: GuildSettings, guild: any): { content: string, components: ActionRowBuilder<any>[] } {
+function buildCategoryView(category: SetupCategory, settings: GuildSettings, guild: any): { embeds: EmbedBuilder[], components: ActionRowBuilder<any>[] } {
   switch (category) {
     case 'main':
       return buildMainMenu(settings, guild);
@@ -64,40 +65,41 @@ function buildCategoryView(category: SetupCategory, settings: GuildSettings, gui
   }
 }
 
-function buildMainMenu(settings: GuildSettings, guild: any): { content: string, components: ActionRowBuilder<any>[] } {
+function buildMainMenu(settings: GuildSettings, guild: any): { embeds: EmbedBuilder[], components: ActionRowBuilder<any>[] } {
   const isComplete = settings.setupComplete;
   const leaderboardChannelName = settings.leaderboardChannelId 
     ? guild?.channels.cache.get(settings.leaderboardChannelId)?.name ?? 'Unknown'
     : 'Not set';
 
-  const statusIcon = isComplete ? '✅' : '🔧';
-  const statusText = isComplete 
-    ? 'Setup is complete. Select a category to modify settings.'
-    : 'Configure the bot before it starts managing roles. Select a category below.';
-
-  const featureStatus = [
-    settings.enableRoleColors ? '✅ Colors' : '❌ Colors',
-    settings.enableChaosRoles ? '✅ Chaos' : '❌ Chaos',
-    settings.enableAchievements ? '✅ Achievements' : '❌ Achievements',
-  ].join(' | ');
-
-  const leaderboardStatus = settings.enableAutoLeaderboard 
-    ? `✅ Every ${settings.leaderboardIntervalMinutes}min → #${leaderboardChannelName}`
-    : '❌ Disabled';
-
-  const content = [
-    `**⚙️ OnceButler Setup** ${statusIcon}`,
-    statusText,
-    '',
-    `**🌐 General Settings**`,
-    `└─ Language: \`${settings.language.toUpperCase()}\` | Preset: \`${settings.rolePreset.toUpperCase()}\` | Max Roles: \`${settings.maxRolesPerUser}\``,
-    '',
-    `**🎮 Features**`,
-    `└─ ${featureStatus}`,
-    '',
-    `**📊 Auto Leaderboard**`,
-    `└─ ${leaderboardStatus}`,
-  ].join('\n');
+  const embed = new EmbedBuilder()
+    .setTitle('⚙️ OnceButler Setup')
+    .setDescription(isComplete 
+      ? '✅ Setup is complete. Select a category to modify settings.'
+      : '🔧 Configure the bot before it starts managing roles. Select a category below.')
+    .setColor(isComplete ? 0x00FF00 : 0xFFAA00)
+    .addFields(
+      { 
+        name: '🌐 General Settings', 
+        value: `Language: \`${settings.language.toUpperCase()}\` | Preset: \`${settings.rolePreset.toUpperCase()}\` | Max Roles: \`${settings.maxRolesPerUser}\``, 
+        inline: false 
+      },
+      { 
+        name: '🎮 Features', 
+        value: [
+          settings.enableRoleColors ? '✅ Role Colors' : '❌ Role Colors',
+          settings.enableChaosRoles ? '✅ Chaos Roles' : '❌ Chaos Roles',
+          settings.enableAchievements ? '✅ Achievements' : '❌ Achievements',
+        ].join(' | '), 
+        inline: false 
+      },
+      {
+        name: '📊 Auto Leaderboard',
+        value: settings.enableAutoLeaderboard 
+          ? `✅ Every ${settings.leaderboardIntervalMinutes}min → #${leaderboardChannelName}`
+          : '❌ Disabled',
+        inline: false
+      },
+    );
 
   const categoryButtons = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
@@ -129,20 +131,21 @@ function buildMainMenu(settings: GuildSettings, guild: any): { content: string, 
     );
 
   return {
-    content,
+    embeds: [embed],
     components: [categoryButtons, actionButtons],
   };
 }
 
-function buildGeneralSettings(settings: GuildSettings): { content: string, components: ActionRowBuilder<any>[] } {
-  const content = [
-    '**🌐 General Settings**',
-    'Configure language, role preset, and role limits.',
-    '',
-    `🌐 **Language:** \`${settings.language.toUpperCase()}\``,
-    `🎭 **Role Preset:** \`${settings.rolePreset.toUpperCase()}\``,
-    `👥 **Max Roles:** \`${settings.maxRolesPerUser}\``,
-  ].join('\n');
+function buildGeneralSettings(settings: GuildSettings): { embeds: EmbedBuilder[], components: ActionRowBuilder<any>[] } {
+  const embed = new EmbedBuilder()
+    .setTitle('🌐 General Settings')
+    .setDescription('Configure language, role preset, and role limits.')
+    .setColor(0x5865F2)
+    .addFields(
+      { name: '🌐 Language', value: `\`${settings.language.toUpperCase()}\``, inline: true },
+      { name: '🎭 Role Preset', value: `\`${settings.rolePreset.toUpperCase()}\``, inline: true },
+      { name: '👥 Max Roles', value: `\`${settings.maxRolesPerUser}\``, inline: true },
+    );
 
   const languageSelect = new StringSelectMenuBuilder()
     .setCustomId('setup_language')
@@ -181,7 +184,7 @@ function buildGeneralSettings(settings: GuildSettings): { content: string, compo
     );
 
   return {
-    content,
+    embeds: [embed],
     components: [
       new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(languageSelect),
       new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(presetSelect),
@@ -191,15 +194,16 @@ function buildGeneralSettings(settings: GuildSettings): { content: string, compo
   };
 }
 
-function buildFeatureSettings(settings: GuildSettings): { content: string, components: ActionRowBuilder<any>[] } {
-  const content = [
-    '**🎮 Feature Settings**',
-    'Toggle bot features on or off.',
-    '',
-    `🎨 **Role Colors:** ${settings.enableRoleColors ? '✅ Enabled' : '❌ Disabled'}`,
-    `🎲 **Chaos Roles:** ${settings.enableChaosRoles ? '✅ Enabled' : '❌ Disabled'}`,
-    `🏆 **Achievements:** ${settings.enableAchievements ? '✅ Enabled' : '❌ Disabled'}`,
-  ].join('\n');
+function buildFeatureSettings(settings: GuildSettings): { embeds: EmbedBuilder[], components: ActionRowBuilder<any>[] } {
+  const embed = new EmbedBuilder()
+    .setTitle('🎮 Feature Settings')
+    .setDescription('Toggle bot features on or off.')
+    .setColor(0x5865F2)
+    .addFields(
+      { name: '🎨 Role Colors', value: settings.enableRoleColors ? '✅ Enabled' : '❌ Disabled', inline: true },
+      { name: '🎲 Chaos Roles', value: settings.enableChaosRoles ? '✅ Enabled' : '❌ Disabled', inline: true },
+      { name: '🏆 Achievements', value: settings.enableAchievements ? '✅ Enabled' : '❌ Disabled', inline: true },
+    );
 
   const toggleButtons = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
@@ -226,24 +230,25 @@ function buildFeatureSettings(settings: GuildSettings): { content: string, compo
     );
 
   return {
-    content,
+    embeds: [embed],
     components: [toggleButtons, backButton],
   };
 }
 
-function buildLeaderboardSettings(settings: GuildSettings, guild: any): { content: string, components: ActionRowBuilder<any>[] } {
+function buildLeaderboardSettings(settings: GuildSettings, guild: any): { embeds: EmbedBuilder[], components: ActionRowBuilder<any>[] } {
   const leaderboardChannelName = settings.leaderboardChannelId 
     ? guild?.channels.cache.get(settings.leaderboardChannelId)?.name ?? 'Unknown'
     : 'Not set';
 
-  const content = [
-    '**📊 Auto Leaderboard Settings**',
-    'Configure automatic leaderboard posting.',
-    '',
-    `📊 **Status:** ${settings.enableAutoLeaderboard ? '✅ Enabled' : '❌ Disabled'}`,
-    `⏱️ **Interval:** ${settings.leaderboardIntervalMinutes} minutes`,
-    `📢 **Channel:** #${leaderboardChannelName}`,
-  ].join('\n');
+  const embed = new EmbedBuilder()
+    .setTitle('📊 Auto Leaderboard Settings')
+    .setDescription('Configure automatic leaderboard posting.')
+    .setColor(0x5865F2)
+    .addFields(
+      { name: '📊 Status', value: settings.enableAutoLeaderboard ? '✅ Enabled' : '❌ Disabled', inline: true },
+      { name: '⏱️ Interval', value: `${settings.leaderboardIntervalMinutes} minutes`, inline: true },
+      { name: '📢 Channel', value: `#${leaderboardChannelName}`, inline: true },
+    );
 
   const toggleButton = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
@@ -282,7 +287,7 @@ function buildLeaderboardSettings(settings: GuildSettings, guild: any): { conten
     );
 
   return {
-    content,
+    embeds: [embed],
     components: [
       toggleButton,
       new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(intervalSelect),
@@ -312,7 +317,7 @@ async function startCollector(message: Message, userId: string, guildId: string)
       if (i.isButton() && i.customId.startsWith('setup_cat_')) {
         currentCategory = i.customId.replace('setup_cat_', '') as SetupCategory;
         const view = buildCategoryView(currentCategory, settings, i.guild);
-        await i.update({ content: view.content, components: view.components });
+        await i.update({ embeds: view.embeds, components: view.components });
         return;
       }
 
@@ -334,7 +339,7 @@ async function startCollector(message: Message, userId: string, guildId: string)
         }
         const newSettings = getGuildSettings(guildId);
         const view = buildCategoryView(currentCategory, newSettings, i.guild);
-        await i.update({ content: view.content, components: view.components });
+        await i.update({ embeds: view.embeds, components: view.components });
         return;
       }
 
@@ -344,7 +349,7 @@ async function startCollector(message: Message, userId: string, guildId: string)
           updateGuildSettings(guildId, { leaderboardChannelId: i.values[0] });
           const newSettings = getGuildSettings(guildId);
           const view = buildCategoryView(currentCategory, newSettings, i.guild);
-          await i.update({ content: view.content, components: view.components });
+          await i.update({ embeds: view.embeds, components: view.components });
         }
         return;
       }
@@ -368,11 +373,14 @@ async function startCollector(message: Message, userId: string, guildId: string)
             await i.deferUpdate();
             const created = await importRolesToGuild(i.guild!);
             
-            const resultText = created.length > 0 
-              ? `**📥 Role Import Complete**\n\nCreated ${created.length} roles:\n${created.map(r => `• ${r}`).join('\n')}`
-              : '**📥 Role Import Complete**\n\nAll roles already exist.';
+            const resultEmbed = new EmbedBuilder()
+              .setTitle('📥 Role Import Complete')
+              .setDescription(created.length > 0 
+                ? `Created ${created.length} roles:\n${created.map(r => `• ${r}`).join('\n')}`
+                : 'All roles already exist.')
+              .setColor(0x00FF00);
             
-            await i.followUp({ content: resultText, flags: MessageFlags.Ephemeral });
+            await i.followUp({ embeds: [resultEmbed], flags: MessageFlags.Ephemeral });
             return;
           case 'setup_complete':
             completeSetup(guildId);
@@ -381,7 +389,7 @@ async function startCollector(message: Message, userId: string, guildId: string)
 
         const newSettings = getGuildSettings(guildId);
         const view = buildCategoryView(currentCategory, newSettings, i.guild);
-        await i.update({ content: view.content, components: view.components });
+        await i.update({ embeds: view.embeds, components: view.components });
       }
     } catch (error: any) {
       // Ignore interaction timeout errors (user took too long)
