@@ -10,6 +10,7 @@ import { handleTriggerCommand } from './triggers.js';
 import { handleAchievements } from './achievements.js';
 import { handleSettingsCommand } from './settings.js';
 import { handleVersion } from './version.js';
+import { handleSetup } from './setup.js';
 
 export { commands };
 
@@ -40,6 +41,9 @@ export async function handleInteraction(interaction: Interaction): Promise<void>
         break;
       case 'version':
         await handleVersion(interaction);
+        break;
+      case 'setup':
+        await handleSetup(interaction);
         break;
     }
     console.log(`[CMD] /${interaction.commandName} completed successfully`);

@@ -9,19 +9,40 @@ export interface GuildSettings {
   language: string;
   managerRoles: string[];
   rolePreset: string;
+  setupComplete: boolean;
+  enableRoleColors: boolean;
+  enableChaosRoles: boolean;
+  enableAchievements: boolean;
+  maxRolesPerUser: number;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   language: 'en',
   managerRoles: [],
   rolePreset: 'en',
+  setupComplete: false,
+  enableRoleColors: true,
+  enableChaosRoles: true,
+  enableAchievements: true,
+  maxRolesPerUser: 2,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
   const db = getDb();
   const row = db.prepare(`
-    SELECT language, managerRoles, rolePreset FROM guild_settings WHERE guildId = ?
-  `).get(guildId) as { language: string; managerRoles: string; rolePreset: string } | undefined;
+    SELECT language, managerRoles, rolePreset, setupComplete, 
+           enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser 
+    FROM guild_settings WHERE guildId = ?
+  `).get(guildId) as { 
+    language: string; 
+    managerRoles: string; 
+    rolePreset: string;
+    setupComplete: number;
+    enableRoleColors: number;
+    enableChaosRoles: number;
+    enableAchievements: number;
+    maxRolesPerUser: number;
+  } | undefined;
 
   if (!row) {
     return { guildId, ...DEFAULT_SETTINGS };
@@ -32,7 +53,56 @@ export function getGuildSettings(guildId: string): GuildSettings {
     language: row.language,
     managerRoles: row.managerRoles ? JSON.parse(row.managerRoles) : [],
     rolePreset: row.rolePreset ?? 'en',
+    setupComplete: row.setupComplete === 1,
+    enableRoleColors: row.enableRoleColors !== 0,
+    enableChaosRoles: row.enableChaosRoles !== 0,
+    enableAchievements: row.enableAchievements !== 0,
+    maxRolesPerUser: row.maxRolesPerUser ?? 2,
   };
+}
+
+export function isSetupComplete(guildId: string): boolean {
+  return getGuildSettings(guildId).setupComplete;
+}
+
+export function completeSetup(guildId: string): void {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO guild_settings (guildId, language, managerRoles, rolePreset, setupComplete)
+    VALUES (?, 'en', '[]', 'en', 1)
+    ON CONFLICT(guildId) DO UPDATE SET setupComplete = 1
+  `).run(guildId);
+}
+
+export function updateGuildSettings(guildId: string, updates: Partial<Omit<GuildSettings, 'guildId' | 'managerRoles'>>): void {
+  const db = getDb();
+  const current = getGuildSettings(guildId);
+  
+  const merged = { ...current, ...updates };
+  
+  db.prepare(`
+    INSERT INTO guild_settings (guildId, language, managerRoles, rolePreset, setupComplete, 
+                                enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(guildId) DO UPDATE SET 
+      language = excluded.language,
+      rolePreset = excluded.rolePreset,
+      setupComplete = excluded.setupComplete,
+      enableRoleColors = excluded.enableRoleColors,
+      enableChaosRoles = excluded.enableChaosRoles,
+      enableAchievements = excluded.enableAchievements,
+      maxRolesPerUser = excluded.maxRolesPerUser
+  `).run(
+    guildId,
+    merged.language,
+    JSON.stringify(merged.managerRoles),
+    merged.rolePreset,
+    merged.setupComplete ? 1 : 0,
+    merged.enableRoleColors ? 1 : 0,
+    merged.enableChaosRoles ? 1 : 0,
+    merged.enableAchievements ? 1 : 0,
+    merged.maxRolesPerUser
+  );
 }
 
 export function getGuildLanguage(guildId: string): string {

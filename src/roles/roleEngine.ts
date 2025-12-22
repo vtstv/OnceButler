@@ -6,7 +6,7 @@ import { Guild, GuildMember, Role } from 'discord.js';
 import { getMemberStats, upsertMemberStats, type MemberStats } from '../database/repositories/memberStatsRepo.js';
 import { getMemberProgress } from '../database/repositories/progressRepo.js';
 import { ACHIEVEMENTS, unlockAchievement, getUserAchievements } from '../database/repositories/achievementsRepo.js';
-import { getGuildRolePreset } from '../database/repositories/settingsRepo.js';
+import { getGuildRolePreset, getGuildSettings, isSetupComplete } from '../database/repositories/settingsRepo.js';
 import { env } from '../config/env.js';
 import {
   calculateRoleAssignment,
@@ -19,8 +19,6 @@ import {
   getAllBotRoles,
 } from './roleRules.js';
 import { getAchievementNames } from './roleStore.js';
-
-const MAX_ROLES_PER_USER = 2;
 
 const ROLE_COLORS: Record<string, number> = {
   mood: 0xFFD700,
@@ -41,17 +39,23 @@ function getCategoryColor(roleName: string, preset: string): number {
 }
 
 export async function syncMemberRoles(member: GuildMember, stats: MemberStats): Promise<void> {
+  // Don't assign roles if setup is not complete
+  if (!isSetupComplete(member.guild.id)) return;
+
   const now = Date.now();
   if (now - stats.lastRoleUpdate < env.roleUpdateCooldownMs) return;
 
-  const preset = getGuildRolePreset(member.guild.id);
+  const settings = getGuildSettings(member.guild.id);
+  const preset = settings.rolePreset;
   const assignment = calculateRoleAssignment(stats, preset);
-  const hasChaos = stats.chaosRole && stats.chaosExpires > now;
+  
+  // Check if chaos roles are enabled
+  const hasChaos = settings.enableChaosRoles && stats.chaosRole && stats.chaosExpires > now;
   
   const targetRoles = selectPriorityRoles(
     assignment,
     hasChaos ? stats.chaosRole : null,
-    MAX_ROLES_PER_USER
+    settings.maxRolesPerUser
   );
 
   const guild = member.guild;
@@ -89,18 +93,33 @@ export async function syncMemberRoles(member: GuildMember, stats: MemberStats): 
 }
 
 export async function ensureRolesExist(guild: Guild): Promise<void> {
-  const preset = getGuildRolePreset(guild.id);
+  // Don't create roles if setup is not complete
+  if (!isSetupComplete(guild.id)) return;
+
+  const settings = getGuildSettings(guild.id);
+  const preset = settings.rolePreset;
   const existingNames = guild.roles.cache.map((r: Role) => r.name);
-  const allRoles = [...getAllBotRoles(preset), ...getAchievementRolesForPreset(preset)];
+  const allRoles = [...getAllBotRoles(preset)];
+  
+  // Add achievement roles only if achievements are enabled
+  if (settings.enableAchievements) {
+    allRoles.push(...getAchievementRolesForPreset(preset));
+  }
 
   for (const roleName of allRoles) {
     if (!existingNames.includes(roleName)) {
       try {
-        await guild.roles.create({
+        const roleOptions: { name: string; colors?: { primaryColor: number }; reason: string } = {
           name: roleName,
-          color: getCategoryColor(roleName, preset) as import('discord.js').ColorResolvable,
           reason: 'OnceButler role creation',
-        });
+        };
+        
+        // Only add color if enabled in settings
+        if (settings.enableRoleColors) {
+          roleOptions.colors = { primaryColor: getCategoryColor(roleName, preset) };
+        }
+        
+        await guild.roles.create(roleOptions as Parameters<typeof guild.roles.create>[0]);
         console.log(`Created role: ${roleName}`);
       } catch (err) {
         console.error(`Failed to create role ${roleName}:`, err);

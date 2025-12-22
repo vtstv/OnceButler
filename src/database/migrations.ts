@@ -61,14 +61,30 @@ export function runMigrations(): void {
       guildId TEXT PRIMARY KEY,
       language TEXT DEFAULT 'en',
       managerRoles TEXT DEFAULT '[]',
-      rolePreset TEXT DEFAULT 'en'
+      rolePreset TEXT DEFAULT 'en',
+      setupComplete INTEGER DEFAULT 0,
+      enableRoleColors INTEGER DEFAULT 1,
+      enableChaosRoles INTEGER DEFAULT 1,
+      enableAchievements INTEGER DEFAULT 1,
+      maxRolesPerUser INTEGER DEFAULT 2
     );
   `);
 
-  // Migration: add rolePreset column if it doesn't exist
-  try {
-    db.exec(`ALTER TABLE guild_settings ADD COLUMN rolePreset TEXT DEFAULT 'en'`);
-  } catch {
-    // Column already exists
+  // Migration: add new columns if they don't exist
+  const migrations = [
+    `ALTER TABLE guild_settings ADD COLUMN rolePreset TEXT DEFAULT 'en'`,
+    `ALTER TABLE guild_settings ADD COLUMN setupComplete INTEGER DEFAULT 0`,
+    `ALTER TABLE guild_settings ADD COLUMN enableRoleColors INTEGER DEFAULT 1`,
+    `ALTER TABLE guild_settings ADD COLUMN enableChaosRoles INTEGER DEFAULT 1`,
+    `ALTER TABLE guild_settings ADD COLUMN enableAchievements INTEGER DEFAULT 1`,
+    `ALTER TABLE guild_settings ADD COLUMN maxRolesPerUser INTEGER DEFAULT 2`,
+  ];
+
+  for (const migration of migrations) {
+    try {
+      db.exec(migration);
+    } catch {
+      // Column already exists
+    }
   }
 }

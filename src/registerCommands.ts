@@ -136,6 +136,11 @@ const commands = [
   new SlashCommandBuilder()
     .setName('version')
     .setDescription('Display bot version and system information'),
+
+  new SlashCommandBuilder()
+    .setName('setup')
+    .setDescription('Configure OnceButler for this server (required before bot starts working)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);

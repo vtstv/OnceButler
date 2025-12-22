@@ -5,7 +5,7 @@
 import { Client, GuildMember } from 'discord.js';
 import { getMemberStats, upsertMemberStats } from '../database/repositories/memberStatsRepo.js';
 import { incrementVoiceTime, incrementOnlineTime, updateMemberProgress } from '../database/repositories/progressRepo.js';
-import { getGuildRolePreset } from '../database/repositories/settingsRepo.js';
+import { getGuildSettings, isSetupComplete } from '../database/repositories/settingsRepo.js';
 import { processTick, type StatModifiers } from './statEngine.js';
 import { syncMemberRoles, clearExpiredChaosRole, checkAndGrantAchievements } from '../roles/roleEngine.js';
 import { applyChaosEvent } from './chaosEngine.js';
@@ -22,6 +22,9 @@ export async function processGuildTick(client: Client): Promise<void> {
   }
 
   for (const guild of client.guilds.cache.values()) {
+    // Skip guilds that haven't completed setup
+    if (!isSetupComplete(guild.id)) continue;
+
     const members = guild.members.cache.filter(m => !m.user.bot && isOnline(m));
 
     for (const member of members.values()) {
@@ -36,7 +39,7 @@ export async function processGuildTick(client: Client): Promise<void> {
 
 async function processMemberTick(member: GuildMember): Promise<void> {
   const stats = getMemberStats(member.guild.id, member.id);
-  const preset = getGuildRolePreset(member.guild.id);
+  const settings = getGuildSettings(member.guild.id);
   const inVoice = isInVoice(member);
 
   const modifiers: StatModifiers = {
@@ -47,7 +50,12 @@ async function processMemberTick(member: GuildMember): Promise<void> {
 
   processTick(stats, modifiers);
   clearExpiredChaosRole(stats);
-  applyChaosEvent(stats, preset);
+  
+  // Only apply chaos events if enabled
+  if (settings.enableChaosRoles) {
+    applyChaosEvent(stats, settings.rolePreset);
+  }
+  
   upsertMemberStats(stats);
 
   incrementOnlineTime(member.guild.id, member.id, 1);
@@ -61,7 +69,11 @@ async function processMemberTick(member: GuildMember): Promise<void> {
     peakActivity: stats.activity,
   });
 
-  await checkAndGrantAchievements(member);
+  // Only check achievements if enabled
+  if (settings.enableAchievements) {
+    await checkAndGrantAchievements(member);
+  }
+  
   await syncMemberRoles(member, stats);
 }
 
