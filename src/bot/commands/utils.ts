@@ -27,7 +27,8 @@ export function hasAdminPermission(interaction: ChatInputCommandInteraction): bo
 }
 
 export function createProgressBar(value: number): string {
-  const filled = Math.round(value / 10);
+  const clampedValue = Math.max(0, Math.min(100, value));
+  const filled = Math.round(clampedValue / 10);
   const empty = 10 - filled;
   return '█'.repeat(filled) + '░'.repeat(empty);
 }
