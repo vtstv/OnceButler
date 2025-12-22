@@ -37,8 +37,9 @@ export function getEnergyRole(energy: number, mapping: RoleMapping): string | nu
 
 export function getActivityRole(activity: number, mapping: RoleMapping): string | null {
   if (activity >= 80) return mapping.activity.high;
-  if (activity >= 50) return mapping.activity.mid1;
-  if (activity >= 20) return mapping.activity.mid2;
+  if (activity >= 60) return mapping.activity.mid1;
+  if (activity >= 40) return mapping.activity.mid2;
+  if (activity >= 20) return mapping.activity.mid3 ?? mapping.activity.mid2;
   return mapping.activity.low;
 }
 

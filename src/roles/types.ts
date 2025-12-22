@@ -31,6 +31,7 @@ export interface RoleMapping {
     high: string;
     mid1: string;
     mid2: string;
+    mid3?: string;
     low: string;
   };
   time: {

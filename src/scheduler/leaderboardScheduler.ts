@@ -4,7 +4,7 @@
 
 import { Client, TextChannel } from 'discord.js';
 import { getDb } from '../database/db.js';
-import { getGuildSettings } from '../database/repositories/settingsRepo.js';
+import { getGuildSettings, updateGuildSettings } from '../database/repositories/settingsRepo.js';
 import { getAllGuildMembers } from '../database/repositories/memberStatsRepo.js';
 import { t } from '../utils/i18n.js';
 
@@ -19,10 +19,10 @@ export async function processAutoLeaderboards(client: Client): Promise<void> {
   
   // Get all guilds with auto-leaderboard enabled
   const guilds = db.prepare(`
-    SELECT guildId, leaderboardChannelId, leaderboardIntervalMinutes 
+    SELECT guildId, leaderboardChannelId, leaderboardIntervalMinutes, leaderboardMessageId
     FROM guild_settings 
     WHERE enableAutoLeaderboard = 1 AND leaderboardChannelId IS NOT NULL
-  `).all() as { guildId: string; leaderboardChannelId: string; leaderboardIntervalMinutes: number }[];
+  `).all() as { guildId: string; leaderboardChannelId: string; leaderboardIntervalMinutes: number; leaderboardMessageId: string | null }[];
 
   const now = Date.now();
 
@@ -41,7 +41,7 @@ export async function processAutoLeaderboards(client: Client): Promise<void> {
       const channel = guild.channels.cache.get(guildData.leaderboardChannelId) as TextChannel;
       if (!channel || !channel.isTextBased()) continue;
 
-      await postLeaderboard(channel, guildData.guildId);
+      await postLeaderboard(channel, guildData.guildId, guildData.leaderboardMessageId);
       
       state.lastPost = now;
       guildStates.set(guildData.guildId, state);
@@ -51,7 +51,7 @@ export async function processAutoLeaderboards(client: Client): Promise<void> {
   }
 }
 
-async function postLeaderboard(channel: TextChannel, guildId: string): Promise<void> {
+async function postLeaderboard(channel: TextChannel, guildId: string, existingMessageId: string | null): Promise<void> {
   const settings = getGuildSettings(guildId);
   const locale = settings.language as 'en' | 'ru' | 'de';
   const allStats = getAllGuildMembers(guildId);
@@ -87,5 +87,20 @@ async function postLeaderboard(channel: TextChannel, guildId: string): Promise<v
   lines.push('');
   lines.push(`-# ${t(locale, 'leaderboard.autoFooter')} • <t:${Math.floor(Date.now() / 1000)}:t>`);
 
-  await channel.send({ content: lines.join('\n') });
+  const content = lines.join('\n');
+
+  // Try to edit existing message, otherwise send new one
+  if (existingMessageId) {
+    try {
+      const existingMessage = await channel.messages.fetch(existingMessageId);
+      await existingMessage.edit({ content });
+      return; // Successfully edited
+    } catch {
+      // Message not found or can't be edited, send new one
+    }
+  }
+
+  // Send new message and save its ID
+  const newMessage = await channel.send({ content });
+  updateGuildSettings(guildId, { leaderboardMessageId: newMessage.id });
 }

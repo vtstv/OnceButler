@@ -12,18 +12,24 @@
     { "roleId": "Worn-out", "category": "energy", "priority": 2, "temporary": false, "durationMinutes": null },
     { "roleId": "Worn-out 2", "category": "energy", "priority": 1, "temporary": false, "durationMinutes": null },
 
-    { "roleId": "Come As One", "category": "activity", "priority": 4, "temporary": false, "durationMinutes": null },
-    { "roleId": "Little Helper", "category": "activity", "priority": 3, "temporary": false, "durationMinutes": null },
-    { "roleId": "Panovision", "category": "activity", "priority": 2, "temporary": false, "durationMinutes": null },
+    { "roleId": "Come As One", "category": "activity", "priority": 5, "temporary": false, "durationMinutes": null },
+    { "roleId": "Little Helper", "category": "activity", "priority": 4, "temporary": false, "durationMinutes": null },
+    { "roleId": "Panovision", "category": "activity", "priority": 3, "temporary": false, "durationMinutes": null },
+    { "roleId": "Slacking Off", "category": "activity", "priority": 2, "temporary": false, "durationMinutes": null },
     { "roleId": "Holding the team back", "category": "activity", "priority": 1, "temporary": false, "durationMinutes": null },
 
     { "roleId": "Lunar Oracle", "category": "time", "priority": 1, "temporary": false, "durationMinutes": null },
     { "roleId": "Praise the Sun", "category": "time", "priority": 2, "temporary": false, "durationMinutes": null },
     { "roleId": "Two-Shift System", "category": "time", "priority": 3, "temporary": false, "durationMinutes": null },
 
-    { "roleId": "Lazy", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 },
+    { "roleId": "Lazy Bones", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 },
     { "roleId": "Snooze Aficionado", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 },
-    { "roleId": "Unplanned Production", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 }
+    { "roleId": "Unplanned Production", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 },
+    { "roleId": "Daydreaming", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 45 },
+    { "roleId": "Workaholic", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 90 },
+    { "roleId": "Eureka Moment", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 30 },
+    { "roleId": "Baffling Behavior", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 45 },
+    { "roleId": "Street Rascal", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 }
   ],
   "mapping": {
     "mood": {
@@ -44,6 +50,7 @@
       "high": "Come As One",
       "mid1": "Little Helper",
       "mid2": "Panovision",
+      "mid3": "Slacking Off",
       "low": "Holding the team back"
     },
     "time": {
@@ -51,7 +58,7 @@
       "day": "Praise the Sun",
       "evening": "Two-Shift System"
     },
-    "chaos": ["Worn-out", "Lazy", "Snooze Aficionado", "Optimist 1", "Unplanned Production"]
+    "chaos": ["Worn-out", "Lazy Bones", "Snooze Aficionado", "Optimist 1", "Unplanned Production", "Daydreaming", "Workaholic", "Eureka Moment", "Baffling Behavior", "Street Rascal"]
   },
   "achievements": {
     "voice_rookie": "Voice Rookie",

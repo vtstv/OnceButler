@@ -12,18 +12,24 @@
     { "roleId": "Устал", "category": "energy", "priority": 2, "temporary": false, "durationMinutes": null },
     { "roleId": "Истощён", "category": "energy", "priority": 1, "temporary": false, "durationMinutes": null },
 
-    { "roleId": "Душа компании", "category": "activity", "priority": 4, "temporary": false, "durationMinutes": null },
-    { "roleId": "Активист", "category": "activity", "priority": 3, "temporary": false, "durationMinutes": null },
-    { "roleId": "Наблюдатель", "category": "activity", "priority": 2, "temporary": false, "durationMinutes": null },
+    { "roleId": "Душа компании", "category": "activity", "priority": 5, "temporary": false, "durationMinutes": null },
+    { "roleId": "Активист", "category": "activity", "priority": 4, "temporary": false, "durationMinutes": null },
+    { "roleId": "Наблюдатель", "category": "activity", "priority": 3, "temporary": false, "durationMinutes": null },
+    { "roleId": "Прохлаждается", "category": "activity", "priority": 2, "temporary": false, "durationMinutes": null },
     { "roleId": "Тянет команду назад", "category": "activity", "priority": 1, "temporary": false, "durationMinutes": null },
 
     { "roleId": "Лунный оракул", "category": "time", "priority": 1, "temporary": false, "durationMinutes": null },
     { "roleId": "Хвала Солнцу", "category": "time", "priority": 2, "temporary": false, "durationMinutes": null },
     { "roleId": "Двухсменка", "category": "time", "priority": 3, "temporary": false, "durationMinutes": null },
 
-    { "roleId": "Лентяй", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 },
+    { "roleId": "Ленивые косточки", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 },
     { "roleId": "Соня", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 },
-    { "roleId": "Внеплановое производство", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 }
+    { "roleId": "Внеплановое производство", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 },
+    { "roleId": "Витает в облаках", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 45 },
+    { "roleId": "Трудоголик", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 90 },
+    { "roleId": "Момент озарения", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 30 },
+    { "roleId": "Странное поведение", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 45 },
+    { "roleId": "Уличный хулиган", "category": "chaos", "priority": 1, "temporary": true, "durationMinutes": 60 }
   ],
   "mapping": {
     "mood": {
@@ -44,6 +50,7 @@
       "high": "Душа компании",
       "mid1": "Активист",
       "mid2": "Наблюдатель",
+      "mid3": "Прохлаждается",
       "low": "Тянет команду назад"
     },
     "time": {
@@ -51,7 +58,7 @@
       "day": "Хвала Солнцу",
       "evening": "Двухсменка"
     },
-    "chaos": ["Устал", "Лентяй", "Соня", "Оптимист 1", "Внеплановое производство"]
+    "chaos": ["Устал", "Ленивые косточки", "Соня", "Оптимист 1", "Внеплановое производство", "Витает в облаках", "Трудоголик", "Момент озарения", "Странное поведение", "Уличный хулиган"]
   },
   "achievements": {
     "voice_rookie": "Голосовой новичок",

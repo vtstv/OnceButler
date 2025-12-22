@@ -17,6 +17,7 @@ export interface GuildSettings {
   enableAutoLeaderboard: boolean;
   leaderboardChannelId: string | null;
   leaderboardIntervalMinutes: number;
+  leaderboardMessageId: string | null;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -31,6 +32,7 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   enableAutoLeaderboard: false,
   leaderboardChannelId: null,
   leaderboardIntervalMinutes: 60,
+  leaderboardMessageId: null,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
@@ -38,7 +40,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
   const row = db.prepare(`
     SELECT language, managerRoles, rolePreset, setupComplete, 
            enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser,
-           enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes
+           enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes, leaderboardMessageId
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as { 
     language: string; 
@@ -52,6 +54,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
     enableAutoLeaderboard: number;
     leaderboardChannelId: string | null;
     leaderboardIntervalMinutes: number;
+    leaderboardMessageId: string | null;
   } | undefined;
 
   if (!row) {
@@ -71,6 +74,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
     enableAutoLeaderboard: row.enableAutoLeaderboard === 1,
     leaderboardChannelId: row.leaderboardChannelId ?? null,
     leaderboardIntervalMinutes: row.leaderboardIntervalMinutes ?? 60,
+    leaderboardMessageId: row.leaderboardMessageId ?? null,
   };
 }
 
@@ -96,8 +100,8 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
   db.prepare(`
     INSERT INTO guild_settings (guildId, language, managerRoles, rolePreset, setupComplete, 
                                 enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser,
-                                enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes, leaderboardMessageId)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -108,7 +112,8 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       maxRolesPerUser = excluded.maxRolesPerUser,
       enableAutoLeaderboard = excluded.enableAutoLeaderboard,
       leaderboardChannelId = excluded.leaderboardChannelId,
-      leaderboardIntervalMinutes = excluded.leaderboardIntervalMinutes
+      leaderboardIntervalMinutes = excluded.leaderboardIntervalMinutes,
+      leaderboardMessageId = excluded.leaderboardMessageId
   `).run(
     guildId,
     merged.language,
@@ -121,7 +126,8 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.maxRolesPerUser,
     merged.enableAutoLeaderboard ? 1 : 0,
     merged.leaderboardChannelId,
-    merged.leaderboardIntervalMinutes
+    merged.leaderboardIntervalMinutes,
+    merged.leaderboardMessageId
   );
 }
 
