@@ -14,6 +14,7 @@ import {
   ChannelType,
   MessageFlags,
   Message,
+  RoleSelectMenuBuilder,
 } from 'discord.js';
 import { 
   getGuildSettings, 
@@ -28,8 +29,17 @@ import { t } from '../../utils/i18n.js';
 import { getLocale, hasAdminPermission } from './utils.js';
 import type { RoleCategory } from '../../roles/types.js';
 import type { Guild } from 'discord.js';
+import { buildWelcomeSettings, formatWelcomeMessage, DEFAULT_WELCOME_MESSAGES, DEFAULT_LEAVE_MESSAGES } from './setup/welcomeBuilder.js';
+import { buildCustomRolesSettings, buildCustomRoleAddWizard, buildCustomRoleManage, buildCustomRuleEdit } from './setup/customRolesBuilder.js';
+import { 
+  createCustomRoleRule, 
+  getCustomRoleRuleById, 
+  toggleCustomRoleRule, 
+  deleteCustomRoleRule,
+  type CustomRoleRule 
+} from '../../database/repositories/customRolesRepo.js';
 
-type SetupCategory = 'main' | 'general' | 'features' | 'leaderboard' | 'stats' | 'roles';
+type SetupCategory = 'main' | 'general' | 'features' | 'leaderboard' | 'stats' | 'roles' | 'welcome' | 'customRoles';
 type RoleSubCategory = 'overview' | 'mood' | 'energy' | 'activity' | 'time' | 'chaos';
 
 const ROLE_COLORS: Record<string, number> = {
@@ -134,6 +144,10 @@ function buildCategoryView(category: SetupCategory, settings: GuildSettings, gui
       return buildStatSettings(settings);
     case 'roles':
       return buildRolesSettings(settings, guild, roleSubCategory ?? 'overview');
+    case 'welcome':
+      return buildWelcomeSettings(settings, guild);
+    case 'customRoles':
+      return buildCustomRolesSettings(settings, guild);
     default:
       return buildMainMenu(settings, guild);
   }
@@ -143,6 +157,9 @@ function buildMainMenu(settings: GuildSettings, guild: any): { embeds: EmbedBuil
   const isComplete = settings.setupComplete;
   const leaderboardChannelName = settings.leaderboardChannelId 
     ? guild?.channels.cache.get(settings.leaderboardChannelId)?.name ?? 'Unknown'
+    : 'Not set';
+  const welcomeChannelName = settings.welcomeChannelId 
+    ? guild?.channels.cache.get(settings.welcomeChannelId)?.name ?? 'Unknown'
     : 'Not set';
 
   const embed = new EmbedBuilder()
@@ -178,9 +195,16 @@ function buildMainMenu(settings: GuildSettings, guild: any): { embeds: EmbedBuil
         value: `Gain: \`${settings.statGainMultiplier}x\` | Loss: \`${settings.statDrainMultiplier}x\``,
         inline: false
       },
+      {
+        name: '👋 Welcome/Leave',
+        value: settings.enableWelcome 
+          ? `✅ Enabled → #${welcomeChannelName}`
+          : '❌ Disabled',
+        inline: false
+      },
     );
 
-  const categoryButtons = new ActionRowBuilder<ButtonBuilder>()
+  const categoryButtons1 = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_cat_general')
@@ -198,9 +222,21 @@ function buildMainMenu(settings: GuildSettings, guild: any): { embeds: EmbedBuil
         .setCustomId('setup_cat_stats')
         .setLabel('📈 Stats')
         .setStyle(ButtonStyle.Primary),
+    );
+
+  const categoryButtons2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_cat_roles')
         .setLabel('🎭 Roles')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('setup_cat_welcome')
+        .setLabel('👋 Welcome')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('setup_cat_customRoles')
+        .setLabel('🔧 Custom Rules')
         .setStyle(ButtonStyle.Primary),
     );
 
@@ -215,7 +251,7 @@ function buildMainMenu(settings: GuildSettings, guild: any): { embeds: EmbedBuil
 
   return {
     embeds: [embed],
-    components: [categoryButtons, actionButtons],
+    components: [categoryButtons1, categoryButtons2, actionButtons],
   };
 }
 
@@ -286,6 +322,8 @@ function buildFeatureSettings(settings: GuildSettings): { embeds: EmbedBuilder[]
       { name: '🎨 Role Colors', value: settings.enableRoleColors ? '✅ Enabled' : '❌ Disabled', inline: true },
       { name: '🎲 Chaos Roles', value: settings.enableChaosRoles ? '✅ Enabled' : '❌ Disabled', inline: true },
       { name: '🏆 Achievements', value: settings.enableAchievements ? '✅ Enabled' : '❌ Disabled', inline: true },
+      { name: '💰 Economy', value: settings.enableEconomy ? '✅ Enabled' : '❌ Disabled', inline: true },
+      { name: '🎉 Giveaways', value: settings.enableGiveaways ? '✅ Enabled' : '❌ Disabled', inline: true },
     );
 
   const toggleButtons = new ActionRowBuilder<ButtonBuilder>()
@@ -304,6 +342,18 @@ function buildFeatureSettings(settings: GuildSettings): { embeds: EmbedBuilder[]
         .setStyle(settings.enableAchievements ? ButtonStyle.Secondary : ButtonStyle.Success),
     );
 
+  const toggleButtons2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('setup_toggle_economy')
+        .setLabel(settings.enableEconomy ? '💰 Disable Economy' : '💰 Enable Economy')
+        .setStyle(settings.enableEconomy ? ButtonStyle.Secondary : ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId('setup_toggle_giveaways')
+        .setLabel(settings.enableGiveaways ? '🎉 Disable Giveaways' : '🎉 Enable Giveaways')
+        .setStyle(settings.enableGiveaways ? ButtonStyle.Secondary : ButtonStyle.Success),
+    );
+
   const backButton = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
@@ -314,7 +364,7 @@ function buildFeatureSettings(settings: GuildSettings): { embeds: EmbedBuilder[]
 
   return {
     embeds: [embed],
-    components: [toggleButtons, backButton],
+    components: [toggleButtons, toggleButtons2, backButton],
   };
 }
 
@@ -681,10 +731,12 @@ async function startCollector(message: Message, userId: string, guildId: string)
       if (i.isChannelSelectMenu()) {
         if (i.customId === 'setup_leaderboard_channel') {
           updateGuildSettings(guildId, { leaderboardChannelId: i.values[0] });
-          const newSettings = getGuildSettings(guildId);
-          const view = buildCategoryView(currentCategory, newSettings, i.guild, currentRoleSubCategory);
-          await i.update({ embeds: view.embeds, components: view.components });
+        } else if (i.customId === 'setup_welcome_channel') {
+          updateGuildSettings(guildId, { welcomeChannelId: i.values[0] });
         }
+        const newSettings = getGuildSettings(guildId);
+        const view = buildCategoryView(currentCategory, newSettings, i.guild, currentRoleSubCategory);
+        await i.update({ embeds: view.embeds, components: view.components });
         return;
       }
 
@@ -702,6 +754,15 @@ async function startCollector(message: Message, userId: string, guildId: string)
             break;
           case 'setup_toggle_autoleaderboard':
             updateGuildSettings(guildId, { enableAutoLeaderboard: !settings.enableAutoLeaderboard });
+            break;
+          case 'setup_toggle_welcome':
+            updateGuildSettings(guildId, { enableWelcome: !settings.enableWelcome });
+            break;
+          case 'setup_toggle_economy':
+            updateGuildSettings(guildId, { enableEconomy: !settings.enableEconomy });
+            break;
+          case 'setup_toggle_giveaways':
+            updateGuildSettings(guildId, { enableGiveaways: !settings.enableGiveaways });
             break;
           case 'setup_complete':
             completeSetup(guildId);
@@ -786,6 +847,48 @@ async function startCollector(message: Message, userId: string, guildId: string)
           const newSettings = getGuildSettings(guildId);
           const view = buildCategoryView('roles', newSettings, i.guild, currentRoleSubCategory);
           await i.editReply({ embeds: view.embeds, components: view.components });
+          return;
+        }
+
+        // Handle Custom Role Rules buttons
+        if (i.customId === 'setup_customroles_add') {
+          // Start wizard at step 0
+          currentCategory = 'customRoles';
+          const wizardView = buildCustomRoleAddWizard(0, guildId, {});
+          await i.update({ embeds: wizardView.embeds, components: wizardView.components });
+          return;
+        }
+        
+        if (i.customId === 'setup_customroles_manage') {
+          const manageView = buildCustomRoleManage(guildId);
+          await i.update({ embeds: manageView.embeds, components: manageView.components });
+          return;
+        }
+
+        if (i.customId.startsWith('setup_customroles_toggle_')) {
+          const ruleId = parseInt(i.customId.replace('setup_customroles_toggle_', ''));
+          toggleCustomRoleRule(ruleId);
+          const rule = getCustomRoleRuleById(ruleId);
+          if (rule) {
+            const editView = buildCustomRuleEdit(rule);
+            await i.update({ embeds: editView.embeds, components: editView.components });
+          }
+          return;
+        }
+
+        if (i.customId.startsWith('setup_customroles_delete_')) {
+          const ruleId = parseInt(i.customId.replace('setup_customroles_delete_', ''));
+          deleteCustomRoleRule(ruleId);
+          const newSettings = getGuildSettings(guildId);
+          const view = buildCategoryView('customRoles', newSettings, i.guild, currentRoleSubCategory);
+          await i.update({ embeds: view.embeds, components: view.components });
+          return;
+        }
+
+        if (i.customId === 'setup_customroles_wizard_cancel') {
+          const newSettings = getGuildSettings(guildId);
+          const view = buildCategoryView('customRoles', newSettings, i.guild, currentRoleSubCategory);
+          await i.update({ embeds: view.embeds, components: view.components });
           return;
         }
 

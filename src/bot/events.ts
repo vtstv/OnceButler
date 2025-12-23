@@ -6,9 +6,10 @@ import { Client, Events, GuildMember } from 'discord.js';
 import { handleVoiceStateUpdate } from '../voice/voiceTracker.js';
 import { startTickScheduler } from '../scheduler/tickScheduler.js';
 import { ensureRolesExist } from '../roles/roleEngine.js';
-import { handleInteraction } from './slashCommands.js';
+import { handleInteraction, handleGiveawayButton } from './slashCommands.js';
 import { getMemberStats, upsertMemberStats } from '../database/repositories/memberStatsRepo.js';
 import { chance, randomInt } from '../utils/random.js';
+import { handleGuildMemberAdd, handleGuildMemberRemove } from './events/welcomeEvents.js';
 
 export function registerEvents(client: Client): void {
   client.once(Events.ClientReady, async (c) => {
@@ -25,11 +26,25 @@ export function registerEvents(client: Client): void {
     handleVoiceStateUpdate(oldState, newState);
   });
 
-  client.on(Events.GuildMemberAdd, (member) => {
+  client.on(Events.GuildMemberAdd, async (member) => {
     handleMemberJoin(member);
+    await handleGuildMemberAdd(member);
+  });
+
+  client.on(Events.GuildMemberRemove, async (member) => {
+    // member can be partial, check if it's a full GuildMember
+    if (member.partial) return;
+    await handleGuildMemberRemove(member);
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
+    // Handle button interactions for giveaways
+    if (interaction.isButton()) {
+      if (interaction.customId.startsWith('giveaway_')) {
+        await handleGiveawayButton(interaction);
+        return;
+      }
+    }
     await handleInteraction(interaction);
   });
 

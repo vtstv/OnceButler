@@ -20,6 +20,20 @@ export interface GuildSettings {
   leaderboardMessageId: string | null;
   statGainMultiplier: number;
   statDrainMultiplier: number;
+  // Welcome/Leave module
+  enableWelcome: boolean;
+  welcomeChannelId: string | null;
+  welcomeMessage: string | null;
+  leaveMessage: string | null;
+  // Economy module
+  enableEconomy: boolean;
+  economyCurrencyName: string;
+  economyCurrencyEmoji: string;
+  economyDailyAmount: number;
+  economyWorkMin: number;
+  economyWorkMax: number;
+  // Giveaways module
+  enableGiveaways: boolean;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -37,6 +51,20 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   leaderboardMessageId: null,
   statGainMultiplier: 1.0,
   statDrainMultiplier: 0.5,
+  // Welcome/Leave module
+  enableWelcome: false,
+  welcomeChannelId: null,
+  welcomeMessage: null,
+  leaveMessage: null,
+  // Economy module
+  enableEconomy: false,
+  economyCurrencyName: 'coins',
+  economyCurrencyEmoji: '🪙',
+  economyDailyAmount: 100,
+  economyWorkMin: 10,
+  economyWorkMax: 50,
+  // Giveaways module
+  enableGiveaways: true,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
@@ -45,7 +73,10 @@ export function getGuildSettings(guildId: string): GuildSettings {
     SELECT language, managerRoles, rolePreset, setupComplete, 
            enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser,
            enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes, leaderboardMessageId,
-           statGainMultiplier, statDrainMultiplier
+           statGainMultiplier, statDrainMultiplier,
+           enableWelcome, welcomeChannelId, welcomeMessage, leaveMessage,
+           enableEconomy, economyCurrencyName, economyCurrencyEmoji, economyDailyAmount, economyWorkMin, economyWorkMax,
+           enableGiveaways
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as { 
     language: string; 
@@ -62,6 +93,17 @@ export function getGuildSettings(guildId: string): GuildSettings {
     leaderboardMessageId: string | null;
     statGainMultiplier: number | null;
     statDrainMultiplier: number | null;
+    enableWelcome: number | null;
+    welcomeChannelId: string | null;
+    welcomeMessage: string | null;
+    leaveMessage: string | null;
+    enableEconomy: number | null;
+    economyCurrencyName: string | null;
+    economyCurrencyEmoji: string | null;
+    economyDailyAmount: number | null;
+    economyWorkMin: number | null;
+    economyWorkMax: number | null;
+    enableGiveaways: number | null;
   } | undefined;
 
   if (!row) {
@@ -84,6 +126,17 @@ export function getGuildSettings(guildId: string): GuildSettings {
     leaderboardMessageId: row.leaderboardMessageId ?? null,
     statGainMultiplier: row.statGainMultiplier ?? 1.0,
     statDrainMultiplier: row.statDrainMultiplier ?? 0.5,
+    enableWelcome: row.enableWelcome === 1,
+    welcomeChannelId: row.welcomeChannelId ?? null,
+    welcomeMessage: row.welcomeMessage ?? null,
+    leaveMessage: row.leaveMessage ?? null,
+    enableEconomy: row.enableEconomy === 1,
+    economyCurrencyName: row.economyCurrencyName ?? 'coins',
+    economyCurrencyEmoji: row.economyCurrencyEmoji ?? '🪙',
+    economyDailyAmount: row.economyDailyAmount ?? 100,
+    economyWorkMin: row.economyWorkMin ?? 10,
+    economyWorkMax: row.economyWorkMax ?? 50,
+    enableGiveaways: row.enableGiveaways !== 0,
   };
 }
 
@@ -110,8 +163,11 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     INSERT INTO guild_settings (guildId, language, managerRoles, rolePreset, setupComplete, 
                                 enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser,
                                 enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes, leaderboardMessageId,
-                                statGainMultiplier, statDrainMultiplier)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                statGainMultiplier, statDrainMultiplier,
+                                enableWelcome, welcomeChannelId, welcomeMessage, leaveMessage,
+                                enableEconomy, economyCurrencyName, economyCurrencyEmoji, economyDailyAmount, economyWorkMin, economyWorkMax,
+                                enableGiveaways)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -125,7 +181,18 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       leaderboardIntervalMinutes = excluded.leaderboardIntervalMinutes,
       leaderboardMessageId = excluded.leaderboardMessageId,
       statGainMultiplier = excluded.statGainMultiplier,
-      statDrainMultiplier = excluded.statDrainMultiplier
+      statDrainMultiplier = excluded.statDrainMultiplier,
+      enableWelcome = excluded.enableWelcome,
+      welcomeChannelId = excluded.welcomeChannelId,
+      welcomeMessage = excluded.welcomeMessage,
+      leaveMessage = excluded.leaveMessage,
+      enableEconomy = excluded.enableEconomy,
+      economyCurrencyName = excluded.economyCurrencyName,
+      economyCurrencyEmoji = excluded.economyCurrencyEmoji,
+      economyDailyAmount = excluded.economyDailyAmount,
+      economyWorkMin = excluded.economyWorkMin,
+      economyWorkMax = excluded.economyWorkMax,
+      enableGiveaways = excluded.enableGiveaways
   `).run(
     guildId,
     merged.language,
@@ -141,7 +208,18 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.leaderboardIntervalMinutes,
     merged.leaderboardMessageId,
     merged.statGainMultiplier,
-    merged.statDrainMultiplier
+    merged.statDrainMultiplier,
+    merged.enableWelcome ? 1 : 0,
+    merged.welcomeChannelId,
+    merged.welcomeMessage,
+    merged.leaveMessage,
+    merged.enableEconomy ? 1 : 0,
+    merged.economyCurrencyName,
+    merged.economyCurrencyEmoji,
+    merged.economyDailyAmount,
+    merged.economyWorkMin,
+    merged.economyWorkMax,
+    merged.enableGiveaways ? 1 : 0
   );
 }
 

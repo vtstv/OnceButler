@@ -70,6 +70,120 @@ export function runMigrations(): void {
     );
   `);
 
+  // Create custom role rules table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS custom_role_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      role_id TEXT NOT NULL,
+      role_name TEXT NOT NULL,
+      stat_type TEXT NOT NULL,
+      operator TEXT NOT NULL,
+      value REAL NOT NULL,
+      is_temporary INTEGER DEFAULT 0,
+      duration_minutes INTEGER DEFAULT NULL,
+      enabled INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      created_by TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_custom_role_rules_guild
+    ON custom_role_rules(guild_id, enabled);
+
+    CREATE TABLE IF NOT EXISTS custom_role_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      rule_id INTEGER NOT NULL,
+      role_id TEXT NOT NULL,
+      assigned_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      expires_at TEXT DEFAULT NULL,
+      UNIQUE(guild_id, user_id, rule_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_custom_role_assignments_guild_user
+    ON custom_role_assignments(guild_id, user_id);
+
+    CREATE INDEX IF NOT EXISTS idx_custom_role_assignments_expires
+    ON custom_role_assignments(expires_at);
+  `);
+
+  // Giveaways tables
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS giveaways (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      message_id TEXT NOT NULL UNIQUE,
+      host_id TEXT NOT NULL,
+      prize TEXT NOT NULL,
+      winners_count INTEGER DEFAULT 1,
+      ends_at TEXT NOT NULL,
+      ended INTEGER DEFAULT 0,
+      winners TEXT DEFAULT '[]',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_giveaways_guild
+    ON giveaways(guild_id, ended);
+
+    CREATE INDEX IF NOT EXISTS idx_giveaways_ends
+    ON giveaways(ends_at, ended);
+
+    CREATE TABLE IF NOT EXISTS giveaway_participants (
+      giveaway_id INTEGER NOT NULL,
+      user_id TEXT NOT NULL,
+      joined_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (giveaway_id, user_id),
+      FOREIGN KEY (giveaway_id) REFERENCES giveaways(id) ON DELETE CASCADE
+    );
+  `);
+
+  // Economy tables
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS economy_wallets (
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      balance INTEGER DEFAULT 0,
+      bank INTEGER DEFAULT 0,
+      total_earned INTEGER DEFAULT 0,
+      last_daily TEXT DEFAULT NULL,
+      last_work TEXT DEFAULT NULL,
+      PRIMARY KEY (guild_id, user_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_economy_wallets_guild
+    ON economy_wallets(guild_id);
+
+    CREATE TABLE IF NOT EXISTS economy_shop (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      price INTEGER NOT NULL,
+      role_id TEXT DEFAULT NULL,
+      stock INTEGER DEFAULT -1,
+      enabled INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_economy_shop_guild
+    ON economy_shop(guild_id, enabled);
+
+    CREATE TABLE IF NOT EXISTS economy_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      description TEXT DEFAULT '',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_economy_transactions_user
+    ON economy_transactions(guild_id, user_id);
+  `);
+
   // Migration: add new columns if they don't exist
   const migrations = [
     `ALTER TABLE guild_settings ADD COLUMN rolePreset TEXT DEFAULT 'en'`,
@@ -84,6 +198,20 @@ export function runMigrations(): void {
     `ALTER TABLE guild_settings ADD COLUMN leaderboardMessageId TEXT DEFAULT NULL`,
     `ALTER TABLE guild_settings ADD COLUMN statGainMultiplier REAL DEFAULT 1.0`,
     `ALTER TABLE guild_settings ADD COLUMN statDrainMultiplier REAL DEFAULT 0.5`,
+    // Welcome/Leave module
+    `ALTER TABLE guild_settings ADD COLUMN enableWelcome INTEGER DEFAULT 0`,
+    `ALTER TABLE guild_settings ADD COLUMN welcomeChannelId TEXT DEFAULT NULL`,
+    `ALTER TABLE guild_settings ADD COLUMN welcomeMessage TEXT DEFAULT NULL`,
+    `ALTER TABLE guild_settings ADD COLUMN leaveMessage TEXT DEFAULT NULL`,
+    // Economy module
+    `ALTER TABLE guild_settings ADD COLUMN enableEconomy INTEGER DEFAULT 0`,
+    `ALTER TABLE guild_settings ADD COLUMN economyCurrencyName TEXT DEFAULT 'coins'`,
+    `ALTER TABLE guild_settings ADD COLUMN economyCurrencyEmoji TEXT DEFAULT '🪙'`,
+    `ALTER TABLE guild_settings ADD COLUMN economyDailyAmount INTEGER DEFAULT 100`,
+    `ALTER TABLE guild_settings ADD COLUMN economyWorkMin INTEGER DEFAULT 10`,
+    `ALTER TABLE guild_settings ADD COLUMN economyWorkMax INTEGER DEFAULT 50`,
+    // Giveaways module
+    `ALTER TABLE guild_settings ADD COLUMN enableGiveaways INTEGER DEFAULT 1`,
   ];
 
   for (const migration of migrations) {

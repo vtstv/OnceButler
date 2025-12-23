@@ -13,8 +13,11 @@ import { handleVersion } from './version.js';
 import { handleSetup } from './setup.js';
 import { handleHug } from './hug.js';
 import { handleDuel } from './duel.js';
+import { handleGiveaway, handleGiveawayButton } from './giveaway.js';
+import { handleEconomy } from './economy.js';
 
 export { commands };
+export { handleGiveawayButton };
 
 export async function handleInteraction(interaction: Interaction): Promise<void> {
   if (!interaction.isChatInputCommand()) return;
@@ -52,6 +55,12 @@ export async function handleInteraction(interaction: Interaction): Promise<void>
         break;
       case 'duel':
         await handleDuel(interaction);
+        break;
+      case 'giveaway':
+        await handleGiveaway(interaction);
+        break;
+      case 'economy':
+        await handleEconomy(interaction);
         break;
     }
     console.log(`[CMD] /${interaction.commandName} completed successfully`);
