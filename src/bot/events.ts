@@ -6,7 +6,7 @@ import { Client, Events, GuildMember, MessageFlags } from 'discord.js';
 import { handleVoiceStateUpdate } from '../voice/voiceTracker.js';
 import { startTickScheduler } from '../scheduler/tickScheduler.js';
 import { ensureRolesExist } from '../roles/roleEngine.js';
-import { handleInteraction, handleGiveawayButton } from './slashCommands.js';
+import { handleInteraction, handleGiveawayButton, handleBlackjackButton } from './slashCommands.js';
 import { getMemberStats, upsertMemberStats } from '../database/repositories/memberStatsRepo.js';
 import { chance, randomInt } from '../utils/random.js';
 import { handleGuildMemberAdd, handleGuildMemberRemove } from './events/welcomeEvents.js';
@@ -43,6 +43,10 @@ export function registerEvents(client: Client): void {
     if (interaction.isButton()) {
       if (interaction.customId.startsWith('giveaway_')) {
         await handleGiveawayButton(interaction);
+        return;
+      }
+      if (interaction.customId.startsWith('blackjack_')) {
+        await handleBlackjackButton(interaction);
         return;
       }
     }

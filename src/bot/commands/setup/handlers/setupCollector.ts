@@ -259,6 +259,18 @@ async function handleStringSelectMenu(
     case 'setup_giveaway_max_duration':
       updateGuildSettings(guildId, { giveawayMaxDuration: parseInt(i.values[0]) });
       return { shouldReturn: false };
+    // Custom roles management
+    case 'setup_customroles_select': {
+      const ruleId = parseInt(i.values[0]);
+      const rule = getCustomRoleRuleById(ruleId);
+      if (rule) {
+        const editView = buildCustomRuleEdit(rule);
+        await i.update({ embeds: editView.embeds, components: editView.components });
+      } else {
+        await i.reply({ content: '❌ Rule not found.', flags: MessageFlags.Ephemeral });
+      }
+      return { shouldReturn: true };
+    }
   }
   return { shouldReturn: false };
 }
@@ -352,13 +364,15 @@ async function handleButton(
           wizardData.durationMinutes ?? null,
           i.user.id
         );
-        await i.reply({ content: `✅ Custom role rule created for **${roleName}**!`, flags: MessageFlags.Ephemeral });
         const newSettings = getGuildSettings(guildId);
         const view = buildCategoryView('customRoles', newSettings, i.guild!, currentRoleSubCategory);
-        await i.message.edit({ embeds: view.embeds, components: view.components });
+        await i.update({ embeds: view.embeds, components: view.components });
+        await i.followUp({ content: `✅ Custom role rule created for **${roleName}**!`, flags: MessageFlags.Ephemeral });
       } catch (err) {
         console.error('[CustomRoles] Error creating rule:', err);
-        await i.reply({ content: '❌ Failed to create rule.', flags: MessageFlags.Ephemeral });
+        if (!i.replied && !i.deferred) {
+          await i.reply({ content: '❌ Failed to create rule.', flags: MessageFlags.Ephemeral });
+        }
       }
       return { shouldReturn: true, wizardStep: 0, wizardData: {} };
     }

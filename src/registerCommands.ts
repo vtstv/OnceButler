@@ -262,6 +262,58 @@ const commands = [
           sub.setName('removeitem')
             .setDescription('Remove item from shop')
             .addIntegerOption(opt => opt.setName('item_id').setDescription('Item ID to remove').setRequired(true)))),
+
+  // Mini-games commands
+  new SlashCommandBuilder()
+    .setName('games')
+    .setDescription('Casino mini-games')
+    .addSubcommand(sub =>
+      sub.setName('coinflip')
+        .setDescription('Flip a coin and bet on the result')
+        .addIntegerOption(opt => opt.setName('bet').setDescription('Amount to bet').setRequired(true))
+        .addStringOption(opt => 
+          opt.setName('choice')
+            .setDescription('Heads or tails')
+            .setRequired(true)
+            .addChoices(
+              { name: '🪙 Heads', value: 'heads' },
+              { name: '🌙 Tails', value: 'tails' },
+            )))
+    .addSubcommand(sub =>
+      sub.setName('slots')
+        .setDescription('Play the slot machine')
+        .addIntegerOption(opt => opt.setName('bet').setDescription('Amount to bet').setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('roulette')
+        .setDescription('Play roulette')
+        .addIntegerOption(opt => opt.setName('bet').setDescription('Amount to bet').setRequired(true))
+        .addStringOption(opt =>
+          opt.setName('choice')
+            .setDescription('What to bet on')
+            .setRequired(true)
+            .addChoices(
+              { name: '🔴 Red', value: 'red' },
+              { name: '⚫ Black', value: 'black' },
+              { name: '🟢 Green (0)', value: 'green' },
+              { name: 'Odd', value: 'odd' },
+              { name: 'Even', value: 'even' },
+              { name: 'Low (1-18)', value: 'low' },
+              { name: 'High (19-36)', value: 'high' },
+            )))
+    .addSubcommand(sub =>
+      sub.setName('blackjack')
+        .setDescription('Play blackjack against the dealer')
+        .addIntegerOption(opt => opt.setName('bet').setDescription('Amount to bet').setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('dice')
+        .setDescription('Roll two dice and guess the total')
+        .addIntegerOption(opt => opt.setName('bet').setDescription('Amount to bet').setRequired(true))
+        .addIntegerOption(opt => 
+          opt.setName('target')
+            .setDescription('Target total (2-12)')
+            .setRequired(true)
+            .setMinValue(2)
+            .setMaxValue(12))),
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);

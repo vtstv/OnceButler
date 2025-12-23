@@ -11,6 +11,7 @@ import {
   TextChannel,
   MessageFlags,
   PermissionFlagsBits,
+  Client,
 } from 'discord.js';
 import {
   createGiveaway,
@@ -397,8 +398,36 @@ async function updateGiveawayMessage(guild: any, giveaway: any, winners: string[
       await channel.send({
         content: `🎉 Congratulations ${winnersText}! You won **${giveaway.prize}**!`,
       });
+
+      // DM winners if enabled
+      await sendDmToWinners(guild, giveaway, winners);
     }
   } catch (error) {
     console.error('[Giveaway] Error updating message:', error);
+  }
+}
+
+async function sendDmToWinners(guild: any, giveaway: any, winners: string[]): Promise<void> {
+  const settings = getGuildSettings(guild.id);
+  if (!settings.giveawayDmWinners) return;
+
+  const dmEmbed = new EmbedBuilder()
+    .setTitle('🎉 You Won a Giveaway!')
+    .setDescription(
+      `Congratulations! You won a giveaway in **${guild.name}**!\n\n` +
+      `**Prize:** ${giveaway.prize}\n` +
+      `**Hosted by:** <@${giveaway.hostId}>`
+    )
+    .setColor(0x5865F2)
+    .setTimestamp();
+
+  for (const winnerId of winners) {
+    try {
+      const user = await guild.client.users.fetch(winnerId);
+      await user.send({ embeds: [dmEmbed] });
+      console.log(`[Giveaway] DM sent to winner ${user.tag}`);
+    } catch (error) {
+      console.log(`[Giveaway] Could not DM winner ${winnerId} (DMs may be disabled)`);
+    }
   }
 }
