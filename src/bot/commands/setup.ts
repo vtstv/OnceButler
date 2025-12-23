@@ -25,7 +25,7 @@ import { importRolesToGuild } from '../../roles/roleImporter.js';
 import { t } from '../../utils/i18n.js';
 import { getLocale, hasAdminPermission } from './utils.js';
 
-type SetupCategory = 'main' | 'general' | 'features' | 'leaderboard';
+type SetupCategory = 'main' | 'general' | 'features' | 'leaderboard' | 'stats';
 
 export async function handleSetup(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.guild || !interaction.member) {
@@ -60,6 +60,8 @@ function buildCategoryView(category: SetupCategory, settings: GuildSettings, gui
       return buildFeatureSettings(settings);
     case 'leaderboard':
       return buildLeaderboardSettings(settings, guild);
+    case 'stats':
+      return buildStatSettings(settings);
     default:
       return buildMainMenu(settings, guild);
   }
@@ -99,6 +101,11 @@ function buildMainMenu(settings: GuildSettings, guild: any): { embeds: EmbedBuil
           : '❌ Disabled',
         inline: false
       },
+      {
+        name: '📈 Stat Rates',
+        value: `Gain: \`${settings.statGainMultiplier}x\` | Loss: \`${settings.statDrainMultiplier}x\``,
+        inline: false
+      },
     );
 
   const categoryButtons = new ActionRowBuilder<ButtonBuilder>()
@@ -114,6 +121,10 @@ function buildMainMenu(settings: GuildSettings, guild: any): { embeds: EmbedBuil
       new ButtonBuilder()
         .setCustomId('setup_cat_leaderboard')
         .setLabel('📊 Leaderboard')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('setup_cat_stats')
+        .setLabel('📈 Stats')
         .setStyle(ButtonStyle.Primary),
     );
 
@@ -297,6 +308,63 @@ function buildLeaderboardSettings(settings: GuildSettings, guild: any): { embeds
   };
 }
 
+function buildStatSettings(settings: GuildSettings): { embeds: EmbedBuilder[], components: ActionRowBuilder<any>[] } {
+  const embed = new EmbedBuilder()
+    .setTitle('📈 Stat Rate Settings')
+    .setDescription('Configure how fast users gain and lose stats.\n\n' +
+      '**Gain Rate** — affects voice chat bonus, mood boost, etc.\n' +
+      '**Loss Rate** — affects energy drain, mood decay, etc.\n\n' +
+      '💡 Lower loss rate = stats persist longer!')
+    .setColor(0x5865F2)
+    .addFields(
+      { name: '⬆️ Gain Rate', value: `\`${settings.statGainMultiplier}x\``, inline: true },
+      { name: '⬇️ Loss Rate', value: `\`${settings.statDrainMultiplier}x\``, inline: true },
+    );
+
+  const gainSelect = new StringSelectMenuBuilder()
+    .setCustomId('setup_stat_gain')
+    .setPlaceholder('Select Gain Rate')
+    .addOptions(
+      new StringSelectMenuOptionBuilder().setLabel('0.25x — Very Slow').setValue('0.25').setDefault(settings.statGainMultiplier === 0.25),
+      new StringSelectMenuOptionBuilder().setLabel('0.5x — Slow').setValue('0.5').setDefault(settings.statGainMultiplier === 0.5),
+      new StringSelectMenuOptionBuilder().setLabel('0.75x — Moderate').setValue('0.75').setDefault(settings.statGainMultiplier === 0.75),
+      new StringSelectMenuOptionBuilder().setLabel('1.0x — Normal').setValue('1.0').setDefault(settings.statGainMultiplier === 1.0),
+      new StringSelectMenuOptionBuilder().setLabel('1.25x — Fast').setValue('1.25').setDefault(settings.statGainMultiplier === 1.25),
+      new StringSelectMenuOptionBuilder().setLabel('1.5x — Very Fast').setValue('1.5').setDefault(settings.statGainMultiplier === 1.5),
+      new StringSelectMenuOptionBuilder().setLabel('2.0x — Rapid').setValue('2.0').setDefault(settings.statGainMultiplier === 2.0),
+    );
+
+  const drainSelect = new StringSelectMenuBuilder()
+    .setCustomId('setup_stat_drain')
+    .setPlaceholder('Select Loss Rate')
+    .addOptions(
+      new StringSelectMenuOptionBuilder().setLabel('0.1x — Minimal Loss').setValue('0.1').setDefault(settings.statDrainMultiplier === 0.1),
+      new StringSelectMenuOptionBuilder().setLabel('0.25x — Very Slow').setValue('0.25').setDefault(settings.statDrainMultiplier === 0.25),
+      new StringSelectMenuOptionBuilder().setLabel('0.5x — Slow (default)').setValue('0.5').setDefault(settings.statDrainMultiplier === 0.5),
+      new StringSelectMenuOptionBuilder().setLabel('0.75x — Moderate').setValue('0.75').setDefault(settings.statDrainMultiplier === 0.75),
+      new StringSelectMenuOptionBuilder().setLabel('1.0x — Normal').setValue('1.0').setDefault(settings.statDrainMultiplier === 1.0),
+      new StringSelectMenuOptionBuilder().setLabel('1.5x — Fast').setValue('1.5').setDefault(settings.statDrainMultiplier === 1.5),
+      new StringSelectMenuOptionBuilder().setLabel('2.0x — Very Fast').setValue('2.0').setDefault(settings.statDrainMultiplier === 2.0),
+    );
+
+  const backButton = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('setup_cat_main')
+        .setLabel('◀️ Back to Main')
+        .setStyle(ButtonStyle.Secondary),
+    );
+
+  return {
+    embeds: [embed],
+    components: [
+      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(gainSelect),
+      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(drainSelect),
+      backButton,
+    ],
+  };
+}
+
 async function startCollector(message: Message, userId: string, guildId: string): Promise<void> {
   const collector = message.createMessageComponentCollector({
     time: 300000, // 5 minutes
@@ -335,6 +403,12 @@ async function startCollector(message: Message, userId: string, guildId: string)
             break;
           case 'setup_leaderboard_interval':
             updateGuildSettings(guildId, { leaderboardIntervalMinutes: parseInt(i.values[0]) });
+            break;
+          case 'setup_stat_gain':
+            updateGuildSettings(guildId, { statGainMultiplier: parseFloat(i.values[0]) });
+            break;
+          case 'setup_stat_drain':
+            updateGuildSettings(guildId, { statDrainMultiplier: parseFloat(i.values[0]) });
             break;
         }
         const newSettings = getGuildSettings(guildId);

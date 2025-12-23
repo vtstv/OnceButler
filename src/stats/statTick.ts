@@ -6,7 +6,7 @@ import { Client, GuildMember } from 'discord.js';
 import { getMemberStats, upsertMemberStats } from '../database/repositories/memberStatsRepo.js';
 import { incrementVoiceTime, incrementOnlineTime, updateMemberProgress } from '../database/repositories/progressRepo.js';
 import { getGuildSettings, isSetupComplete } from '../database/repositories/settingsRepo.js';
-import { processTick, type StatModifiers } from './statEngine.js';
+import { processTick, type StatModifiers, type StatRates } from './statEngine.js';
 import { syncMemberRoles, clearExpiredChaosRole, checkAndGrantAchievements } from '../roles/roleEngine.js';
 import { applyChaosEvent } from './chaosEngine.js';
 import { isInVoice } from '../voice/voiceTracker.js';
@@ -48,7 +48,12 @@ async function processMemberTick(member: GuildMember): Promise<void> {
     isInVoice: inVoice,
   };
 
-  processTick(stats, modifiers);
+  const rates: StatRates = {
+    gainMultiplier: settings.statGainMultiplier,
+    drainMultiplier: settings.statDrainMultiplier,
+  };
+
+  processTick(stats, modifiers, rates);
   clearExpiredChaosRole(stats);
   
   // Only apply chaos events if enabled

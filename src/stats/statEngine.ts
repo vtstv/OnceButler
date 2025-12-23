@@ -13,6 +13,16 @@ export interface StatModifiers {
   isInVoice: boolean;
 }
 
+export interface StatRates {
+  gainMultiplier: number;
+  drainMultiplier: number;
+}
+
+const DEFAULT_RATES: StatRates = {
+  gainMultiplier: 1.0,
+  drainMultiplier: 0.5,
+};
+
 function getActivityMultiplier(activity: number): number {
   if (activity >= 80) return 0.3;
   if (activity >= 60) return 0.5;
@@ -21,38 +31,38 @@ function getActivityMultiplier(activity: number): number {
   return 1.0;
 }
 
-export function applyBaseDrain(stats: MemberStats): void {
-  const multiplier = getActivityMultiplier(stats.activity);
+export function applyBaseDrain(stats: MemberStats, rates: StatRates = DEFAULT_RATES): void {
+  const multiplier = getActivityMultiplier(stats.activity) * rates.drainMultiplier;
   stats.energy = clamp(stats.energy - 1 * multiplier, 0, 100);
   stats.mood = clamp(stats.mood - 0.5 * multiplier, 0, 100);
   stats.activity = clamp(stats.activity - 0.3 * multiplier, 0, 100);
 }
 
-export function applyIdleModifiers(stats: MemberStats, modifiers: StatModifiers): void {
+export function applyIdleModifiers(stats: MemberStats, modifiers: StatModifiers, rates: StatRates = DEFAULT_RATES): void {
   if (modifiers.isIdle || modifiers.isAfk) {
-    stats.energy = clamp(stats.energy - 1, 0, 100);
-    stats.activity = clamp(stats.activity - 1, 0, 100);
+    stats.energy = clamp(stats.energy - 1 * rates.drainMultiplier, 0, 100);
+    stats.activity = clamp(stats.activity - 1 * rates.drainMultiplier, 0, 100);
   }
 }
 
-export function applyVoiceModifiers(stats: MemberStats, modifiers: StatModifiers): void {
+export function applyVoiceModifiers(stats: MemberStats, modifiers: StatModifiers, rates: StatRates = DEFAULT_RATES): void {
   if (modifiers.isInVoice) {
-    stats.mood = clamp(stats.mood + 0.5, 0, 100);
-    stats.activity = clamp(stats.activity + 1.0, 0, 100); // Higher activity gain for voice participation
-    stats.energy = clamp(stats.energy + 1.5, 0, 100); // Voice chat restores energy
+    stats.mood = clamp(stats.mood + 0.5 * rates.gainMultiplier, 0, 100);
+    stats.activity = clamp(stats.activity + 1.0 * rates.gainMultiplier, 0, 100);
+    stats.energy = clamp(stats.energy + 1.5 * rates.gainMultiplier, 0, 100);
   }
 }
 
-export function applyTimeOfDayEffects(stats: MemberStats): void {
+export function applyTimeOfDayEffects(stats: MemberStats, rates: StatRates = DEFAULT_RATES): void {
   const hour = getCurrentHour();
 
   if (isNight(hour)) {
-    stats.mood = clamp(stats.mood - 0.5, 0, 100);
-    stats.energy = clamp(stats.energy + 0.5, 0, 100);
+    stats.mood = clamp(stats.mood - 0.5 * rates.drainMultiplier, 0, 100);
+    stats.energy = clamp(stats.energy + 0.5 * rates.gainMultiplier, 0, 100);
   } else if (isDay(hour)) {
-    stats.mood = clamp(stats.mood + 0.3, 0, 100);
+    stats.mood = clamp(stats.mood + 0.3 * rates.gainMultiplier, 0, 100);
   } else if (isEvening(hour)) {
-    stats.energy = clamp(stats.energy - 0.3, 0, 100);
+    stats.energy = clamp(stats.energy - 0.3 * rates.drainMultiplier, 0, 100);
   }
 }
 
@@ -65,10 +75,10 @@ export function applyCustomTriggers(stats: MemberStats): void {
   }
 }
 
-export function processTick(stats: MemberStats, modifiers: StatModifiers): void {
-  applyBaseDrain(stats);
-  applyIdleModifiers(stats, modifiers);
-  applyVoiceModifiers(stats, modifiers);
-  applyTimeOfDayEffects(stats);
+export function processTick(stats: MemberStats, modifiers: StatModifiers, rates: StatRates = DEFAULT_RATES): void {
+  applyBaseDrain(stats, rates);
+  applyIdleModifiers(stats, modifiers, rates);
+  applyVoiceModifiers(stats, modifiers, rates);
+  applyTimeOfDayEffects(stats, rates);
   applyCustomTriggers(stats);
 }

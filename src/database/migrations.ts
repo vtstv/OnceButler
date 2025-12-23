@@ -82,6 +82,8 @@ export function runMigrations(): void {
     `ALTER TABLE guild_settings ADD COLUMN leaderboardChannelId TEXT DEFAULT NULL`,
     `ALTER TABLE guild_settings ADD COLUMN leaderboardIntervalMinutes INTEGER DEFAULT 60`,
     `ALTER TABLE guild_settings ADD COLUMN leaderboardMessageId TEXT DEFAULT NULL`,
+    `ALTER TABLE guild_settings ADD COLUMN statGainMultiplier REAL DEFAULT 1.0`,
+    `ALTER TABLE guild_settings ADD COLUMN statDrainMultiplier REAL DEFAULT 0.5`,
   ];
 
   for (const migration of migrations) {

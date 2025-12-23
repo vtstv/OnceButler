@@ -18,6 +18,8 @@ export interface GuildSettings {
   leaderboardChannelId: string | null;
   leaderboardIntervalMinutes: number;
   leaderboardMessageId: string | null;
+  statGainMultiplier: number;
+  statDrainMultiplier: number;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -33,6 +35,8 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   leaderboardChannelId: null,
   leaderboardIntervalMinutes: 60,
   leaderboardMessageId: null,
+  statGainMultiplier: 1.0,
+  statDrainMultiplier: 0.5,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
@@ -40,7 +44,8 @@ export function getGuildSettings(guildId: string): GuildSettings {
   const row = db.prepare(`
     SELECT language, managerRoles, rolePreset, setupComplete, 
            enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser,
-           enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes, leaderboardMessageId
+           enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes, leaderboardMessageId,
+           statGainMultiplier, statDrainMultiplier
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as { 
     language: string; 
@@ -55,6 +60,8 @@ export function getGuildSettings(guildId: string): GuildSettings {
     leaderboardChannelId: string | null;
     leaderboardIntervalMinutes: number;
     leaderboardMessageId: string | null;
+    statGainMultiplier: number | null;
+    statDrainMultiplier: number | null;
   } | undefined;
 
   if (!row) {
@@ -75,6 +82,8 @@ export function getGuildSettings(guildId: string): GuildSettings {
     leaderboardChannelId: row.leaderboardChannelId ?? null,
     leaderboardIntervalMinutes: row.leaderboardIntervalMinutes ?? 60,
     leaderboardMessageId: row.leaderboardMessageId ?? null,
+    statGainMultiplier: row.statGainMultiplier ?? 1.0,
+    statDrainMultiplier: row.statDrainMultiplier ?? 0.5,
   };
 }
 
@@ -100,8 +109,9 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
   db.prepare(`
     INSERT INTO guild_settings (guildId, language, managerRoles, rolePreset, setupComplete, 
                                 enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser,
-                                enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes, leaderboardMessageId)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes, leaderboardMessageId,
+                                statGainMultiplier, statDrainMultiplier)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -113,7 +123,9 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       enableAutoLeaderboard = excluded.enableAutoLeaderboard,
       leaderboardChannelId = excluded.leaderboardChannelId,
       leaderboardIntervalMinutes = excluded.leaderboardIntervalMinutes,
-      leaderboardMessageId = excluded.leaderboardMessageId
+      leaderboardMessageId = excluded.leaderboardMessageId,
+      statGainMultiplier = excluded.statGainMultiplier,
+      statDrainMultiplier = excluded.statDrainMultiplier
   `).run(
     guildId,
     merged.language,
@@ -127,7 +139,9 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.enableAutoLeaderboard ? 1 : 0,
     merged.leaderboardChannelId,
     merged.leaderboardIntervalMinutes,
-    merged.leaderboardMessageId
+    merged.leaderboardMessageId,
+    merged.statGainMultiplier,
+    merged.statDrainMultiplier
   );
 }
 
