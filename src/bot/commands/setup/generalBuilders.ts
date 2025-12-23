@@ -9,6 +9,8 @@ import {
   ButtonStyle,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  ChannelSelectMenuBuilder,
+  ChannelType,
 } from 'discord.js';
 import type { GuildSettings } from '../../../database/repositories/settingsRepo.js';
 import type { SetupView } from './types.js';
@@ -80,6 +82,8 @@ export function buildFeatureSettings(settings: GuildSettings): SetupView {
       { name: '🎨 Role Colors', value: settings.enableRoleColors ? '✅ Enabled' : '❌ Disabled', inline: true },
       { name: '🎲 Chaos Roles', value: settings.enableChaosRoles ? '✅ Enabled' : '❌ Disabled', inline: true },
       { name: '🏆 Achievements', value: settings.enableAchievements ? '✅ Enabled' : '❌ Disabled', inline: true },
+      { name: '💰 Economy', value: settings.enableEconomy ? '✅ Enabled' : '❌ Disabled', inline: true },
+      { name: '🎉 Giveaways', value: settings.enableGiveaways ? '✅ Enabled' : '❌ Disabled', inline: true },
     );
 
   const toggleButtons = new ActionRowBuilder<ButtonBuilder>()
@@ -98,6 +102,18 @@ export function buildFeatureSettings(settings: GuildSettings): SetupView {
         .setStyle(settings.enableAchievements ? ButtonStyle.Secondary : ButtonStyle.Success),
     );
 
+  const toggleButtons2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('setup_toggle_economy')
+        .setLabel(settings.enableEconomy ? '💰 Disable Economy' : '💰 Enable Economy')
+        .setStyle(settings.enableEconomy ? ButtonStyle.Secondary : ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId('setup_toggle_giveaways')
+        .setLabel(settings.enableGiveaways ? '🎉 Disable Giveaways' : '🎉 Enable Giveaways')
+        .setStyle(settings.enableGiveaways ? ButtonStyle.Secondary : ButtonStyle.Success),
+    );
+
   const backButton = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
@@ -108,7 +124,7 @@ export function buildFeatureSettings(settings: GuildSettings): SetupView {
 
   return {
     embeds: [embed],
-    components: [toggleButtons, backButton],
+    components: [toggleButtons, toggleButtons2, backButton],
   };
 }
 
@@ -206,7 +222,6 @@ export function buildLeaderboardSettings(settings: GuildSettings, guild: any): S
       new StringSelectMenuOptionBuilder().setLabel('24 hours').setValue('1440').setDefault(settings.leaderboardIntervalMinutes === 1440),
     );
 
-  const { ChannelSelectMenuBuilder, ChannelType } = require('discord.js');
   const channelSelect = new ChannelSelectMenuBuilder()
     .setCustomId('setup_leaderboard_channel')
     .setPlaceholder('Select Channel')

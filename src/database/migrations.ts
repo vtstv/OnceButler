@@ -212,6 +212,16 @@ export function runMigrations(): void {
     `ALTER TABLE guild_settings ADD COLUMN economyWorkMax INTEGER DEFAULT 50`,
     // Giveaways module
     `ALTER TABLE guild_settings ADD COLUMN enableGiveaways INTEGER DEFAULT 1`,
+    // Additional economy settings
+    `ALTER TABLE guild_settings ADD COLUMN economyDailyReward INTEGER DEFAULT 100`,
+    `ALTER TABLE guild_settings ADD COLUMN economyWorkCooldown INTEGER DEFAULT 30`,
+    `ALTER TABLE guild_settings ADD COLUMN economyBankInterest REAL DEFAULT 0.01`,
+    `ALTER TABLE guild_settings ADD COLUMN economyTransferFee REAL DEFAULT 0`,
+    // Additional giveaway settings
+    `ALTER TABLE guild_settings ADD COLUMN giveawayMinDuration INTEGER DEFAULT 5`,
+    `ALTER TABLE guild_settings ADD COLUMN giveawayMaxDuration INTEGER DEFAULT 10080`,
+    `ALTER TABLE guild_settings ADD COLUMN giveawayMaxWinners INTEGER DEFAULT 10`,
+    `ALTER TABLE guild_settings ADD COLUMN giveawayDmWinners INTEGER DEFAULT 1`,
   ];
 
   for (const migration of migrations) {

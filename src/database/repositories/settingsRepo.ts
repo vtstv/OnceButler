@@ -32,8 +32,16 @@ export interface GuildSettings {
   economyDailyAmount: number;
   economyWorkMin: number;
   economyWorkMax: number;
+  economyDailyReward: number;
+  economyWorkCooldown: number;
+  economyBankInterest: number;
+  economyTransferFee: number;
   // Giveaways module
   enableGiveaways: boolean;
+  giveawayMinDuration: number;
+  giveawayMaxDuration: number;
+  giveawayMaxWinners: number;
+  giveawayDmWinners: boolean;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -63,8 +71,16 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   economyDailyAmount: 100,
   economyWorkMin: 10,
   economyWorkMax: 50,
+  economyDailyReward: 100,
+  economyWorkCooldown: 30,
+  economyBankInterest: 0.01,
+  economyTransferFee: 0,
   // Giveaways module
   enableGiveaways: true,
+  giveawayMinDuration: 5,
+  giveawayMaxDuration: 10080,
+  giveawayMaxWinners: 10,
+  giveawayDmWinners: true,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
@@ -76,7 +92,8 @@ export function getGuildSettings(guildId: string): GuildSettings {
            statGainMultiplier, statDrainMultiplier,
            enableWelcome, welcomeChannelId, welcomeMessage, leaveMessage,
            enableEconomy, economyCurrencyName, economyCurrencyEmoji, economyDailyAmount, economyWorkMin, economyWorkMax,
-           enableGiveaways
+           economyDailyReward, economyWorkCooldown, economyBankInterest, economyTransferFee,
+           enableGiveaways, giveawayMinDuration, giveawayMaxDuration, giveawayMaxWinners, giveawayDmWinners
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as { 
     language: string; 
@@ -103,7 +120,15 @@ export function getGuildSettings(guildId: string): GuildSettings {
     economyDailyAmount: number | null;
     economyWorkMin: number | null;
     economyWorkMax: number | null;
+    economyDailyReward: number | null;
+    economyWorkCooldown: number | null;
+    economyBankInterest: number | null;
+    economyTransferFee: number | null;
     enableGiveaways: number | null;
+    giveawayMinDuration: number | null;
+    giveawayMaxDuration: number | null;
+    giveawayMaxWinners: number | null;
+    giveawayDmWinners: number | null;
   } | undefined;
 
   if (!row) {
@@ -136,7 +161,15 @@ export function getGuildSettings(guildId: string): GuildSettings {
     economyDailyAmount: row.economyDailyAmount ?? 100,
     economyWorkMin: row.economyWorkMin ?? 10,
     economyWorkMax: row.economyWorkMax ?? 50,
+    economyDailyReward: row.economyDailyReward ?? 100,
+    economyWorkCooldown: row.economyWorkCooldown ?? 30,
+    economyBankInterest: row.economyBankInterest ?? 0.01,
+    economyTransferFee: row.economyTransferFee ?? 0,
     enableGiveaways: row.enableGiveaways !== 0,
+    giveawayMinDuration: row.giveawayMinDuration ?? 5,
+    giveawayMaxDuration: row.giveawayMaxDuration ?? 10080,
+    giveawayMaxWinners: row.giveawayMaxWinners ?? 10,
+    giveawayDmWinners: row.giveawayDmWinners !== 0,
   };
 }
 

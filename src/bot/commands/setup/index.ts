@@ -38,3 +38,9 @@ export {
   buildCustomRoleManage,
   buildCustomRuleEdit,
 } from './customRolesBuilder.js';
+
+// Economy & Giveaways Module
+export {
+  buildEconomySettings,
+  buildGiveawaySettings,
+} from './economyGiveawayBuilders.js';

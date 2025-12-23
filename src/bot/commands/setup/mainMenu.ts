@@ -56,7 +56,21 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         inline: true
       },
       {
-        name: '📈 Stat Rates',
+        name: '� Economy',
+        value: settings.enableEconomy
+          ? `✅ Daily: ${settings.economyDailyReward} coins`
+          : '❌ Disabled',
+        inline: true
+      },
+      {
+        name: '🎉 Giveaways',
+        value: settings.enableGiveaways
+          ? `✅ Max ${settings.giveawayMaxWinners} winners`
+          : '❌ Disabled',
+        inline: true
+      },
+      {
+        name: '�📈 Stat Rates',
         value: `Gain: \`${settings.statGainMultiplier}x\` | Loss: \`${settings.statDrainMultiplier}x\``,
         inline: false
       },
@@ -98,6 +112,18 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         .setStyle(ButtonStyle.Secondary),
     );
 
+  const row3 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('setup_cat_economy')
+        .setLabel('💰 Economy')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('setup_cat_giveaways')
+        .setLabel('🎉 Giveaways')
+        .setStyle(ButtonStyle.Secondary),
+    );
+
   const actionButtons = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
@@ -109,6 +135,6 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
 
   return {
     embeds: [embed],
-    components: [row1, row2, actionButtons],
+    components: [row1, row2, row3, actionButtons],
   };
 }

@@ -4,8 +4,9 @@
 
 import { EmbedBuilder, ActionRowBuilder } from 'discord.js';
 import type { GuildSettings } from '../../../database/repositories/settingsRepo.js';
+import type { CustomRoleRule } from '../../../database/repositories/customRolesRepo.js';
 
-export type SetupCategory = 'main' | 'general' | 'features' | 'leaderboard' | 'stats' | 'roles' | 'welcome' | 'customRoles';
+export type SetupCategory = 'main' | 'general' | 'features' | 'leaderboard' | 'stats' | 'roles' | 'welcome' | 'customRoles' | 'economy' | 'giveaways';
 export type RoleSubCategory = 'overview' | 'mood' | 'energy' | 'activity' | 'time' | 'chaos';
 
 export interface SetupView {
@@ -16,6 +17,8 @@ export interface SetupView {
 export interface SetupState {
   currentCategory: SetupCategory;
   currentRoleSubCategory: RoleSubCategory;
+  wizardStep?: number;
+  wizardData?: Partial<CustomRoleRule>;
 }
 
 export const ROLE_COLORS: Record<string, number> = {
