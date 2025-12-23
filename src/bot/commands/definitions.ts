@@ -148,8 +148,29 @@ export const commands = [
       sub.setName('start')
         .setDescription('Start a new giveaway')
         .addStringOption(opt => opt.setName('prize').setDescription('Prize description').setRequired(true))
-        .addIntegerOption(opt => opt.setName('duration').setDescription('Duration in minutes').setRequired(true))
-        .addIntegerOption(opt => opt.setName('winners').setDescription('Number of winners (default: 1)'))
+        .addStringOption(opt => 
+          opt.setName('duration')
+            .setDescription('Duration')
+            .setRequired(true)
+            .addChoices(
+              { name: '1 hour', value: '60' },
+              { name: '6 hours', value: '360' },
+              { name: '1 day', value: '1440' },
+              { name: 'Custom (enter minutes)', value: 'custom' },
+            ))
+        .addStringOption(opt => 
+          opt.setName('winners')
+            .setDescription('Number of winners')
+            .setRequired(true)
+            .addChoices(
+              { name: '1 winner', value: '1' },
+              { name: '3 winners', value: '3' },
+              { name: '5 winners', value: '5' },
+              { name: 'Custom', value: 'custom' },
+            ))
+        .addIntegerOption(opt => opt.setName('custom_duration').setDescription('Custom duration in minutes (if custom selected)'))
+        .addIntegerOption(opt => opt.setName('custom_winners').setDescription('Custom number of winners (if custom selected)'))
+        .addRoleOption(opt => opt.setName('required_role').setDescription('Only this role can participate (optional)'))
         .addChannelOption(opt => opt.setName('channel').setDescription('Channel for giveaway (default: current)')))
     .addSubcommand(sub =>
       sub.setName('end')
