@@ -124,7 +124,7 @@ async function handleBalance(interaction: ChatInputCommandInteraction): Promise<
       { name: '💵 Total Earned', value: `${wallet.totalEarned.toLocaleString()} ${CURRENCY_NAME}`, inline: false },
     );
 
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleDaily(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -161,7 +161,7 @@ async function handleDaily(interaction: ChatInputCommandInteraction): Promise<vo
     .setColor(0x2ECC71)
     .setFooter({ text: 'Come back tomorrow for more!' });
 
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleWork(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -212,7 +212,7 @@ async function handleWork(interaction: ChatInputCommandInteraction): Promise<voi
     .setColor(0x3498DB)
     .setFooter({ text: 'You can work again in 1 hour' });
 
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handlePay(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -249,7 +249,7 @@ async function handlePay(interaction: ChatInputCommandInteraction): Promise<void
     .setDescription(`You sent **${amount.toLocaleString()}** ${CURRENCY_EMOJI} to ${target}!`)
     .setColor(0x2ECC71);
 
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleDeposit(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -272,7 +272,7 @@ async function handleDeposit(interaction: ChatInputCommandInteraction): Promise<
     .setDescription(`You deposited **${amount.toLocaleString()}** ${CURRENCY_EMOJI} to your bank!`)
     .setColor(0x3498DB);
 
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleWithdraw(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -295,7 +295,7 @@ async function handleWithdraw(interaction: ChatInputCommandInteraction): Promise
     .setDescription(`You withdrew **${amount.toLocaleString()}** ${CURRENCY_EMOJI} from your bank!`)
     .setColor(0x3498DB);
 
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleLeaderboard(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -389,7 +389,7 @@ async function handleBuy(interaction: ChatInputCommandInteraction): Promise<void
     .setDescription(`You bought **${item.name}** for **${item.price.toLocaleString()}** ${CURRENCY_EMOJI}!`)
     .setColor(0x2ECC71);
 
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleAdminGive(interaction: ChatInputCommandInteraction): Promise<void> {

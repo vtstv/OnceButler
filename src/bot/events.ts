@@ -2,7 +2,7 @@
 // OnceButler - Discord event handlers
 // Licensed under MIT License
 
-import { Client, Events, GuildMember } from 'discord.js';
+import { Client, Events, GuildMember, MessageFlags } from 'discord.js';
 import { handleVoiceStateUpdate } from '../voice/voiceTracker.js';
 import { startTickScheduler } from '../scheduler/tickScheduler.js';
 import { ensureRolesExist } from '../roles/roleEngine.js';
@@ -10,6 +10,7 @@ import { handleInteraction, handleGiveawayButton } from './slashCommands.js';
 import { getMemberStats, upsertMemberStats } from '../database/repositories/memberStatsRepo.js';
 import { chance, randomInt } from '../utils/random.js';
 import { handleGuildMemberAdd, handleGuildMemberRemove } from './events/welcomeEvents.js';
+import { updateGuildSettings, getGuildSettings } from '../database/repositories/settingsRepo.js';
 
 export function registerEvents(client: Client): void {
   client.once(Events.ClientReady, async (c) => {
@@ -45,6 +46,39 @@ export function registerEvents(client: Client): void {
         return;
       }
     }
+
+    // Handle modal submissions for welcome/leave messages
+    if (interaction.isModalSubmit()) {
+      if (interaction.customId.startsWith('setup_welcome_modal_')) {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          const isWelcome = interaction.customId === 'setup_welcome_modal_welcome';
+          const message = interaction.fields.getTextInputValue('message');
+          
+          if (isWelcome) {
+            updateGuildSettings(guildId, { welcomeMessage: message });
+          } else {
+            updateGuildSettings(guildId, { leaveMessage: message });
+          }
+
+          await interaction.reply({
+            content: `✅ ${isWelcome ? 'Welcome' : 'Leave'} message updated!`,
+            flags: MessageFlags.Ephemeral,
+          });
+        } catch (error) {
+          console.error('[MODAL] Error handling welcome modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
+    }
+
     await handleInteraction(interaction);
   });
 

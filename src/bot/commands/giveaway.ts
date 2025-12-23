@@ -63,9 +63,18 @@ async function handleGiveawayStart(interaction: ChatInputCommandInteraction): Pr
   }
 
   const prize = interaction.options.getString('prize', true);
-  const durationMinutes = interaction.options.getInteger('duration', true);
-  const winners = interaction.options.getInteger('winners') ?? 1;
+  const durationChoice = interaction.options.getString('duration', true);
+  const winnersChoice = interaction.options.getString('winners', true);
+  const customDuration = interaction.options.getInteger('custom_duration');
+  const customWinners = interaction.options.getInteger('custom_winners');
   const channel = interaction.options.getChannel('channel') ?? interaction.channel;
+
+  const durationMinutes = durationChoice === 'custom' 
+    ? (customDuration ?? 60) 
+    : parseInt(durationChoice, 10);
+  const winners = winnersChoice === 'custom' 
+    ? (customWinners ?? 1) 
+    : parseInt(winnersChoice, 10);
 
   if (!(channel instanceof TextChannel)) {
     await interaction.reply({ content: '❌ Invalid channel. Please select a text channel.', flags: MessageFlags.Ephemeral });
