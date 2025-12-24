@@ -20,6 +20,7 @@ import { handleCasino, handleCasinoInteraction, handleCasinoModal, handleBlackja
 import { handleLeveling } from './leveling.js';
 import { handleReactionRoles } from './reactionRoles.js';
 import { handleInventory } from './inventory/index.js';
+import * as imagine from './imagine.js';
 
 export { commands };
 export { handleGiveawayButton, handleBlackjackButton, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton };
@@ -81,6 +82,9 @@ export async function handleInteraction(interaction: Interaction): Promise<void>
         break;
       case 'inventory':
         await handleInventory(interaction);
+        break;
+      case 'imagine':
+        await imagine.execute(interaction);
         break;
     }
     console.log(`[CMD] /${interaction.commandName} completed successfully`);

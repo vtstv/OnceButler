@@ -82,6 +82,13 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         inline: true
       },
       {
+        name: '🎨 Image Gen',
+        value: settings.enableImageGen 
+          ? `✅ ${settings.imageGenUserDailyLimit}/user`
+          : '❌ Disabled',
+        inline: true
+      },
+      {
         name: '📈 Stat Rates',
         value: `Gain: \`${settings.statGainMultiplier}x\` | Loss: \`${settings.statDrainMultiplier}x\``,
         inline: false
@@ -141,6 +148,10 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
       new ButtonBuilder()
         .setCustomId('setup_cat_leveling')
         .setLabel('📈 Leveling')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('setup_cat_imageGen')
+        .setLabel('🎨 Image Gen')
         .setStyle(ButtonStyle.Secondary),
     );
 

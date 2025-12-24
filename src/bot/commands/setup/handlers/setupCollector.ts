@@ -105,6 +105,8 @@ export async function startCollector(message: Message, userId: string, guildId: 
           updateGuildSettings(guildId, { welcomeChannelId: i.values[0] });
         } else if (i.customId === 'setup_leveling_channel') {
           updateGuildSettings(guildId, { levelingAnnouncementChannelId: i.values[0] });
+        } else if (i.customId === 'setup_imagegen_channel') {
+          updateGuildSettings(guildId, { imageGenChannelId: i.values[0] });
         }
         const newSettings = getGuildSettings(guildId);
         const view = buildCategoryView(currentCategory, newSettings, i.guild!, currentRoleSubCategory);
@@ -311,6 +313,16 @@ async function handleStringSelectMenu(
     case 'setup_leveling_cooldown':
       updateGuildSettings(guildId, { levelingXpCooldown: parseInt(i.values[0]) });
       return { shouldReturn: false };
+    // Image Generation settings
+    case 'setup_imagegen_provider':
+      updateGuildSettings(guildId, { imageGenProvider: i.values[0] as 'cloudflare' | 'together' });
+      return { shouldReturn: false };
+    case 'setup_imagegen_user_limit':
+      updateGuildSettings(guildId, { imageGenUserDailyLimit: parseInt(i.values[0]) });
+      return { shouldReturn: false };
+    case 'setup_imagegen_guild_limit':
+      updateGuildSettings(guildId, { imageGenGuildDailyLimit: parseInt(i.values[0]) });
+      return { shouldReturn: false };
     case 'setup_leveling_level_select': {
       const newLevelingData = { ...levelingRoleToAdd, level: parseInt(i.values[0]) };
       if (newLevelingData.roleId && newLevelingData.level) {
@@ -422,6 +434,43 @@ async function handleButton(
     case 'setup_toggle_leveling_announce':
       updateGuildSettings(guildId, { levelingAnnounceLevelUp: !settings.levelingAnnounceLevelUp });
       return { shouldReturn: false };
+    case 'setup_toggle_imagegen':
+      updateGuildSettings(guildId, { enableImageGen: !settings.enableImageGen });
+      return { shouldReturn: false };
+    case 'setup_imagegen_api': {
+      const modal = new ModalBuilder()
+        .setCustomId('setup_imagegen_api_modal')
+        .setTitle('🔑 Cloudflare API Key');
+      
+      const apiKeyInput = new TextInputBuilder()
+        .setCustomId('api_key')
+        .setLabel('API Key')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Enter your Cloudflare API Token')
+        .setRequired(true)
+        .setMaxLength(100);
+      
+      modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(apiKeyInput));
+      await i.showModal(modal);
+      return { shouldReturn: true };
+    }
+    case 'setup_imagegen_account': {
+      const modal = new ModalBuilder()
+        .setCustomId('setup_imagegen_account_modal')
+        .setTitle('🆔 Cloudflare Account ID');
+      
+      const accountInput = new TextInputBuilder()
+        .setCustomId('account_id')
+        .setLabel('Account ID')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Enter your Cloudflare Account ID')
+        .setRequired(true)
+        .setMaxLength(50);
+      
+      modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(accountInput));
+      await i.showModal(modal);
+      return { shouldReturn: true };
+    }
     case 'setup_leveling_add_role': {
       const addView = buildLevelingAddRole(settings);
       await i.update({ embeds: addView.embeds, components: addView.components });

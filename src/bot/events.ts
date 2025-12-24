@@ -134,6 +134,42 @@ export function registerEvents(client: Client): void {
         }
         return;
       }
+      if (interaction.customId === 'setup_imagegen_api_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          const apiKey = interaction.fields.getTextInputValue('api_key');
+          updateGuildSettings(guildId, { imageGenApiKey: apiKey });
+          await interaction.reply({ content: '✅ API Key saved!', flags: MessageFlags.Ephemeral });
+        } catch (error) {
+          console.error('[MODAL] Error handling imagegen api modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
+      if (interaction.customId === 'setup_imagegen_account_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          const accountId = interaction.fields.getTextInputValue('account_id');
+          updateGuildSettings(guildId, { imageGenAccountId: accountId });
+          await interaction.reply({ content: '✅ Account ID saved!', flags: MessageFlags.Ephemeral });
+        } catch (error) {
+          console.error('[MODAL] Error handling imagegen account modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
     }
 
     await handleInteraction(interaction);

@@ -53,6 +53,14 @@ export interface GuildSettings {
   levelingAnnouncementChannelId: string | null;
   levelingAnnounceLevelUp: boolean;
   levelingStackRoles: boolean;
+  // Image Generation module
+  enableImageGen: boolean;
+  imageGenProvider: 'cloudflare' | 'together';
+  imageGenApiKey: string | null;
+  imageGenAccountId: string | null;
+  imageGenChannelId: string | null;
+  imageGenUserDailyLimit: number;
+  imageGenGuildDailyLimit: number;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -103,6 +111,14 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   levelingAnnouncementChannelId: null,
   levelingAnnounceLevelUp: true,
   levelingStackRoles: false,
+  // Image Generation module
+  enableImageGen: false,
+  imageGenProvider: 'together',
+  imageGenApiKey: null,
+  imageGenAccountId: null,
+  imageGenChannelId: null,
+  imageGenUserDailyLimit: 5,
+  imageGenGuildDailyLimit: 50,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
@@ -118,7 +134,9 @@ export function getGuildSettings(guildId: string): GuildSettings {
            enableGiveaways, giveawayMinDuration, giveawayMaxDuration, giveawayMaxWinners, giveawayDmWinners,
            enableReactionRoles, reactionRolesChannelId,
            enableLeveling, levelingXpPerMessage, levelingXpPerVoiceMinute, levelingXpCooldown, 
-           levelingAnnouncementChannelId, levelingAnnounceLevelUp, levelingStackRoles
+           levelingAnnouncementChannelId, levelingAnnounceLevelUp, levelingStackRoles,
+           enableImageGen, imageGenProvider, imageGenApiKey, imageGenAccountId, imageGenChannelId, 
+           imageGenUserDailyLimit, imageGenGuildDailyLimit
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as any;
 
@@ -170,6 +188,13 @@ export function getGuildSettings(guildId: string): GuildSettings {
     levelingAnnouncementChannelId: row.levelingAnnouncementChannelId ?? null,
     levelingAnnounceLevelUp: row.levelingAnnounceLevelUp !== 0,
     levelingStackRoles: row.levelingStackRoles === 1,
+    enableImageGen: row.enableImageGen === 1,
+    imageGenProvider: row.imageGenProvider ?? 'together',
+    imageGenApiKey: row.imageGenApiKey ?? null,
+    imageGenAccountId: row.imageGenAccountId ?? null,
+    imageGenChannelId: row.imageGenChannelId ?? null,
+    imageGenUserDailyLimit: row.imageGenUserDailyLimit ?? 5,
+    imageGenGuildDailyLimit: row.imageGenGuildDailyLimit ?? 50,
   };
 }
 
@@ -203,8 +228,10 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 enableGiveaways, giveawayMinDuration, giveawayMaxDuration, giveawayMaxWinners, giveawayDmWinners,
                                 enableReactionRoles, reactionRolesChannelId,
                                 enableLeveling, levelingXpPerMessage, levelingXpPerVoiceMinute, levelingXpCooldown, 
-                                levelingAnnouncementChannelId, levelingAnnounceLevelUp, levelingStackRoles)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                levelingAnnouncementChannelId, levelingAnnounceLevelUp, levelingStackRoles,
+                                enableImageGen, imageGenProvider, imageGenApiKey, imageGenAccountId, imageGenChannelId,
+                                imageGenUserDailyLimit, imageGenGuildDailyLimit)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -246,7 +273,14 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       levelingXpCooldown = excluded.levelingXpCooldown,
       levelingAnnouncementChannelId = excluded.levelingAnnouncementChannelId,
       levelingAnnounceLevelUp = excluded.levelingAnnounceLevelUp,
-      levelingStackRoles = excluded.levelingStackRoles
+      levelingStackRoles = excluded.levelingStackRoles,
+      enableImageGen = excluded.enableImageGen,
+      imageGenProvider = excluded.imageGenProvider,
+      imageGenApiKey = excluded.imageGenApiKey,
+      imageGenAccountId = excluded.imageGenAccountId,
+      imageGenChannelId = excluded.imageGenChannelId,
+      imageGenUserDailyLimit = excluded.imageGenUserDailyLimit,
+      imageGenGuildDailyLimit = excluded.imageGenGuildDailyLimit
   `).run(
     guildId,
     merged.language,
@@ -290,7 +324,14 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.levelingXpCooldown,
     merged.levelingAnnouncementChannelId,
     merged.levelingAnnounceLevelUp ? 1 : 0,
-    merged.levelingStackRoles ? 1 : 0
+    merged.levelingStackRoles ? 1 : 0,
+    merged.enableImageGen ? 1 : 0,
+    merged.imageGenProvider,
+    merged.imageGenApiKey,
+    merged.imageGenAccountId,
+    merged.imageGenChannelId,
+    merged.imageGenUserDailyLimit,
+    merged.imageGenGuildDailyLimit
   );
 }
 

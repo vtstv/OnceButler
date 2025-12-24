@@ -375,3 +375,147 @@ export function buildLevelingManageRoles(settings: GuildSettings, guild: any): S
     components,
   };
 }
+
+export function buildImageGenSettings(settings: GuildSettings, guild: any): SetupView {
+  const channelName = settings.imageGenChannelId
+    ? guild?.channels.cache.get(settings.imageGenChannelId)?.name ?? 'Unknown'
+    : 'All Channels';
+
+  const provider = settings.imageGenProvider ?? 'together';
+  const providerName = provider === 'cloudflare' ? '☁️ Cloudflare FLUX' : '🚀 Together AI FLUX';
+  const providerColor = provider === 'cloudflare' ? 0xF48120 : 0x0EA5E9;
+
+  // Different help based on provider
+  const apiHelp = provider === 'cloudflare'
+    ? '1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)\n2. Navigate to AI → Workers AI\n3. Create an API Token with AI permissions\n4. Copy your Account ID from the URL'
+    : '1. Go to [together.ai](https://api.together.xyz)\n2. Sign up (free $5 credits)\n3. Create API Key\n4. ~500 free images';
+
+  const embed = new EmbedBuilder()
+    .setTitle('🎨 Image Generation Settings')
+    .setDescription('Configure AI image generation. Users can generate images with `/imagine`.')
+    .setColor(providerColor)
+    .addFields(
+      { 
+        name: '📊 Status', 
+        value: settings.enableImageGen ? '✅ Enabled' : '❌ Disabled', 
+        inline: true 
+      },
+      { 
+        name: '🤖 Provider', 
+        value: providerName, 
+        inline: true 
+      },
+      { 
+        name: '🔑 API Key', 
+        value: settings.imageGenApiKey ? '✅ Configured' : '❌ Not set', 
+        inline: true 
+      },
+      { 
+        name: '📍 Channel', 
+        value: settings.imageGenChannelId ? `#${channelName}` : '🌐 All Channels', 
+        inline: true 
+      },
+      { 
+        name: '👤 User Daily Limit', 
+        value: `${settings.imageGenUserDailyLimit} images/day`, 
+        inline: true 
+      },
+      { 
+        name: '🏠 Server Daily Limit', 
+        value: `${settings.imageGenGuildDailyLimit} images/day`, 
+        inline: true 
+      },
+    );
+
+  // Only show Account ID for Cloudflare
+  if (provider === 'cloudflare') {
+    embed.addFields({ 
+      name: '🆔 Account ID', 
+      value: settings.imageGenAccountId ? '✅ Configured' : '❌ Not set', 
+      inline: true 
+    });
+  }
+
+  embed.addFields({
+    name: '💡 How to get API credentials',
+    value: apiHelp,
+    inline: false
+  });
+
+  const row1 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('setup_toggle_imagegen')
+        .setLabel(settings.enableImageGen ? '⏸️ Disable' : '▶️ Enable')
+        .setStyle(settings.enableImageGen ? ButtonStyle.Danger : ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId('setup_imagegen_api')
+        .setLabel('🔑 Set API Key')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('setup_imagegen_account')
+        .setLabel('🆔 Set Account ID')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(provider !== 'cloudflare'),
+      new ButtonBuilder()
+        .setCustomId('setup_back')
+        .setLabel('◀️ Back')
+        .setStyle(ButtonStyle.Secondary),
+    );
+
+  const providerSelect = new ActionRowBuilder<StringSelectMenuBuilder>()
+    .addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId('setup_imagegen_provider')
+        .setPlaceholder('🤖 Select Provider')
+        .addOptions([
+          { 
+            label: 'Together AI FLUX', 
+            value: 'together', 
+            description: '🚀 Free $5 credits (~500 images)',
+            emoji: '🚀',
+            default: provider === 'together'
+          },
+          { 
+            label: 'Cloudflare FLUX', 
+            value: 'cloudflare', 
+            description: '☁️ 10K/day free, fast',
+            emoji: '☁️',
+            default: provider === 'cloudflare'
+          },
+        ])
+    );
+
+  const userLimitSelect = new ActionRowBuilder<StringSelectMenuBuilder>()
+    .addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId('setup_imagegen_user_limit')
+        .setPlaceholder('👤 User Daily Limit')
+        .addOptions([
+          { label: '1 image/day', value: '1', description: 'Very restrictive' },
+          { label: '3 images/day', value: '3', description: 'Restrictive' },
+          { label: '5 images/day', value: '5', description: 'Default', default: settings.imageGenUserDailyLimit === 5 },
+          { label: '10 images/day', value: '10', description: 'Generous' },
+          { label: '20 images/day', value: '20', description: 'Very generous' },
+        ])
+    );
+
+  const guildLimitSelect = new ActionRowBuilder<StringSelectMenuBuilder>()
+    .addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId('setup_imagegen_guild_limit')
+        .setPlaceholder('🏠 Server Daily Limit')
+        .addOptions([
+          { label: '10 images/day', value: '10', description: 'Very restrictive' },
+          { label: '25 images/day', value: '25', description: 'Restrictive' },
+          { label: '50 images/day', value: '50', description: 'Default', default: settings.imageGenGuildDailyLimit === 50 },
+          { label: '100 images/day', value: '100', description: 'Generous' },
+          { label: '200 images/day', value: '200', description: 'Very generous' },
+        ])
+    );
+
+  return {
+    embeds: [embed],
+    components: [row1, providerSelect, userLimitSelect, guildLimitSelect],
+  };
+}

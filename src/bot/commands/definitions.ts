@@ -386,4 +386,37 @@ export const commands = [
       sub.setName('stats')
         .setDescription('View combat stats from equipment')
         .addUserOption(opt => opt.setName('user').setDescription('User to check (optional)'))),
+
+  // Image Generation
+  new SlashCommandBuilder()
+    .setName('imagine')
+    .setDescription('Generate an image using AI (Cloudflare FLUX)')
+    .addStringOption(option =>
+      option
+        .setName('prompt')
+        .setDescription('What do you want to generate?')
+        .setRequired(true)
+        .setMaxLength(1000)
+    )
+    .addStringOption(option =>
+      option
+        .setName('aspect')
+        .setDescription('Aspect ratio of the image')
+        .setRequired(false)
+        .addChoices(
+          { name: '1:1 (Square)', value: '1:1' },
+          { name: '16:9 (Landscape)', value: '16:9' },
+          { name: '9:16 (Portrait)', value: '9:16' },
+          { name: '4:3 (Standard)', value: '4:3' },
+          { name: '3:4 (Portrait Standard)', value: '3:4' },
+        )
+    )
+    .addIntegerOption(option =>
+      option
+        .setName('steps')
+        .setDescription('Number of inference steps (4-8, higher = better quality but slower)')
+        .setRequired(false)
+        .setMinValue(4)
+        .setMaxValue(8)
+    ),
 ];

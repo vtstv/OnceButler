@@ -346,5 +346,42 @@ export function runMigrations(): void {
 
     CREATE INDEX IF NOT EXISTS idx_user_inventory_equipped
     ON user_inventory(guild_id, user_id, equipped);
+
+    -- Image Generation tables
+    CREATE TABLE IF NOT EXISTS imagegen_usage (
+      guildId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      generationsToday INTEGER DEFAULT 0,
+      lastGenerationAt INTEGER DEFAULT 0,
+      totalGenerations INTEGER DEFAULT 0,
+      lastResetDate TEXT,
+      PRIMARY KEY (guildId, userId)
+    );
+
+    CREATE TABLE IF NOT EXISTS imagegen_guild_stats (
+      guildId TEXT PRIMARY KEY,
+      generationsToday INTEGER DEFAULT 0,
+      totalGenerations INTEGER DEFAULT 0,
+      lastResetDate TEXT
+    );
   `);
+
+  // Add image generation settings columns
+  const imageGenColumns = [
+    { name: 'enableImageGen', sql: 'ALTER TABLE guild_settings ADD COLUMN enableImageGen INTEGER DEFAULT 0' },
+    { name: 'imageGenProvider', sql: "ALTER TABLE guild_settings ADD COLUMN imageGenProvider TEXT DEFAULT 'gemini'" },
+    { name: 'imageGenApiKey', sql: 'ALTER TABLE guild_settings ADD COLUMN imageGenApiKey TEXT DEFAULT NULL' },
+    { name: 'imageGenAccountId', sql: 'ALTER TABLE guild_settings ADD COLUMN imageGenAccountId TEXT DEFAULT NULL' },
+    { name: 'imageGenChannelId', sql: 'ALTER TABLE guild_settings ADD COLUMN imageGenChannelId TEXT DEFAULT NULL' },
+    { name: 'imageGenUserDailyLimit', sql: 'ALTER TABLE guild_settings ADD COLUMN imageGenUserDailyLimit INTEGER DEFAULT 5' },
+    { name: 'imageGenGuildDailyLimit', sql: 'ALTER TABLE guild_settings ADD COLUMN imageGenGuildDailyLimit INTEGER DEFAULT 50' },
+  ];
+
+  for (const col of imageGenColumns) {
+    try {
+      db.exec(col.sql);
+    } catch (e: any) {
+      if (!e.message.includes('duplicate column')) throw e;
+    }
+  }
 }
