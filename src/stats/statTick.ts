@@ -11,6 +11,7 @@ import { syncMemberRoles, clearExpiredChaosRole, checkAndGrantAchievements } fro
 import { applyChaosEvent } from './chaosEngine.js';
 import { isInVoice } from '../voice/voiceTracker.js';
 import { cleanupExpiredTriggers } from '../database/repositories/triggersRepo.js';
+import { handleVoiceXp } from '../bot/events/levelingEvents.js';
 
 let tickCount = 0;
 
@@ -66,6 +67,8 @@ async function processMemberTick(member: GuildMember): Promise<void> {
   incrementOnlineTime(member.guild.id, member.id, 1);
   if (inVoice) {
     incrementVoiceTime(member.guild.id, member.id, 1);
+    // Award XP for voice time (every minute)
+    await handleVoiceXp(member.guild.id, member.id, 1);
   }
 
   updateMemberProgress(member.guild.id, member.id, {
