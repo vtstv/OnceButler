@@ -14,6 +14,7 @@ import {
   getXpForLevel,
   setMemberLevel,
 } from '../../database/repositories/levelingRepo.js';
+import { getMemberProgress } from '../../database/repositories/progressRepo.js';
 import { t, Locale } from '../../utils/i18n.js';
 
 export async function handleLeveling(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -53,12 +54,20 @@ async function handleRank(interaction: ChatInputCommandInteraction, locale: Loca
   const guildId = interaction.guild!.id;
 
   const levelData = getMemberLevel(guildId, targetUser.id);
+  const progressData = getMemberProgress(guildId, targetUser.id);
   const xpNeeded = getXpForLevel(levelData.level + 1);
   const progressPercent = Math.floor((levelData.xp / xpNeeded) * 100);
   const progressBar = createProgressBar(progressPercent);
 
   const leaderboard = getLevelingLeaderboard(guildId, 100);
   const rank = leaderboard.findIndex(m => m.oderId === targetUser.id) + 1 || '?';
+
+  // Format voice time from progress (not from level data)
+  const voiceHours = Math.floor(progressData.voiceMinutes / 60);
+  const voiceMinutes = progressData.voiceMinutes % 60;
+  const voiceTimeStr = voiceHours > 0 
+    ? `${voiceHours}h ${voiceMinutes}m` 
+    : `${voiceMinutes} min`;
 
   const embed = new EmbedBuilder()
     .setTitle(`📊 ${targetUser.displayName}'s Level`)
@@ -70,7 +79,7 @@ async function handleRank(interaction: ChatInputCommandInteraction, locale: Loca
       { name: '✨ Total XP', value: levelData.totalXp.toLocaleString(), inline: true },
       { name: '📊 Progress', value: `${progressBar}\n${levelData.xp}/${xpNeeded} XP (${progressPercent}%)`, inline: false },
       { name: '💬 Messages', value: levelData.messagesCount.toLocaleString(), inline: true },
-      { name: '🎤 Voice Time', value: `${levelData.voiceMinutes} min`, inline: true },
+      { name: '🎤 Voice Time', value: voiceTimeStr, inline: true },
     )
     .setFooter({ text: `Level ${levelData.level + 1} requires ${xpNeeded - levelData.xp} more XP` });
 
