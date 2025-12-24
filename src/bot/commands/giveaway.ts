@@ -26,39 +26,40 @@ import {
   deleteGiveaway,
 } from '../../database/repositories/giveawaysRepo.js';
 import { getGuildSettings } from '../../database/repositories/settingsRepo.js';
-import { t } from '../../utils/i18n.js';
+import { t, Locale } from '../../utils/i18n.js';
 import { getLocale, hasAdminPermission } from './utils.js';
 
 export async function handleGiveaway(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.guild) {
-    await interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+    const locale = getLocale(interaction);
+    await interaction.reply({ content: t(locale, 'giveaway.serverOnly'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const subcommand = interaction.options.getSubcommand();
+  const locale = getLocale(interaction);
 
   switch (subcommand) {
     case 'start':
-      await handleGiveawayStart(interaction);
+      await handleGiveawayStart(interaction, locale);
       break;
     case 'end':
-      await handleGiveawayEnd(interaction);
+      await handleGiveawayEnd(interaction, locale);
       break;
     case 'reroll':
-      await handleGiveawayReroll(interaction);
+      await handleGiveawayReroll(interaction, locale);
       break;
     case 'list':
-      await handleGiveawayList(interaction);
+      await handleGiveawayList(interaction, locale);
       break;
     case 'delete':
-      await handleGiveawayDelete(interaction);
+      await handleGiveawayDelete(interaction, locale);
       break;
   }
 }
 
-async function handleGiveawayStart(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleGiveawayStart(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   if (!hasAdminPermission(interaction)) {
-    const locale = getLocale(interaction);
     await interaction.reply({ content: t(locale, 'errors.adminOnly'), flags: MessageFlags.Ephemeral });
     return;
   }
@@ -78,22 +79,22 @@ async function handleGiveawayStart(interaction: ChatInputCommandInteraction): Pr
     : parseInt(winnersChoice, 10);
 
   if (!(channel instanceof TextChannel)) {
-    await interaction.reply({ content: '❌ Invalid channel. Please select a text channel.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'giveaway.invalidChannel'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   // Duration in minutes
   const durationMs = durationMinutes * 60 * 1000;
   if (durationMs <= 0) {
-    await interaction.reply({ content: '❌ Duration must be greater than 0.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'giveaway.durationPositive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const endsAt = new Date(Date.now() + durationMs);
 
   // Create giveaway embed
-  const embed = createGiveawayEmbed(prize, endsAt, winners, interaction.user.id, 0, false);
-  const button = createGiveawayButton();
+  const embed = createGiveawayEmbed(prize, endsAt, winners, interaction.user.id, 0, false, undefined, locale);
+  const button = createGiveawayButton(false, locale);
 
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -115,17 +116,21 @@ async function handleGiveawayStart(interaction: ChatInputCommandInteraction): Pr
     );
 
     await interaction.editReply({
-      content: `✅ Giveaway #${giveawayId} started in ${channel}!\n**Prize:** ${prize}\n**Ends:** <t:${Math.floor(endsAt.getTime() / 1000)}:R>`,
+      content: t(locale, 'giveaway.started', { 
+        id: giveawayId.toString(), 
+        channel: channel.toString(), 
+        prize, 
+        time: `<t:${Math.floor(endsAt.getTime() / 1000)}:R>` 
+      }),
     });
   } catch (error) {
     console.error('[Giveaway] Error starting giveaway:', error);
-    await interaction.editReply({ content: '❌ Failed to create giveaway. Check bot permissions.' });
+    await interaction.editReply({ content: t(locale, 'giveaway.startFailed') });
   }
 }
 
-async function handleGiveawayEnd(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleGiveawayEnd(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   if (!hasAdminPermission(interaction)) {
-    const locale = getLocale(interaction);
     await interaction.reply({ content: t(locale, 'errors.adminOnly'), flags: MessageFlags.Ephemeral });
     return;
   }
@@ -134,12 +139,12 @@ async function handleGiveawayEnd(interaction: ChatInputCommandInteraction): Prom
   const giveaway = getGiveawayByMessage(messageId);
 
   if (!giveaway) {
-    await interaction.reply({ content: '❌ Giveaway not found.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'giveaway.notFound'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (giveaway.ended) {
-    await interaction.reply({ content: '❌ This giveaway has already ended.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'giveaway.alreadyEnded'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -149,24 +154,23 @@ async function handleGiveawayEnd(interaction: ChatInputCommandInteraction): Prom
     const winners = selectWinners(giveaway.id, giveaway.winnersCount);
     endGiveaway(giveaway.id, winners);
 
-    await updateGiveawayMessage(interaction.guild!, giveaway, winners);
+    await updateGiveawayMessage(interaction.guild!, giveaway, winners, locale);
 
     const winnersText = winners.length > 0 
       ? winners.map(id => `<@${id}>`).join(', ')
-      : 'No participants';
+      : t(locale, 'giveaway.noParticipants');
 
     await interaction.editReply({
-      content: `✅ Giveaway ended!\n**Winners:** ${winnersText}`,
+      content: t(locale, 'giveaway.endedResult', { winners: winnersText }),
     });
   } catch (error) {
     console.error('[Giveaway] Error ending giveaway:', error);
-    await interaction.editReply({ content: '❌ Failed to end giveaway.' });
+    await interaction.editReply({ content: t(locale, 'giveaway.endFailed') });
   }
 }
 
-async function handleGiveawayReroll(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleGiveawayReroll(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   if (!hasAdminPermission(interaction)) {
-    const locale = getLocale(interaction);
     await interaction.reply({ content: t(locale, 'errors.adminOnly'), flags: MessageFlags.Ephemeral });
     return;
   }
@@ -175,12 +179,12 @@ async function handleGiveawayReroll(interaction: ChatInputCommandInteraction): P
   const giveaway = getGiveawayByMessage(messageId);
 
   if (!giveaway) {
-    await interaction.reply({ content: '❌ Giveaway not found.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'giveaway.notFound'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (!giveaway.ended) {
-    await interaction.reply({ content: '❌ This giveaway has not ended yet.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'giveaway.notEnded'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -190,48 +194,47 @@ async function handleGiveawayReroll(interaction: ChatInputCommandInteraction): P
     const newWinners = selectWinners(giveaway.id, giveaway.winnersCount);
     endGiveaway(giveaway.id, newWinners);
 
-    await updateGiveawayMessage(interaction.guild!, giveaway, newWinners);
+    await updateGiveawayMessage(interaction.guild!, giveaway, newWinners, locale);
 
     const winnersText = newWinners.length > 0 
       ? newWinners.map(id => `<@${id}>`).join(', ')
-      : 'No participants';
+      : t(locale, 'giveaway.noParticipants');
 
     await interaction.editReply({
-      content: `🔄 Giveaway rerolled!\n**New Winners:** ${winnersText}`,
+      content: t(locale, 'giveaway.rerolled', { winners: winnersText }),
     });
   } catch (error) {
     console.error('[Giveaway] Error rerolling giveaway:', error);
-    await interaction.editReply({ content: '❌ Failed to reroll giveaway.' });
+    await interaction.editReply({ content: t(locale, 'giveaway.rerollFailed') });
   }
 }
 
-async function handleGiveawayList(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleGiveawayList(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const giveaways = getActiveGiveaways(interaction.guild!.id);
 
   if (giveaways.length === 0) {
-    await interaction.reply({ content: '📭 No active giveaways.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'giveaway.noActive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const embed = new EmbedBuilder()
-    .setTitle('🎉 Active Giveaways')
+    .setTitle(t(locale, 'giveaway.activeTitle'))
     .setColor(0x5865F2)
     .setDescription(
       giveaways.map((g, i) => {
         const endsTimestamp = Math.floor(new Date(g.endsAt).getTime() / 1000);
         const participants = getParticipantCount(g.id);
         return `**${i + 1}.** ${g.prize}\n` +
-               `   👥 ${participants} participants | 🏆 ${g.winnersCount} winner(s)\n` +
-               `   ⏰ Ends <t:${endsTimestamp}:R> | [Jump](https://discord.com/channels/${g.guildId}/${g.channelId}/${g.messageId})`;
+               `   👥 ${participants} ${t(locale, 'giveaway.participants').toLowerCase()} | 🏆 ${g.winnersCount} ${t(locale, 'giveaway.winners').toLowerCase()}\n` +
+               `   ⏰ ${t(locale, 'giveaway.endsAt')} <t:${endsTimestamp}:R> | [Jump](https://discord.com/channels/${g.guildId}/${g.channelId}/${g.messageId})`;
       }).join('\n\n')
     );
 
   await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
-async function handleGiveawayDelete(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleGiveawayDelete(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   if (!hasAdminPermission(interaction)) {
-    const locale = getLocale(interaction);
     await interaction.reply({ content: t(locale, 'errors.adminOnly'), flags: MessageFlags.Ephemeral });
     return;
   }
@@ -240,7 +243,7 @@ async function handleGiveawayDelete(interaction: ChatInputCommandInteraction): P
   const giveaway = getGiveawayByMessage(messageId);
 
   if (!giveaway) {
-    await interaction.reply({ content: '❌ Giveaway not found.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'giveaway.notFound'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -255,7 +258,7 @@ async function handleGiveawayDelete(interaction: ChatInputCommandInteraction): P
     // Message may already be deleted
   }
 
-  await interaction.reply({ content: '✅ Giveaway deleted.', flags: MessageFlags.Ephemeral });
+  await interaction.reply({ content: t(locale, 'giveaway.deleted'), flags: MessageFlags.Ephemeral });
 }
 
 // ==================== BUTTON HANDLER ====================
@@ -263,14 +266,17 @@ async function handleGiveawayDelete(interaction: ChatInputCommandInteraction): P
 export async function handleGiveawayButton(interaction: any): Promise<void> {
   if (!interaction.isButton() || !interaction.customId.startsWith('giveaway_')) return;
 
+  const settings = getGuildSettings(interaction.guild?.id ?? '');
+  const locale = (settings.language || 'en') as Locale;
+
   const giveaway = getGiveawayByMessage(interaction.message.id);
   if (!giveaway) {
-    await interaction.reply({ content: '❌ Giveaway not found.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'giveaway.notFound'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (giveaway.ended) {
-    await interaction.reply({ content: '❌ This giveaway has ended.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'giveaway.hasEnded'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -279,10 +285,10 @@ export async function handleGiveawayButton(interaction: any): Promise<void> {
 
   if (alreadyJoined) {
     removeParticipant(giveaway.id, userId);
-    await interaction.reply({ content: '👋 You left the giveaway.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'giveaway.left'), flags: MessageFlags.Ephemeral });
   } else {
     addParticipant(giveaway.id, userId);
-    await interaction.reply({ content: '🎉 You joined the giveaway! Good luck!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'giveaway.joined'), flags: MessageFlags.Ephemeral });
   }
 
   // Update embed with new participant count
@@ -293,7 +299,9 @@ export async function handleGiveawayButton(interaction: any): Promise<void> {
     giveaway.winnersCount,
     giveaway.hostId,
     participantCount,
-    false
+    false,
+    undefined,
+    locale
   );
 
   try {
@@ -330,45 +338,46 @@ function createGiveawayEmbed(
   hostId: string,
   participants: number,
   ended: boolean,
-  winners?: string[]
+  winners?: string[],
+  locale: Locale = 'en' as Locale
 ): EmbedBuilder {
   const embed = new EmbedBuilder()
-    .setTitle('🎉 GIVEAWAY 🎉')
+    .setTitle(t(locale, 'giveaway.title'))
     .setColor(ended ? 0x808080 : 0x5865F2)
     .setTimestamp(endsAt);
 
   if (ended) {
     const winnersText = winners && winners.length > 0 
       ? winners.map(id => `<@${id}>`).join(', ')
-      : 'No winners';
-    embed.setDescription(`**${prize}**\n\n🏆 **Winners:** ${winnersText}`);
-    embed.setFooter({ text: 'Giveaway ended' });
+      : t(locale, 'giveaway.noWinners');
+    embed.setDescription(`**${prize}**\n\n🏆 **${t(locale, 'giveaway.winners')}:** ${winnersText}`);
+    embed.setFooter({ text: t(locale, 'giveaway.ended') });
   } else {
     embed.setDescription(
       `**${prize}**\n\n` +
-      `👥 **Participants:** ${participants}\n` +
-      `🏆 **Winners:** ${winnersCount}\n` +
-      `🎫 **Hosted by:** <@${hostId}>\n\n` +
-      `Click the button below to enter!`
+      `👥 **${t(locale, 'giveaway.participants')}:** ${participants}\n` +
+      `🏆 **${t(locale, 'giveaway.winners')}:** ${winnersCount}\n` +
+      `🎫 **${t(locale, 'giveaway.hostedBy')}:** <@${hostId}>\n\n` +
+      t(locale, 'giveaway.enterPrompt')
     );
-    embed.setFooter({ text: `Ends at` });
+    embed.setFooter({ text: t(locale, 'giveaway.endsAt') });
   }
 
   return embed;
 }
 
-function createGiveawayButton(disabled: boolean = false): ActionRowBuilder<ButtonBuilder> {
+function createGiveawayButton(disabled: boolean = false, locale: Locale = 'en' as Locale): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
         .setCustomId('giveaway_join')
-        .setLabel('🎉 Enter Giveaway')
+        .setLabel(t(locale, 'giveaway.enterButton'))
         .setStyle(ButtonStyle.Primary)
         .setDisabled(disabled)
     );
 }
 
-async function updateGiveawayMessage(guild: any, giveaway: any, winners: string[]): Promise<void> {
+async function updateGiveawayMessage(guild: any, giveaway: any, winners: string[], locale: Locale = 'en' as Locale): Promise<void> {
   try {
     const channel = guild.channels.cache.get(giveaway.channelId) as TextChannel;
     if (!channel) return;
@@ -384,39 +393,42 @@ async function updateGiveawayMessage(guild: any, giveaway: any, winners: string[
       giveaway.hostId,
       participants,
       true,
-      winners
+      winners,
+      locale
     );
 
     await message.edit({
       embeds: [embed],
-      components: [createGiveawayButton(true)],
+      components: [createGiveawayButton(true, locale)],
     });
 
     // Announce winners
     if (winners.length > 0) {
       const winnersText = winners.map(id => `<@${id}>`).join(', ');
       await channel.send({
-        content: `🎉 Congratulations ${winnersText}! You won **${giveaway.prize}**!`,
+        content: t(locale, 'giveaway.congratulations', { winners: winnersText, prize: giveaway.prize }),
       });
 
       // DM winners if enabled
-      await sendDmToWinners(guild, giveaway, winners);
+      await sendDmToWinners(guild, giveaway, winners, locale);
     }
   } catch (error) {
     console.error('[Giveaway] Error updating message:', error);
   }
 }
 
-async function sendDmToWinners(guild: any, giveaway: any, winners: string[]): Promise<void> {
+async function sendDmToWinners(guild: any, giveaway: any, winners: string[], locale: Locale = 'en' as Locale): Promise<void> {
   const settings = getGuildSettings(guild.id);
   if (!settings.giveawayDmWinners) return;
 
   const dmEmbed = new EmbedBuilder()
-    .setTitle('🎉 You Won a Giveaway!')
+    .setTitle(t(locale, 'giveaway.dmTitle'))
     .setDescription(
-      `Congratulations! You won a giveaway in **${guild.name}**!\n\n` +
-      `**Prize:** ${giveaway.prize}\n` +
-      `**Hosted by:** <@${giveaway.hostId}>`
+      t(locale, 'giveaway.dmDesc', { 
+        server: guild.name, 
+        prize: giveaway.prize, 
+        host: `<@${giveaway.hostId}>` 
+      })
     )
     .setColor(0x5865F2)
     .setTimestamp();

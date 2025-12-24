@@ -13,6 +13,7 @@ import {
   MessageFlags,
   User,
 } from 'discord.js';
+import { t, Locale } from '../../utils/i18n.js';
 import {
   getWallet,
   addBalance,
@@ -30,7 +31,6 @@ import {
   deleteShopItem,
 } from '../../database/repositories/economyRepo.js';
 import { getGuildSettings, updateGuildSettings } from '../../database/repositories/settingsRepo.js';
-import { t } from '../../utils/i18n.js';
 import { getLocale, hasAdminPermission } from './utils.js';
 
 const CURRENCY_EMOJI = '🪙';
@@ -42,10 +42,11 @@ export async function handleEconomy(interaction: ChatInputCommandInteraction): P
     return;
   }
 
+  const locale = getLocale(interaction);
   const settings = getGuildSettings(interaction.guild.id);
   if (!settings.enableEconomy) {
     await interaction.reply({ 
-      content: '❌ Economy is disabled on this server. An admin can enable it in `/setup`.', 
+      content: t(locale, 'economy.disabled'), 
       flags: MessageFlags.Ephemeral 
     });
     return;
@@ -57,22 +58,22 @@ export async function handleEconomy(interaction: ChatInputCommandInteraction): P
   // Handle admin subcommand group
   if (subcommandGroup === 'admin') {
     if (!hasAdminPermission(interaction)) {
-      await interaction.reply({ content: '❌ You need admin permissions to use this command.', flags: MessageFlags.Ephemeral });
+      await interaction.reply({ content: t(locale, 'errors.adminOnly'), flags: MessageFlags.Ephemeral });
       return;
     }
     
     switch (subcommand) {
       case 'give':
-        await handleAdminGive(interaction);
+        await handleAdminGive(interaction, locale);
         break;
       case 'take':
-        await handleAdminTake(interaction);
+        await handleAdminTake(interaction, locale);
         break;
       case 'additem':
-        await handleAdminAddItem(interaction);
+        await handleAdminAddItem(interaction, locale);
         break;
       case 'removeitem':
-        await handleAdminRemoveItem(interaction);
+        await handleAdminRemoveItem(interaction, locale);
         break;
     }
     return;
@@ -80,54 +81,54 @@ export async function handleEconomy(interaction: ChatInputCommandInteraction): P
 
   switch (subcommand) {
     case 'balance':
-      await handleBalance(interaction);
+      await handleBalance(interaction, locale);
       break;
     case 'daily':
-      await handleDaily(interaction);
+      await handleDaily(interaction, locale);
       break;
     case 'work':
-      await handleWork(interaction);
+      await handleWork(interaction, locale);
       break;
     case 'pay':
-      await handlePay(interaction);
+      await handlePay(interaction, locale);
       break;
     case 'deposit':
-      await handleDeposit(interaction);
+      await handleDeposit(interaction, locale);
       break;
     case 'withdraw':
-      await handleWithdraw(interaction);
+      await handleWithdraw(interaction, locale);
       break;
     case 'leaderboard':
-      await handleLeaderboard(interaction);
+      await handleLeaderboard(interaction, locale);
       break;
     case 'shop':
-      await handleShop(interaction);
+      await handleShop(interaction, locale);
       break;
     case 'buy':
-      await handleBuy(interaction);
+      await handleBuy(interaction, locale);
       break;
   }
 }
 
-async function handleBalance(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleBalance(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const target = interaction.options.getUser('user') ?? interaction.user;
   const wallet = getWallet(interaction.guild!.id, target.id);
 
   const embed = new EmbedBuilder()
-    .setTitle(`${CURRENCY_EMOJI} ${target.username}'s Wallet`)
+    .setTitle(t(locale, 'economy.balance.title', { user: target.username }))
     .setColor(0xF1C40F)
     .setThumbnail(target.displayAvatarURL())
     .addFields(
-      { name: '💰 Cash', value: `${wallet.balance.toLocaleString()} ${CURRENCY_NAME}`, inline: true },
-      { name: '🏦 Bank', value: `${wallet.bank.toLocaleString()} ${CURRENCY_NAME}`, inline: true },
-      { name: '📊 Total', value: `${(wallet.balance + wallet.bank).toLocaleString()} ${CURRENCY_NAME}`, inline: true },
-      { name: '💵 Total Earned', value: `${wallet.totalEarned.toLocaleString()} ${CURRENCY_NAME}`, inline: false },
+      { name: t(locale, 'economy.balance.cash'), value: `${wallet.balance.toLocaleString()} ${CURRENCY_NAME}`, inline: true },
+      { name: t(locale, 'economy.balance.bank'), value: `${wallet.bank.toLocaleString()} ${CURRENCY_NAME}`, inline: true },
+      { name: t(locale, 'economy.balance.total'), value: `${(wallet.balance + wallet.bank).toLocaleString()} ${CURRENCY_NAME}`, inline: true },
+      { name: t(locale, 'economy.balance.earned'), value: `${wallet.totalEarned.toLocaleString()} ${CURRENCY_NAME}`, inline: false },
     );
 
   await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
-async function handleDaily(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleDaily(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const settings = getGuildSettings(interaction.guild!.id);
   const wallet = getWallet(interaction.guild!.id, interaction.user.id);
 
@@ -142,7 +143,7 @@ async function handleDaily(interaction: ChatInputCommandInteraction): Promise<vo
       const minutes = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
       
       await interaction.reply({
-        content: `⏰ You've already claimed your daily reward!\nCome back in **${hours}h ${minutes}m**.`,
+        content: t(locale, 'economy.daily.cooldown', { hours: hours.toString(), minutes: minutes.toString() }),
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -156,15 +157,15 @@ async function handleDaily(interaction: ChatInputCommandInteraction): Promise<vo
   logTransaction(interaction.guild!.id, interaction.user.id, 'daily', dailyAmount, 'Daily reward');
 
   const embed = new EmbedBuilder()
-    .setTitle('📅 Daily Reward')
-    .setDescription(`You claimed your daily reward of **${dailyAmount.toLocaleString()}** ${CURRENCY_EMOJI} ${CURRENCY_NAME}!`)
+    .setTitle(t(locale, 'economy.daily.title'))
+    .setDescription(t(locale, 'economy.daily.claimed', { amount: dailyAmount.toLocaleString(), emoji: CURRENCY_EMOJI }))
     .setColor(0x2ECC71)
-    .setFooter({ text: 'Come back tomorrow for more!' });
+    .setFooter({ text: t(locale, 'economy.daily.footer') });
 
   await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
-async function handleWork(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleWork(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const settings = getGuildSettings(interaction.guild!.id);
   const wallet = getWallet(interaction.guild!.id, interaction.user.id);
 
@@ -178,7 +179,7 @@ async function handleWork(interaction: ChatInputCommandInteraction): Promise<voi
       const minutes = Math.floor(timeLeft / (60 * 1000));
       
       await interaction.reply({
-        content: `⏰ You're tired! Rest for **${minutes} minutes** before working again.`,
+        content: t(locale, 'economy.work.cooldown', { minutes: minutes.toString() }),
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -189,55 +190,46 @@ async function handleWork(interaction: ChatInputCommandInteraction): Promise<voi
   const maxWork = settings.economyWorkMax ?? 50;
   const workAmount = Math.floor(Math.random() * (maxWork - minWork + 1)) + minWork;
 
-  const workMessages = [
-    `You worked as a programmer and earned`,
-    `You delivered pizzas and made`,
-    `You fixed someone's computer and got`,
-    `You walked some dogs and received`,
-    `You washed cars and earned`,
-    `You helped at a local shop and made`,
-    `You tutored students and got`,
-    `You streamed games and received`,
-  ];
-
-  const message = workMessages[Math.floor(Math.random() * workMessages.length)];
+  const workKeys = ['economy.work.msg1', 'economy.work.msg2', 'economy.work.msg3', 'economy.work.msg4', 
+                    'economy.work.msg5', 'economy.work.msg6', 'economy.work.msg7', 'economy.work.msg8'];
+  const message = t(locale, workKeys[Math.floor(Math.random() * workKeys.length)]);
 
   addBalance(interaction.guild!.id, interaction.user.id, workAmount);
   updateWallet(interaction.guild!.id, interaction.user.id, { lastWork: new Date().toISOString() });
   logTransaction(interaction.guild!.id, interaction.user.id, 'work', workAmount, 'Work income');
 
   const embed = new EmbedBuilder()
-    .setTitle('💼 Work Complete')
+    .setTitle(t(locale, 'economy.work.title'))
     .setDescription(`${message} **${workAmount.toLocaleString()}** ${CURRENCY_EMOJI} ${CURRENCY_NAME}!`)
     .setColor(0x3498DB)
-    .setFooter({ text: 'You can work again in 1 hour' });
+    .setFooter({ text: t(locale, 'economy.work.footer') });
 
   await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
-async function handlePay(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handlePay(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const target = interaction.options.getUser('user', true);
   const amount = interaction.options.getInteger('amount', true);
 
   if (target.id === interaction.user.id) {
-    await interaction.reply({ content: '❌ You cannot pay yourself!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.cantPaySelf'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (target.bot) {
-    await interaction.reply({ content: '❌ You cannot pay bots!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.cantPayBot'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (amount <= 0) {
-    await interaction.reply({ content: '❌ Amount must be positive!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.amountPositive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const success = transferBalance(interaction.guild!.id, interaction.user.id, target.id, amount);
 
   if (!success) {
-    await interaction.reply({ content: '❌ Insufficient balance!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.insufficientBalance'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -245,64 +237,64 @@ async function handlePay(interaction: ChatInputCommandInteraction): Promise<void
   logTransaction(interaction.guild!.id, target.id, 'receive', amount, `Received from ${interaction.user.username}`);
 
   const embed = new EmbedBuilder()
-    .setTitle('💸 Payment Sent')
-    .setDescription(`You sent **${amount.toLocaleString()}** ${CURRENCY_EMOJI} to ${target}!`)
+    .setTitle(t(locale, 'economy.pay.title'))
+    .setDescription(t(locale, 'economy.pay.desc', { amount: amount.toLocaleString(), emoji: CURRENCY_EMOJI, target: target.toString() }))
     .setColor(0x2ECC71);
 
   await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
-async function handleDeposit(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleDeposit(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const amount = interaction.options.getInteger('amount', true);
 
   if (amount <= 0) {
-    await interaction.reply({ content: '❌ Amount must be positive!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.amountPositive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const success = depositToBank(interaction.guild!.id, interaction.user.id, amount);
 
   if (!success) {
-    await interaction.reply({ content: '❌ Insufficient cash balance!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.deposit.failed'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const embed = new EmbedBuilder()
-    .setTitle('🏦 Deposit Complete')
-    .setDescription(`You deposited **${amount.toLocaleString()}** ${CURRENCY_EMOJI} to your bank!`)
+    .setTitle(t(locale, 'economy.deposit.title'))
+    .setDescription(t(locale, 'economy.deposit.desc', { amount: amount.toLocaleString(), emoji: CURRENCY_EMOJI }))
     .setColor(0x3498DB);
 
   await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
-async function handleWithdraw(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleWithdraw(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const amount = interaction.options.getInteger('amount', true);
 
   if (amount <= 0) {
-    await interaction.reply({ content: '❌ Amount must be positive!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.amountPositive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const success = withdrawFromBank(interaction.guild!.id, interaction.user.id, amount);
 
   if (!success) {
-    await interaction.reply({ content: '❌ Insufficient bank balance!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.withdraw.failed'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const embed = new EmbedBuilder()
-    .setTitle('🏦 Withdrawal Complete')
-    .setDescription(`You withdrew **${amount.toLocaleString()}** ${CURRENCY_EMOJI} from your bank!`)
+    .setTitle(t(locale, 'economy.withdraw.title'))
+    .setDescription(t(locale, 'economy.withdraw.desc', { amount: amount.toLocaleString(), emoji: CURRENCY_EMOJI }))
     .setColor(0x3498DB);
 
   await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
-async function handleLeaderboard(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleLeaderboard(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const topUsers = getTopBalances(interaction.guild!.id, 10);
 
   if (topUsers.length === 0) {
-    await interaction.reply({ content: '📭 No economy data yet!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.noData'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -320,47 +312,47 @@ async function handleLeaderboard(interaction: ChatInputCommandInteraction): Prom
   );
 
   const embed = new EmbedBuilder()
-    .setTitle(`${CURRENCY_EMOJI} Economy Leaderboard`)
+    .setTitle(t(locale, 'economy.leaderboard.title', { emoji: CURRENCY_EMOJI }))
     .setDescription(leaderboardText.join('\n'))
     .setColor(0xF1C40F)
-    .setFooter({ text: `Top ${topUsers.length} richest members` });
+    .setFooter({ text: t(locale, 'economy.leaderboard.footer', { count: topUsers.length.toString() }) });
 
   await interaction.reply({ embeds: [embed] });
 }
 
-async function handleShop(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleShop(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const items = getShopItems(interaction.guild!.id);
 
   if (items.length === 0) {
     await interaction.reply({ 
-      content: '🏪 The shop is empty! Admins can add items in `/setup`.', 
+      content: t(locale, 'economy.shopEmpty'), 
       flags: MessageFlags.Ephemeral 
     });
     return;
   }
 
   const embed = new EmbedBuilder()
-    .setTitle('🏪 Server Shop')
+    .setTitle(t(locale, 'economy.shop.title'))
     .setColor(0x9B59B6)
-    .setDescription('Use `/economy buy <item_id>` to purchase an item.\n\n' +
+    .setDescription(`${t(locale, 'economy.shop.desc')}\n\n` +
       items.map((item, i) => {
         const stockText = item.stock === -1 ? '∞' : item.stock.toString();
         const roleText = item.roleId ? ` → <@&${item.roleId}>` : '';
         return `**${item.id}.** ${item.name} — **${item.price.toLocaleString()}** ${CURRENCY_EMOJI}\n` +
                `   ${item.description}${roleText}\n` +
-               `   📦 Stock: ${stockText}`;
+               `   📦 ${t(locale, 'economy.shop.stock')}: ${stockText}`;
       }).join('\n\n')
     );
 
   await interaction.reply({ embeds: [embed] });
 }
 
-async function handleBuy(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleBuy(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const itemId = interaction.options.getInteger('item_id', true);
   const item = getShopItem(itemId);
 
   if (!item || item.guildId !== interaction.guild!.id) {
-    await interaction.reply({ content: '❌ Item not found!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.itemNotFound'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -385,25 +377,19 @@ async function handleBuy(interaction: ChatInputCommandInteraction): Promise<void
   }
 
   const embed = new EmbedBuilder()
-    .setTitle('🛒 Purchase Complete')
-    .setDescription(`You bought **${item.name}** for **${item.price.toLocaleString()}** ${CURRENCY_EMOJI}!`)
+    .setTitle(t(locale, 'economy.buy.title'))
+    .setDescription(t(locale, 'economy.buy.desc', { item: item.name, price: item.price.toLocaleString(), emoji: CURRENCY_EMOJI }))
     .setColor(0x2ECC71);
 
   await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
-async function handleAdminGive(interaction: ChatInputCommandInteraction): Promise<void> {
-  if (!hasAdminPermission(interaction)) {
-    const locale = getLocale(interaction);
-    await interaction.reply({ content: t(locale, 'errors.adminOnly'), flags: MessageFlags.Ephemeral });
-    return;
-  }
-
+async function handleAdminGive(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const target = interaction.options.getUser('user', true);
   const amount = interaction.options.getInteger('amount', true);
 
   if (amount <= 0) {
-    await interaction.reply({ content: '❌ Amount must be positive!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.amountPositive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -411,42 +397,36 @@ async function handleAdminGive(interaction: ChatInputCommandInteraction): Promis
   logTransaction(interaction.guild!.id, target.id, 'admin', amount, `Given by ${interaction.user.username}`);
 
   await interaction.reply({
-    content: `✅ Gave **${amount.toLocaleString()}** ${CURRENCY_EMOJI} to ${target}.`,
+    content: t(locale, 'economy.admin.gave', { amount: amount.toLocaleString(), emoji: CURRENCY_EMOJI, target: target.toString() }),
     flags: MessageFlags.Ephemeral,
   });
 }
 
-async function handleAdminTake(interaction: ChatInputCommandInteraction): Promise<void> {
-  if (!hasAdminPermission(interaction)) {
-    const locale = getLocale(interaction);
-    await interaction.reply({ content: t(locale, 'errors.adminOnly'), flags: MessageFlags.Ephemeral });
-    return;
-  }
-
+async function handleAdminTake(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const target = interaction.options.getUser('user', true);
   const amount = interaction.options.getInteger('amount', true);
 
   if (amount <= 0) {
-    await interaction.reply({ content: '❌ Amount must be positive!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.amountPositive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const success = removeBalance(interaction.guild!.id, target.id, amount);
 
   if (!success) {
-    await interaction.reply({ content: '❌ User does not have enough balance!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.userNoBalance'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   logTransaction(interaction.guild!.id, target.id, 'admin', -amount, `Taken by ${interaction.user.username}`);
 
   await interaction.reply({
-    content: `✅ Took **${amount.toLocaleString()}** ${CURRENCY_EMOJI} from ${target}.`,
+    content: t(locale, 'economy.admin.took', { amount: amount.toLocaleString(), emoji: CURRENCY_EMOJI, target: target.toString() }),
     flags: MessageFlags.Ephemeral,
   });
 }
 
-async function handleAdminAddItem(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleAdminAddItem(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const name = interaction.options.getString('name', true);
   const description = interaction.options.getString('description', true);
   const price = interaction.options.getInteger('price', true);
@@ -454,7 +434,7 @@ async function handleAdminAddItem(interaction: ChatInputCommandInteraction): Pro
   const stock = interaction.options.getInteger('stock') ?? -1;
 
   if (price <= 0) {
-    await interaction.reply({ content: '❌ Price must be positive!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.amountPositive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -468,7 +448,7 @@ async function handleAdminAddItem(interaction: ChatInputCommandInteraction): Pro
   );
 
   const embed = new EmbedBuilder()
-    .setTitle('🛍️ Shop Item Added')
+    .setTitle(t(locale, 'economy.admin.itemAdded'))
     .setColor(0x2ECC71)
     .addFields(
       { name: 'ID', value: `#${itemId}`, inline: true },
@@ -482,19 +462,19 @@ async function handleAdminAddItem(interaction: ChatInputCommandInteraction): Pro
   await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
-async function handleAdminRemoveItem(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleAdminRemoveItem(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const itemId = interaction.options.getInteger('item_id', true);
 
   const item = getShopItem(itemId);
   if (!item || item.guildId !== interaction.guild!.id) {
-    await interaction.reply({ content: '❌ Item not found!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'economy.itemNotFound'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   deleteShopItem(itemId);
 
   await interaction.reply({
-    content: `✅ Removed item **${item.name}** (ID: #${itemId}) from the shop.`,
+    content: t(locale, 'economy.admin.itemRemoved', { name: item.name, id: itemId.toString() }),
     flags: MessageFlags.Ephemeral,
   });
 }

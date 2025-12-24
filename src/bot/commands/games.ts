@@ -17,6 +17,7 @@ import {
   logTransaction,
 } from '../../database/repositories/economyRepo.js';
 import { getGuildSettings } from '../../database/repositories/settingsRepo.js';
+import { t, Locale } from '../../utils/i18n.js';
 
 const CURRENCY_EMOJI = '🪙';
 
@@ -27,9 +28,11 @@ export async function handleGames(interaction: ChatInputCommandInteraction): Pro
   }
 
   const settings = getGuildSettings(interaction.guild.id);
+  const locale = (settings.language || 'en') as Locale;
+  
   if (!settings.enableEconomy) {
     await interaction.reply({ 
-      content: '❌ Economy is disabled on this server. Enable it in `/setup` to use games.', 
+      content: t(locale, 'games.disabled'), 
       flags: MessageFlags.Ephemeral 
     });
     return;
@@ -39,39 +42,39 @@ export async function handleGames(interaction: ChatInputCommandInteraction): Pro
 
   switch (subcommand) {
     case 'coinflip':
-      await handleCoinflip(interaction);
+      await handleCoinflip(interaction, locale);
       break;
     case 'slots':
-      await handleSlots(interaction);
+      await handleSlots(interaction, locale);
       break;
     case 'roulette':
-      await handleRoulette(interaction);
+      await handleRoulette(interaction, locale);
       break;
     case 'blackjack':
-      await handleBlackjack(interaction);
+      await handleBlackjack(interaction, locale);
       break;
     case 'dice':
-      await handleDice(interaction);
+      await handleDice(interaction, locale);
       break;
   }
 }
 
 // ==================== COINFLIP ====================
 
-async function handleCoinflip(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleCoinflip(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const bet = interaction.options.getInteger('bet', true);
   const choice = interaction.options.getString('choice', true) as 'heads' | 'tails';
   const guildId = interaction.guild!.id;
   const userId = interaction.user.id;
 
   if (bet <= 0) {
-    await interaction.reply({ content: '❌ Bet must be positive!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'games.betPositive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const wallet = getWallet(guildId, userId);
   if (wallet.balance < bet) {
-    await interaction.reply({ content: '❌ Insufficient balance!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'games.insufficientBalance'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -88,13 +91,16 @@ async function handleCoinflip(interaction: ChatInputCommandInteraction): Promise
   }
 
   const emoji = result === 'heads' ? '🪙' : '🌙';
+  const choiceLocalized = t(locale, `games.coinflip.${choice}`);
+  const resultLocalized = t(locale, `games.coinflip.${result}`);
+  
   const embed = new EmbedBuilder()
-    .setTitle(`${emoji} Coinflip`)
+    .setTitle(`${emoji} ${t(locale, 'games.coinflip.title')}`)
     .setDescription(
-      `You chose **${choice}**, the coin landed on **${result}**!\n\n` +
+      `${t(locale, 'games.coinflip.result', { choice: choiceLocalized, result: resultLocalized })}\n\n` +
       (won 
-        ? `🎉 You won **${bet.toLocaleString()}** ${CURRENCY_EMOJI}!`
-        : `💸 You lost **${bet.toLocaleString()}** ${CURRENCY_EMOJI}!`)
+        ? t(locale, 'games.coinflip.win', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI })
+        : t(locale, 'games.coinflip.lose', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI }))
     )
     .setColor(won ? 0x2ECC71 : 0xE74C3C);
 
@@ -114,19 +120,19 @@ const SLOT_PAYOUTS: Record<string, number> = {
   '🎰': 50,
 };
 
-async function handleSlots(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleSlots(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const bet = interaction.options.getInteger('bet', true);
   const guildId = interaction.guild!.id;
   const userId = interaction.user.id;
 
   if (bet <= 0) {
-    await interaction.reply({ content: '❌ Bet must be positive!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'games.betPositive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const wallet = getWallet(guildId, userId);
   if (wallet.balance < bet) {
-    await interaction.reply({ content: '❌ Insufficient balance!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'games.insufficientBalance'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -143,10 +149,10 @@ async function handleSlots(interaction: ChatInputCommandInteraction): Promise<vo
 
   if (reels[0] === reels[1] && reels[1] === reels[2]) {
     multiplier = SLOT_PAYOUTS[reels[0]] || 5;
-    winType = '🎉 JACKPOT! Three of a kind!';
+    winType = t(locale, 'games.slots.jackpot');
   } else if (reels[0] === reels[1] || reels[1] === reels[2] || reels[0] === reels[2]) {
     multiplier = 1.5;
-    winType = '✨ Two of a kind!';
+    winType = t(locale, 'games.slots.twoOfKind');
   }
 
   const winnings = Math.floor(bet * multiplier);
@@ -160,12 +166,12 @@ async function handleSlots(interaction: ChatInputCommandInteraction): Promise<vo
   const slotDisplay = `┏━━━━━━━━━━━┓\n┃ ${reels.join(' │ ')} ┃\n┗━━━━━━━━━━━┛`;
 
   const embed = new EmbedBuilder()
-    .setTitle('🎰 Slots')
+    .setTitle(t(locale, 'games.slots.title'))
     .setDescription(
       `${slotDisplay}\n\n` +
       (multiplier > 0 
-        ? `${winType}\n💰 You won **${winnings.toLocaleString()}** ${CURRENCY_EMOJI}!`
-        : `💸 No match! You lost **${bet.toLocaleString()}** ${CURRENCY_EMOJI}!`)
+        ? `${winType}\n${t(locale, 'games.slots.win', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI })}`
+        : t(locale, 'games.slots.lose', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI }))
     )
     .setColor(multiplier > 0 ? 0x2ECC71 : 0xE74C3C);
 
@@ -186,20 +192,20 @@ const ROULETTE_PAYOUTS: Record<RouletteChoice, number> = {
   high: 2,
 };
 
-async function handleRoulette(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleRoulette(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const bet = interaction.options.getInteger('bet', true);
   const choice = interaction.options.getString('choice', true) as RouletteChoice;
   const guildId = interaction.guild!.id;
   const userId = interaction.user.id;
 
   if (bet <= 0) {
-    await interaction.reply({ content: '❌ Bet must be positive!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'games.betPositive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const wallet = getWallet(guildId, userId);
   if (wallet.balance < bet) {
-    await interaction.reply({ content: '❌ Insufficient balance!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'games.insufficientBalance'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -236,14 +242,16 @@ async function handleRoulette(interaction: ChatInputCommandInteraction): Promise
   }
 
   const colorEmoji = color === 'red' ? '🔴' : color === 'black' ? '⚫' : '🟢';
+  const colorLocalized = t(locale, `games.roulette.${color}`);
+  
   const embed = new EmbedBuilder()
-    .setTitle('🎡 Roulette')
+    .setTitle(t(locale, 'games.roulette.title'))
     .setDescription(
-      `The ball landed on ${colorEmoji} **${number}** (${color})!\n\n` +
-      `You bet on **${choice}**.\n\n` +
+      `${t(locale, 'games.roulette.landed', { colorEmoji, number: number.toString(), color: colorLocalized })}\n\n` +
+      `${t(locale, 'games.roulette.betOn', { choice })}\n\n` +
       (won 
-        ? `🎉 You won **${winnings.toLocaleString()}** ${CURRENCY_EMOJI}!`
-        : `💸 You lost **${bet.toLocaleString()}** ${CURRENCY_EMOJI}!`)
+        ? t(locale, 'games.roulette.win', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI })
+        : t(locale, 'games.roulette.lose', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI }))
     )
     .setColor(won ? 0x2ECC71 : 0xE74C3C);
 
@@ -265,6 +273,7 @@ interface BlackjackGame {
   dealerCards: string[];
   guildId: string;
   userId: string;
+  locale: Locale;
 }
 
 const activeGames = new Map<string, BlackjackGame>();
@@ -309,25 +318,25 @@ function formatHand(cards: string[], hideSecond = false): string {
   return cards.join(' | ');
 }
 
-async function handleBlackjack(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleBlackjack(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const bet = interaction.options.getInteger('bet', true);
   const guildId = interaction.guild!.id;
   const userId = interaction.user.id;
   const gameKey = `${guildId}_${userId}`;
 
   if (bet <= 0) {
-    await interaction.reply({ content: '❌ Bet must be positive!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'games.betPositive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const wallet = getWallet(guildId, userId);
   if (wallet.balance < bet) {
-    await interaction.reply({ content: '❌ Insufficient balance!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'games.insufficientBalance'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (activeGames.has(gameKey)) {
-    await interaction.reply({ content: '❌ You already have an active blackjack game!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'games.blackjack.activeGame'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -345,11 +354,11 @@ async function handleBlackjack(interaction: ChatInputCommandInteraction): Promis
     logTransaction(guildId, userId, 'gamble', winnings - bet, 'Blackjack win');
 
     const embed = new EmbedBuilder()
-      .setTitle('🃏 Blackjack')
+      .setTitle(t(locale, 'games.blackjack.title'))
       .setDescription(
-        `**Your hand:** ${formatHand(playerCards)} (${playerTotal})\n` +
-        `**Dealer's hand:** ${formatHand(dealerCards)} (${dealerTotal})\n\n` +
-        `🎉 **BLACKJACK!** You won **${winnings.toLocaleString()}** ${CURRENCY_EMOJI}!`
+        `**${t(locale, 'games.blackjack.yourHand')}:** ${formatHand(playerCards)} (${playerTotal})\n` +
+        `**${t(locale, 'games.blackjack.dealerHand')}:** ${formatHand(dealerCards)} (${dealerTotal})\n\n` +
+        t(locale, 'games.blackjack.blackjack', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI })
       )
       .setColor(0xF1C40F);
 
@@ -357,27 +366,27 @@ async function handleBlackjack(interaction: ChatInputCommandInteraction): Promis
     return;
   }
 
-  activeGames.set(gameKey, { bet, playerCards, dealerCards, guildId, userId });
+  activeGames.set(gameKey, { bet, playerCards, dealerCards, guildId, userId, locale });
 
   const embed = new EmbedBuilder()
-    .setTitle('🃏 Blackjack')
+    .setTitle(t(locale, 'games.blackjack.title'))
     .setDescription(
-      `**Your hand:** ${formatHand(playerCards)} (${playerTotal})\n` +
-      `**Dealer's hand:** ${formatHand(dealerCards, true)}\n\n` +
-      `Choose **Hit** to draw another card or **Stand** to keep your hand.`
+      `**${t(locale, 'games.blackjack.yourHand')}:** ${formatHand(playerCards)} (${playerTotal})\n` +
+      `**${t(locale, 'games.blackjack.dealerHand')}:** ${formatHand(dealerCards, true)}\n\n` +
+      t(locale, 'games.blackjack.choose')
     )
     .setColor(0x3498DB)
-    .setFooter({ text: `Bet: ${bet.toLocaleString()} ${CURRENCY_EMOJI}` });
+    .setFooter({ text: t(locale, 'games.blackjack.bet', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI }) });
 
   const buttons = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
         .setCustomId(`blackjack_hit_${gameKey}`)
-        .setLabel('Hit')
+        .setLabel(t(locale, 'games.blackjack.hit'))
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
         .setCustomId(`blackjack_stand_${gameKey}`)
-        .setLabel('Stand')
+        .setLabel(t(locale, 'games.blackjack.stand'))
         .setStyle(ButtonStyle.Secondary),
     );
 
@@ -401,9 +410,11 @@ export async function handleBlackjackButton(interaction: any): Promise<void> {
 
   const game = activeGames.get(gameKey);
   if (!game) {
-    await interaction.reply({ content: '❌ Game expired or not found.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t('en' as Locale, 'games.blackjack.expired'), flags: MessageFlags.Ephemeral });
     return;
   }
+
+  const locale = game.locale;
 
   if (action === 'hit') {
     game.playerCards.push(drawCard());
@@ -414,11 +425,11 @@ export async function handleBlackjackButton(interaction: any): Promise<void> {
       logTransaction(game.guildId, game.userId, 'gamble', -game.bet, 'Blackjack loss');
 
       const embed = new EmbedBuilder()
-        .setTitle('🃏 Blackjack')
+        .setTitle(t(locale, 'games.blackjack.title'))
         .setDescription(
-          `**Your hand:** ${formatHand(game.playerCards)} (${playerTotal})\n` +
-          `**Dealer's hand:** ${formatHand(game.dealerCards)} (${calculateHand(game.dealerCards)})\n\n` +
-          `💥 **BUST!** You lost **${game.bet.toLocaleString()}** ${CURRENCY_EMOJI}!`
+          `**${t(locale, 'games.blackjack.yourHand')}:** ${formatHand(game.playerCards)} (${playerTotal})\n` +
+          `**${t(locale, 'games.blackjack.dealerHand')}:** ${formatHand(game.dealerCards)} (${calculateHand(game.dealerCards)})\n\n` +
+          t(locale, 'games.blackjack.bust', { amount: game.bet.toLocaleString(), emoji: CURRENCY_EMOJI })
         )
         .setColor(0xE74C3C);
 
@@ -427,24 +438,24 @@ export async function handleBlackjackButton(interaction: any): Promise<void> {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle('🃏 Blackjack')
+      .setTitle(t(locale, 'games.blackjack.title'))
       .setDescription(
-        `**Your hand:** ${formatHand(game.playerCards)} (${playerTotal})\n` +
-        `**Dealer's hand:** ${formatHand(game.dealerCards, true)}\n\n` +
-        `Choose **Hit** or **Stand**.`
+        `**${t(locale, 'games.blackjack.yourHand')}:** ${formatHand(game.playerCards)} (${playerTotal})\n` +
+        `**${t(locale, 'games.blackjack.dealerHand')}:** ${formatHand(game.dealerCards, true)}\n\n` +
+        t(locale, 'games.blackjack.choose')
       )
       .setColor(0x3498DB)
-      .setFooter({ text: `Bet: ${game.bet.toLocaleString()} ${CURRENCY_EMOJI}` });
+      .setFooter({ text: t(locale, 'games.blackjack.bet', { amount: game.bet.toLocaleString(), emoji: CURRENCY_EMOJI }) });
 
     const buttons = new ActionRowBuilder<ButtonBuilder>()
       .addComponents(
         new ButtonBuilder()
           .setCustomId(`blackjack_hit_${gameKey}`)
-          .setLabel('Hit')
+          .setLabel(t(locale, 'games.blackjack.hit'))
           .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
           .setCustomId(`blackjack_stand_${gameKey}`)
-          .setLabel('Stand')
+          .setLabel(t(locale, 'games.blackjack.stand'))
           .setStyle(ButtonStyle.Secondary),
       );
 
@@ -465,18 +476,18 @@ export async function handleBlackjackButton(interaction: any): Promise<void> {
 
     if (dealerTotal > 21) {
       winnings = game.bet * 2;
-      result = `🎉 Dealer busts! You won **${winnings.toLocaleString()}** ${CURRENCY_EMOJI}!`;
+      result = t(locale, 'games.blackjack.dealerBusts', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI });
       color = 0x2ECC71;
     } else if (playerTotal > dealerTotal) {
       winnings = game.bet * 2;
-      result = `🎉 You win! You won **${winnings.toLocaleString()}** ${CURRENCY_EMOJI}!`;
+      result = t(locale, 'games.blackjack.win', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI });
       color = 0x2ECC71;
     } else if (playerTotal < dealerTotal) {
-      result = `💸 Dealer wins! You lost **${game.bet.toLocaleString()}** ${CURRENCY_EMOJI}!`;
+      result = t(locale, 'games.blackjack.lose', { amount: game.bet.toLocaleString(), emoji: CURRENCY_EMOJI });
       color = 0xE74C3C;
     } else {
       winnings = game.bet;
-      result = `🤝 Push! Your bet of **${game.bet.toLocaleString()}** ${CURRENCY_EMOJI} was returned.`;
+      result = t(locale, 'games.blackjack.push', { amount: game.bet.toLocaleString(), emoji: CURRENCY_EMOJI });
       color = 0xF1C40F;
     }
 
@@ -490,10 +501,10 @@ export async function handleBlackjackButton(interaction: any): Promise<void> {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle('🃏 Blackjack')
+      .setTitle(t(locale, 'games.blackjack.title'))
       .setDescription(
-        `**Your hand:** ${formatHand(game.playerCards)} (${playerTotal})\n` +
-        `**Dealer's hand:** ${formatHand(game.dealerCards)} (${dealerTotal})\n\n` +
+        `**${t(locale, 'games.blackjack.yourHand')}:** ${formatHand(game.playerCards)} (${playerTotal})\n` +
+        `**${t(locale, 'games.blackjack.dealerHand')}:** ${formatHand(game.dealerCards)} (${dealerTotal})\n\n` +
         result
       )
       .setColor(color);
@@ -504,25 +515,25 @@ export async function handleBlackjackButton(interaction: any): Promise<void> {
 
 // ==================== DICE ====================
 
-async function handleDice(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleDice(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
   const bet = interaction.options.getInteger('bet', true);
   const target = interaction.options.getInteger('target', true);
   const guildId = interaction.guild!.id;
   const userId = interaction.user.id;
 
   if (bet <= 0) {
-    await interaction.reply({ content: '❌ Bet must be positive!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'games.betPositive'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (target < 2 || target > 12) {
-    await interaction.reply({ content: '❌ Target must be between 2 and 12!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'games.dice.invalidTarget'), flags: MessageFlags.Ephemeral });
     return;
   }
 
   const wallet = getWallet(guildId, userId);
   if (wallet.balance < bet) {
-    await interaction.reply({ content: '❌ Insufficient balance!', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: t(locale, 'games.insufficientBalance'), flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -548,13 +559,13 @@ async function handleDice(interaction: ChatInputCommandInteraction): Promise<voi
   }
 
   const embed = new EmbedBuilder()
-    .setTitle('🎲 Dice')
+    .setTitle(t(locale, 'games.dice.title'))
     .setDescription(
-      `${diceEmojis[die1]} ${diceEmojis[die2]} = **${total}**\n\n` +
-      `You bet on **${target}**.\n\n` +
+      `${diceEmojis[die1]} ${diceEmojis[die2]} ${t(locale, 'games.dice.result', { total: total.toString() })}\n\n` +
+      `${t(locale, 'games.dice.betOn', { target: target.toString() })}\n\n` +
       (won 
-        ? `🎉 You won **${winnings.toLocaleString()}** ${CURRENCY_EMOJI}! (${multiplier}x)`
-        : `💸 You lost **${bet.toLocaleString()}** ${CURRENCY_EMOJI}!`)
+        ? t(locale, 'games.dice.win', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI, multiplier: multiplier.toString() })
+        : t(locale, 'games.dice.lose', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI }))
     )
     .setColor(won ? 0x2ECC71 : 0xE74C3C);
 
