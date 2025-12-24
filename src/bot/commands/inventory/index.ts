@@ -139,6 +139,7 @@ async function startInteractiveSession(
   const reply = await interaction.reply({
     embeds: viewData.embeds,
     components: viewData.components,
+    flags: MessageFlags.Ephemeral,
     fetchReply: true,
   });
 
