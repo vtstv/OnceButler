@@ -157,6 +157,84 @@ async function generateWithTogetherAI(
   }
 }
 
+async function generateWithGemini(
+  prompt: string,
+  settings: GuildSettings
+): Promise<GenerationResult> {
+  if (!settings.imageGenApiKey) {
+    return { success: false, error: 'Google Gemini API key not configured.' };
+  }
+
+  try {
+    // Gemini 2.5 Flash Image model
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${settings.imageGenApiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Generate an image: ${prompt}`
+            }]
+          }],
+          generationConfig: {
+            responseModalities: ['TEXT', 'IMAGE']
+          }
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({})) as any;
+      console.error('[IMAGINE] Gemini API error:', response.status, errorData);
+      
+      if (response.status === 401 || response.status === 403) {
+        return { success: false, error: 'Invalid Google Gemini API key.' };
+      }
+      if (response.status === 429) {
+        const msg = errorData?.error?.message || '';
+        if (msg.includes('limit: 0')) {
+          return { success: false, error: '🚫 Image generation not available for your region (EEA/UK). Try Cloudflare or Together AI.' };
+        }
+        return { success: false, error: 'Rate limit exceeded. Please try again in a minute.' };
+      }
+      if (response.status === 400) {
+        return { success: false, error: 'Invalid prompt or blocked by safety filters.' };
+      }
+      return { success: false, error: `Gemini API error: ${response.status}` };
+    }
+
+    const data = await response.json() as any;
+    
+    // Extract image from response
+    const candidates = data.candidates;
+    if (!candidates || candidates.length === 0) {
+      return { success: false, error: 'No image generated. Try a different prompt.' };
+    }
+
+    const parts = candidates[0].content?.parts;
+    if (!parts) {
+      return { success: false, error: 'Invalid response from Gemini.' };
+    }
+
+    // Find inline_data part with image
+    for (const part of parts) {
+      if (part.inlineData && part.inlineData.mimeType?.startsWith('image/')) {
+        const imageBuffer = Buffer.from(part.inlineData.data, 'base64');
+        return { success: true, imageBuffer };
+      }
+    }
+
+    return { success: false, error: 'No image in response. Try a different prompt.' };
+  } catch (error) {
+    console.error('[IMAGINE] Gemini error:', error);
+    return { success: false, error: 'Failed to connect to Gemini API.' };
+  }
+}
+
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   const guildId = interaction.guildId!;
   const userId = interaction.user.id;
@@ -222,6 +300,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
   if (provider === 'cloudflare') {
     result = await generateWithCloudflare(prompt, dimensions, steps, settings);
+  } else if (provider === 'gemini') {
+    result = await generateWithGemini(prompt, settings);
   } else {
     // Together AI (default) - free FLUX model
     result = await generateWithTogetherAI(prompt, dimensions, steps, settings);
@@ -244,13 +324,23 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
   const attachment = new AttachmentBuilder(result.imageBuffer, { name: 'generated.png' });
   
-  const providerName = provider === 'cloudflare' ? '☁️ Cloudflare FLUX' : '🚀 Together AI FLUX';
+  const providerNames: Record<string, string> = {
+    'cloudflare': '☁️ Cloudflare FLUX',
+    'gemini': '✨ Google Gemini',
+    'together': '🚀 Together AI FLUX',
+  };
+  const providerColors: Record<string, number> = {
+    'cloudflare': 0xF48120,
+    'gemini': 0x4285F4,
+    'together': 0x0EA5E9,
+  };
+  const providerName = providerNames[provider] || '🤖 AI';
   
   const embed = new EmbedBuilder()
     .setTitle('🎨 Image Generated')
     .setDescription(`**Prompt:** ${prompt.length > 200 ? prompt.slice(0, 200) + '...' : prompt}`)
     .setImage('attachment://generated.png')
-    .setColor(provider === 'cloudflare' ? 0xF48120 : 0x0EA5E9)
+    .setColor(providerColors[provider] || 0x7C3AED)
     .addFields(
       { name: '🤖 Provider', value: providerName, inline: true },
       { name: '📐 Aspect', value: aspect, inline: true },

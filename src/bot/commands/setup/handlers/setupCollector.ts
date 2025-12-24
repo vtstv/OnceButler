@@ -315,7 +315,7 @@ async function handleStringSelectMenu(
       return { shouldReturn: false };
     // Image Generation settings
     case 'setup_imagegen_provider':
-      updateGuildSettings(guildId, { imageGenProvider: i.values[0] as 'cloudflare' | 'together' });
+      updateGuildSettings(guildId, { imageGenProvider: i.values[0] as 'cloudflare' | 'together' | 'gemini' });
       return { shouldReturn: false };
     case 'setup_imagegen_user_limit':
       updateGuildSettings(guildId, { imageGenUserDailyLimit: parseInt(i.values[0]) });
