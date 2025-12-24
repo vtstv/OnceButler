@@ -16,10 +16,10 @@ import { handleDuel } from './duel.js';
 import { handleGiveaway, handleGiveawayButton } from './giveaway.js';
 import { handleEconomy } from './economy.js';
 import { handleGames, handleBlackjackButton } from './games.js';
-import { handleCasino, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton } from './casino.js';
+import { handleCasino, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton } from './casino/index.js';
 import { handleLeveling } from './leveling.js';
 import { handleReactionRoles } from './reactionRoles.js';
-import { handleInventory } from './inventory.js';
+import { handleInventory } from './inventory/index.js';
 
 export { commands };
 export { handleGiveawayButton, handleBlackjackButton, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton };
