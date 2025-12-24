@@ -16,12 +16,12 @@ import { handleDuel } from './duel.js';
 import { handleGiveaway, handleGiveawayButton } from './giveaway.js';
 import { handleEconomy } from './economy.js';
 import { handleGames, handleBlackjackButton } from './games.js';
-import { handleCasino, handleCasinoInteraction, handleCasinoModal } from './casino.js';
+import { handleCasino, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton } from './casino.js';
 import { handleLeveling } from './leveling.js';
 import { handleReactionRoles } from './reactionRoles.js';
 
 export { commands };
-export { handleGiveawayButton, handleBlackjackButton, handleCasinoInteraction, handleCasinoModal };
+export { handleGiveawayButton, handleBlackjackButton, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton };
 
 export async function handleInteraction(interaction: Interaction): Promise<void> {
   if (!interaction.isChatInputCommand()) return;

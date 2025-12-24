@@ -6,7 +6,7 @@ import { Client, Events, GuildMember, MessageFlags } from 'discord.js';
 import { handleVoiceStateUpdate } from '../voice/voiceTracker.js';
 import { startTickScheduler } from '../scheduler/tickScheduler.js';
 import { ensureRolesExist } from '../roles/roleEngine.js';
-import { handleInteraction, handleGiveawayButton, handleBlackjackButton, handleCasinoInteraction, handleCasinoModal } from './slashCommands.js';
+import { handleInteraction, handleGiveawayButton, handleBlackjackButton, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton } from './slashCommands.js';
 import { getMemberStats, upsertMemberStats } from '../database/repositories/memberStatsRepo.js';
 import { chance, randomInt } from '../utils/random.js';
 import { handleGuildMemberAdd, handleGuildMemberRemove } from './events/welcomeEvents.js';
@@ -62,6 +62,10 @@ export function registerEvents(client: Client): void {
         await handleBlackjackButton(interaction);
         return;
       }
+      if (interaction.customId.startsWith('casino_blackjack_')) {
+        await handleBlackjackCasinoButton(interaction);
+        return;
+      }
       if (interaction.customId.startsWith('casino_')) {
         await handleCasinoInteraction(interaction);
         return;
@@ -78,6 +82,28 @@ export function registerEvents(client: Client): void {
     if (interaction.isModalSubmit()) {
       if (interaction.customId === 'casino_custom_bet_modal') {
         await handleCasinoModal(interaction);
+        return;
+      }
+      if (interaction.customId === 'setup_giveaway_custom_winners_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          const winners = parseInt(interaction.fields.getTextInputValue('winners'));
+          if (isNaN(winners) || winners < 1 || winners > 100) {
+            await interaction.reply({ content: '❌ Please enter a number between 1 and 100.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          updateGuildSettings(guildId, { giveawayMaxWinners: winners });
+          await interaction.reply({ content: `✅ Max winners set to **${winners}**!`, flags: MessageFlags.Ephemeral });
+        } catch (error) {
+          console.error('[MODAL] Error handling giveaway winners modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
         return;
       }
       if (interaction.customId.startsWith('setup_welcome_modal_')) {

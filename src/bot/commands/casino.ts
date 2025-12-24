@@ -66,20 +66,20 @@ export async function handleCasino(interaction: ChatInputCommandInteraction): Pr
 
 function buildCasinoMenu(balance: number, locale: Locale): EmbedBuilder {
   return new EmbedBuilder()
-    .setTitle('🎰 Casino')
+    .setTitle(t(locale, 'casino.title'))
     .setDescription(
-      `Welcome to the Casino! Select a game to play.\n\n` +
-      `💰 **Your Balance:** ${balance.toLocaleString()} ${CURRENCY_EMOJI}`
+      `${t(locale, 'casino.welcome')}\n\n` +
+      `💰 **${t(locale, 'casino.balance')}:** ${balance.toLocaleString()} ${CURRENCY_EMOJI}`
     )
     .setColor(0x9B59B6)
     .addFields(
-      { name: '🪙 Coinflip', value: 'Flip a coin - 2x payout', inline: true },
-      { name: '🎰 Slots', value: 'Spin the reels - up to 50x', inline: true },
-      { name: '🎡 Roulette', value: 'Bet on colors/numbers', inline: true },
-      { name: '🃏 Blackjack', value: 'Beat the dealer', inline: true },
-      { name: '🎲 Dice', value: 'Guess the total - up to 36x', inline: true },
+      { name: t(locale, 'casino.coinflip'), value: t(locale, 'casino.coinflipDesc'), inline: true },
+      { name: t(locale, 'casino.slots'), value: t(locale, 'casino.slotsDesc'), inline: true },
+      { name: t(locale, 'casino.roulette'), value: t(locale, 'casino.rouletteDesc'), inline: true },
+      { name: t(locale, 'casino.blackjack'), value: t(locale, 'casino.blackjackDesc'), inline: true },
+      { name: t(locale, 'casino.dice'), value: t(locale, 'casino.diceDesc'), inline: true },
     )
-    .setFooter({ text: 'Select a game from the menu below' });
+    .setFooter({ text: t(locale, 'casino.selectGame') });
 }
 
 function buildCasinoComponents(locale: Locale): ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[] {
@@ -87,13 +87,13 @@ function buildCasinoComponents(locale: Locale): ActionRowBuilder<StringSelectMen
     .addComponents(
       new StringSelectMenuBuilder()
         .setCustomId('casino_game_select')
-        .setPlaceholder('🎮 Select a game...')
+        .setPlaceholder('🎮 ' + t(locale, 'casino.selectGame'))
         .addOptions([
-          { label: '🪙 Coinflip', value: 'coinflip', description: 'Flip a coin and double your bet' },
-          { label: '🎰 Slots', value: 'slots', description: 'Spin the slot machine' },
-          { label: '🎡 Roulette', value: 'roulette', description: 'Bet on colors or numbers' },
-          { label: '🃏 Blackjack', value: 'blackjack', description: 'Play against the dealer' },
-          { label: '🎲 Dice', value: 'dice', description: 'Guess the dice total' },
+          { label: t(locale, 'casino.coinflip'), value: 'coinflip', description: t(locale, 'casino.coinflipDesc') },
+          { label: t(locale, 'casino.slots'), value: 'slots', description: t(locale, 'casino.slotsDesc') },
+          { label: t(locale, 'casino.roulette'), value: 'roulette', description: t(locale, 'casino.rouletteDesc') },
+          { label: t(locale, 'casino.blackjack'), value: 'blackjack', description: t(locale, 'casino.blackjackDesc') },
+          { label: t(locale, 'casino.dice'), value: 'dice', description: t(locale, 'casino.diceDesc') },
         ])
     );
 
@@ -112,7 +112,7 @@ function buildBetSelection(game: string, balance: number, locale: Locale): Actio
       ),
       new ButtonBuilder()
         .setCustomId('casino_bet_custom')
-        .setLabel('Custom')
+        .setLabel(t(locale, 'casino.custom'))
         .setStyle(ButtonStyle.Primary)
         .setEmoji('✏️')
     );
@@ -121,17 +121,17 @@ function buildBetSelection(game: string, balance: number, locale: Locale): Actio
     .addComponents(
       new ButtonBuilder()
         .setCustomId('casino_bet_allin')
-        .setLabel('All In!')
+        .setLabel(t(locale, 'casino.allIn'))
         .setStyle(ButtonStyle.Danger)
         .setEmoji('💸'),
       new ButtonBuilder()
         .setCustomId('casino_bet_half')
-        .setLabel('Half')
+        .setLabel(t(locale, 'casino.half'))
         .setStyle(ButtonStyle.Secondary)
         .setEmoji('➗'),
       new ButtonBuilder()
         .setCustomId('casino_back')
-        .setLabel('Back')
+        .setLabel(t(locale, 'casino.back'))
         .setStyle(ButtonStyle.Secondary)
     );
 
@@ -212,7 +212,7 @@ export async function handleCasinoInteraction(interaction: ButtonInteraction | S
       
       const embed = new EmbedBuilder()
         .setTitle(getGameTitle(game))
-        .setDescription(`Select your bet amount\n\n💰 **Balance:** ${wallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`)
+        .setDescription(`${t(locale, 'casino.selectBet')}\n\n💰 **${t(locale, 'casino.balance')}:** ${wallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`)
         .setColor(0x9B59B6);
       
       const components = buildBetSelection(game, wallet.balance, locale);
@@ -283,7 +283,7 @@ export async function handleCasinoInteraction(interaction: ButtonInteraction | S
       } else {
         const embed = new EmbedBuilder()
           .setTitle(getGameTitle(session.game))
-          .setDescription(`**Bet:** ${bet.toLocaleString()} ${CURRENCY_EMOJI}\n\nMake your choice!`)
+          .setDescription(`**${t(locale, 'casino.bet')}:** ${bet.toLocaleString()} ${CURRENCY_EMOJI}\n\n${t(locale, 'casino.makeChoice')}`)
           .setColor(0x9B59B6);
         
         const options = buildGameOptions(session.game, locale);
@@ -291,7 +291,7 @@ export async function handleCasinoInteraction(interaction: ButtonInteraction | S
           .addComponents(
             new ButtonBuilder()
               .setCustomId('casino_back')
-              .setLabel('Cancel')
+              .setLabel(t(locale, 'casino.cancel'))
               .setStyle(ButtonStyle.Secondary)
           );
         
@@ -315,7 +315,7 @@ export async function handleCasinoInteraction(interaction: ButtonInteraction | S
       const newWallet = getWallet(guildId, userId);
       const embed = new EmbedBuilder()
         .setTitle(getGameTitle(game))
-        .setDescription(`Select your bet amount\n\n💰 **Balance:** ${newWallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`)
+        .setDescription(`${t(locale, 'casino.selectBet')}\n\n💰 **${t(locale, 'casino.balance')}:** ${newWallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`)
         .setColor(0x9B59B6);
       
       const components = buildBetSelection(game, newWallet.balance, locale);
@@ -376,7 +376,7 @@ export async function handleCasinoModal(interaction: any): Promise<void> {
   } else {
     const embed = new EmbedBuilder()
       .setTitle(getGameTitle(session.game))
-      .setDescription(`**Bet:** ${bet.toLocaleString()} ${CURRENCY_EMOJI}\n\nMake your choice!`)
+      .setDescription(`**${t(session.locale, 'casino.bet')}:** ${bet.toLocaleString()} ${CURRENCY_EMOJI}\n\n${t(session.locale, 'casino.makeChoice')}`)
       .setColor(0x9B59B6);
     
     const options = buildGameOptions(session.game, session.locale);
@@ -384,7 +384,7 @@ export async function handleCasinoModal(interaction: any): Promise<void> {
       .addComponents(
         new ButtonBuilder()
           .setCustomId('casino_back')
-          .setLabel('Cancel')
+          .setLabel(t(session.locale, 'casino.cancel'))
           .setStyle(ButtonStyle.Secondary)
       );
     
@@ -413,6 +413,9 @@ async function playGame(interaction: ButtonInteraction | StringSelectMenuInterac
       break;
     case 'roulette':
       await playRoulette(interaction, session);
+      break;
+    case 'blackjack':
+      await playBlackjack(interaction, session);
       break;
     case 'dice':
       await playDice(interaction, session);
@@ -444,19 +447,21 @@ async function playCoinflip(interaction: any, session: GameSession): Promise<voi
 
   const emoji = result === 'heads' ? '🪙' : '🌙';
   const newWallet = getWallet(guildId, userId);
+  const choiceLocalized = t(locale, `games.coinflip.${choice}`);
+  const resultLocalized = t(locale, `games.coinflip.${result}`);
 
   const embed = new EmbedBuilder()
-    .setTitle(`${emoji} Coinflip Result`)
+    .setTitle(`${emoji} ${t(locale, 'games.coinflip.title')}`)
     .setDescription(
-      `You chose **${choice}**, the coin landed on **${result}**!\n\n` +
+      `${t(locale, 'games.coinflip.result', { choice: choiceLocalized, result: resultLocalized })}\n\n` +
       (won 
-        ? `🎉 You won **${winnings.toLocaleString()}** ${CURRENCY_EMOJI}!`
-        : `💸 You lost **${bet.toLocaleString()}** ${CURRENCY_EMOJI}!`) +
-      `\n\n💰 **New Balance:** ${newWallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`
+        ? t(locale, 'games.coinflip.win', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI })
+        : t(locale, 'games.coinflip.lose', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI })) +
+      `\n\n💰 **${t(locale, 'casino.balance')}:** ${newWallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`
     )
     .setColor(won ? 0x2ECC71 : 0xE74C3C);
 
-  const components = buildReplayButtons('coinflip');
+  const components = buildReplayButtons('coinflip', locale);
   await interaction.update({ embeds: [embed], components });
 }
 
@@ -507,10 +512,10 @@ async function playSlots(interaction: any, session: GameSession, isRespin = fals
 
   if (reels[0] === reels[1] && reels[1] === reels[2]) {
     multiplier = SLOT_PAYOUTS[reels[0]] || 5;
-    winType = '🎉 JACKPOT! Three of a kind!';
+    winType = t(locale, 'games.slots.jackpot');
   } else if (reels[0] === reels[1] || reels[1] === reels[2] || reels[0] === reels[2]) {
     multiplier = 1.5;
-    winType = '✨ Two of a kind!';
+    winType = t(locale, 'games.slots.twoOfKind');
   }
 
   const winnings = Math.floor(bet * multiplier);
@@ -525,13 +530,13 @@ async function playSlots(interaction: any, session: GameSession, isRespin = fals
   const slotDisplay = `┏━━━━━━━━━━━┓\n┃ ${reels.join(' │ ')} ┃\n┗━━━━━━━━━━━┛`;
 
   const embed = new EmbedBuilder()
-    .setTitle('🎰 Slot Machine')
+    .setTitle(t(locale, 'games.slots.title'))
     .setDescription(
       `${slotDisplay}\n\n` +
       (multiplier > 0 
-        ? `${winType}\n💰 You won **${winnings.toLocaleString()}** ${CURRENCY_EMOJI}!`
-        : `💸 No match! You lost **${bet.toLocaleString()}** ${CURRENCY_EMOJI}!`) +
-      `\n\n💰 **Balance:** ${newWallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`
+        ? `${winType}\n${t(locale, 'games.slots.win', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI })}`
+        : t(locale, 'games.slots.lose', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI })) +
+      `\n\n💰 **${t(locale, 'casino.balance')}:** ${newWallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`
     )
     .setColor(multiplier > 0 ? 0x2ECC71 : 0xE74C3C);
 
@@ -539,16 +544,16 @@ async function playSlots(interaction: any, session: GameSession, isRespin = fals
     .addComponents(
       new ButtonBuilder()
         .setCustomId('casino_slots_spin')
-        .setLabel(`🎰 Pull Lever (${bet} coins)`)
+        .setLabel(`🎰 ${bet} ${CURRENCY_EMOJI}`)
         .setStyle(ButtonStyle.Primary)
         .setDisabled(newWallet.balance < bet),
       new ButtonBuilder()
         .setCustomId('casino_replay_slots')
-        .setLabel('Change Bet')
+        .setLabel(t(locale, 'casino.selectBet'))
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId('casino_menu')
-        .setLabel('Menu')
+        .setLabel(t(locale, 'casino.casinoMenu'))
         .setStyle(ButtonStyle.Secondary),
     );
 
@@ -602,21 +607,22 @@ async function playRoulette(interaction: any, session: GameSession): Promise<voi
   }
 
   const colorEmoji = color === 'red' ? '🔴' : color === 'black' ? '⚫' : '🟢';
+  const colorLocalized = t(locale, `games.roulette.${color}`);
   const newWallet = getWallet(guildId, userId);
 
   const embed = new EmbedBuilder()
-    .setTitle('🎡 Roulette Result')
+    .setTitle(t(locale, 'games.roulette.title'))
     .setDescription(
-      `The ball landed on ${colorEmoji} **${number}** (${color})!\n\n` +
-      `You bet on **${choice}**.\n\n` +
+      `${t(locale, 'games.roulette.landed', { colorEmoji, number: number.toString(), color: colorLocalized })}\n\n` +
+      `${t(locale, 'games.roulette.betOn', { choice: choice || '' })}\n\n` +
       (won 
-        ? `🎉 You won **${winnings.toLocaleString()}** ${CURRENCY_EMOJI}!`
-        : `💸 You lost **${bet.toLocaleString()}** ${CURRENCY_EMOJI}!`) +
-      `\n\n💰 **Balance:** ${newWallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`
+        ? t(locale, 'games.roulette.win', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI })
+        : t(locale, 'games.roulette.lose', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI })) +
+      `\n\n💰 **${t(locale, 'casino.balance')}:** ${newWallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`
     )
     .setColor(won ? 0x2ECC71 : 0xE74C3C);
 
-  const components = buildReplayButtons('roulette');
+  const components = buildReplayButtons('roulette', locale);
   await interaction.update({ embeds: [embed], components });
 }
 
@@ -653,31 +659,286 @@ async function playDice(interaction: any, session: GameSession): Promise<void> {
   const newWallet = getWallet(guildId, userId);
 
   const embed = new EmbedBuilder()
-    .setTitle('🎲 Dice Result')
+    .setTitle(t(locale, 'games.dice.title'))
     .setDescription(
-      `${diceEmojis[die1]} ${diceEmojis[die2]} = **${total}**\n\n` +
-      `You bet on **${target}**.\n\n` +
+      `${diceEmojis[die1]} ${diceEmojis[die2]} ${t(locale, 'games.dice.result', { total: total.toString() })}\n\n` +
+      `${t(locale, 'games.dice.betOn', { target: target!.toString() })}\n\n` +
       (won 
-        ? `🎉 You won **${winnings.toLocaleString()}** ${CURRENCY_EMOJI}! (${multiplier}x)`
-        : `💸 You lost **${bet.toLocaleString()}** ${CURRENCY_EMOJI}!`) +
-      `\n\n💰 **Balance:** ${newWallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`
+        ? t(locale, 'games.dice.win', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI, multiplier: multiplier.toString() })
+        : t(locale, 'games.dice.lose', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI })) +
+      `\n\n💰 **${t(locale, 'casino.balance')}:** ${newWallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`
     )
     .setColor(won ? 0x2ECC71 : 0xE74C3C);
 
-  const components = buildReplayButtons('dice');
+  const components = buildReplayButtons('dice', locale);
   await interaction.update({ embeds: [embed], components });
 }
 
-function buildReplayButtons(game: string): ActionRowBuilder<ButtonBuilder>[] {
+function buildReplayButtons(game: string, locale: Locale): ActionRowBuilder<ButtonBuilder>[] {
   return [new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
         .setCustomId(`casino_replay_${game}`)
-        .setLabel('🔄 Play Again')
+        .setLabel(t(locale, 'casino.playAgain'))
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
         .setCustomId('casino_menu')
-        .setLabel('🎰 Casino Menu')
+        .setLabel(t(locale, 'casino.casinoMenu'))
         .setStyle(ButtonStyle.Secondary),
     )];
+}
+
+// ==================== BLACKJACK ====================
+
+interface BlackjackGame {
+  bet: number;
+  playerCards: string[];
+  dealerCards: string[];
+  guildId: string;
+  userId: string;
+  locale: Locale;
+}
+
+const blackjackGames = new Map<string, BlackjackGame>();
+const CARD_VALUES: Record<string, number> = {
+  'A': 11, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 10, 'Q': 10, 'K': 10,
+};
+const CARD_SUITS = ['♠️', '♥️', '♦️', '♣️'];
+const CARD_RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+
+function drawCard(): string {
+  const rank = CARD_RANKS[Math.floor(Math.random() * CARD_RANKS.length)];
+  const suit = CARD_SUITS[Math.floor(Math.random() * CARD_SUITS.length)];
+  return `${rank}${suit}`;
+}
+
+function getCardValue(card: string): number {
+  const rank = card.replace(/[♠️♥️♦️♣️]/g, '');
+  return CARD_VALUES[rank] || 10;
+}
+
+function calculateHand(cards: string[]): number {
+  let total = 0;
+  let aces = 0;
+
+  for (const card of cards) {
+    const value = getCardValue(card);
+    total += value;
+    if (card.startsWith('A')) aces++;
+  }
+
+  while (total > 21 && aces > 0) {
+    total -= 10;
+    aces--;
+  }
+
+  return total;
+}
+
+function formatHand(cards: string[], hideSecond = false): string {
+  if (hideSecond && cards.length > 1) {
+    return `${cards[0]} 🎴`;
+  }
+  return cards.join(' ');
+}
+
+async function playBlackjack(interaction: any, session: GameSession): Promise<void> {
+  const { guildId, userId, bet, locale } = session;
+  const gameKey = `${guildId}_${userId}`;
+  
+  const wallet = getWallet(guildId, userId);
+  if (wallet.balance < bet) {
+    await interaction.reply({ content: t(locale, 'games.insufficientBalance'), flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  if (blackjackGames.has(gameKey)) {
+    await interaction.reply({ content: t(locale, 'games.blackjack.activeGame'), flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  removeBalance(guildId, userId, bet);
+
+  const playerCards = [drawCard(), drawCard()];
+  const dealerCards = [drawCard(), drawCard()];
+
+  const playerTotal = calculateHand(playerCards);
+
+  // Check for natural blackjack
+  if (playerTotal === 21) {
+    const winnings = Math.floor(bet * 2.5);
+    addBalance(guildId, userId, winnings);
+    logTransaction(guildId, userId, 'gamble', winnings - bet, 'Blackjack win');
+
+    const embed = new EmbedBuilder()
+      .setTitle(t(locale, 'games.blackjack.title'))
+      .setDescription(
+        `**${t(locale, 'games.blackjack.yourHand')}:** ${formatHand(playerCards)} (${playerTotal})\n` +
+        `**${t(locale, 'games.blackjack.dealerHand')}:** ${formatHand(dealerCards)} (${calculateHand(dealerCards)})\n\n` +
+        t(locale, 'games.blackjack.blackjack', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI })
+      )
+      .setColor(0xF1C40F);
+
+    const components = buildReplayButtons('blackjack', locale);
+    await interaction.update({ embeds: [embed], components });
+    return;
+  }
+
+  blackjackGames.set(gameKey, { bet, playerCards, dealerCards, guildId, userId, locale });
+
+  const embed = new EmbedBuilder()
+    .setTitle(t(locale, 'games.blackjack.title'))
+    .setDescription(
+      `**${t(locale, 'games.blackjack.yourHand')}:** ${formatHand(playerCards)} (${playerTotal})\n` +
+      `**${t(locale, 'games.blackjack.dealerHand')}:** ${formatHand(dealerCards, true)}\n\n` +
+      t(locale, 'games.blackjack.choose')
+    )
+    .setColor(0x3498DB)
+    .setFooter({ text: t(locale, 'games.blackjack.bet', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI }) });
+
+  const buttons = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('casino_blackjack_hit')
+        .setLabel(t(locale, 'games.blackjack.hit'))
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🃏'),
+      new ButtonBuilder()
+        .setCustomId('casino_blackjack_stand')
+        .setLabel(t(locale, 'games.blackjack.stand'))
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('✋'),
+    );
+
+  await interaction.update({ embeds: [embed], components: [buttons] });
+
+  // Timeout after 60 seconds
+  setTimeout(() => {
+    if (blackjackGames.has(gameKey)) {
+      blackjackGames.delete(gameKey);
+      addBalance(guildId, userId, bet);
+    }
+  }, 60000);
+}
+
+export async function handleBlackjackCasinoButton(interaction: ButtonInteraction): Promise<void> {
+  const guildId = interaction.guild!.id;
+  const userId = interaction.user.id;
+  const gameKey = `${guildId}_${userId}`;
+  const action = interaction.customId.replace('casino_blackjack_', '');
+
+  const game = blackjackGames.get(gameKey);
+  if (!game) {
+    await interaction.reply({ content: t('en', 'games.blackjack.expired'), flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  const { bet, playerCards, dealerCards, locale } = game;
+
+  if (action === 'hit') {
+    playerCards.push(drawCard());
+    const playerTotal = calculateHand(playerCards);
+
+    if (playerTotal > 21) {
+      blackjackGames.delete(gameKey);
+      logTransaction(guildId, userId, 'gamble', -bet, 'Blackjack loss');
+      
+      const newWallet = getWallet(guildId, userId);
+
+      const embed = new EmbedBuilder()
+        .setTitle(t(locale, 'games.blackjack.title'))
+        .setDescription(
+          `**${t(locale, 'games.blackjack.yourHand')}:** ${formatHand(playerCards)} (${playerTotal})\n` +
+          `**${t(locale, 'games.blackjack.dealerHand')}:** ${formatHand(dealerCards)} (${calculateHand(dealerCards)})\n\n` +
+          t(locale, 'games.blackjack.bust', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI }) +
+          `\n\n💰 **${t(locale, 'casino.balance')}:** ${newWallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`
+        )
+        .setColor(0xE74C3C);
+
+      const components = buildReplayButtons('blackjack', locale);
+      await interaction.update({ embeds: [embed], components });
+      return;
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle(t(locale, 'games.blackjack.title'))
+      .setDescription(
+        `**${t(locale, 'games.blackjack.yourHand')}:** ${formatHand(playerCards)} (${playerTotal})\n` +
+        `**${t(locale, 'games.blackjack.dealerHand')}:** ${formatHand(dealerCards, true)}\n\n` +
+        t(locale, 'games.blackjack.choose')
+      )
+      .setColor(0x3498DB)
+      .setFooter({ text: t(locale, 'games.blackjack.bet', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI }) });
+
+    const buttons = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('casino_blackjack_hit')
+          .setLabel(t(locale, 'games.blackjack.hit'))
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('🃏'),
+        new ButtonBuilder()
+          .setCustomId('casino_blackjack_stand')
+          .setLabel(t(locale, 'games.blackjack.stand'))
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji('✋'),
+      );
+
+    await interaction.update({ embeds: [embed], components: [buttons] });
+  } else if (action === 'stand') {
+    blackjackGames.delete(gameKey);
+
+    // Dealer draws until 17+
+    while (calculateHand(dealerCards) < 17) {
+      dealerCards.push(drawCard());
+    }
+
+    const playerTotal = calculateHand(playerCards);
+    const dealerTotal = calculateHand(dealerCards);
+
+    let result: string;
+    let winnings = 0;
+    let color: number;
+
+    if (dealerTotal > 21) {
+      winnings = bet * 2;
+      result = t(locale, 'games.blackjack.dealerBusts', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI });
+      color = 0x2ECC71;
+    } else if (playerTotal > dealerTotal) {
+      winnings = bet * 2;
+      result = t(locale, 'games.blackjack.win', { amount: winnings.toLocaleString(), emoji: CURRENCY_EMOJI });
+      color = 0x2ECC71;
+    } else if (playerTotal < dealerTotal) {
+      result = t(locale, 'games.blackjack.lose', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI });
+      color = 0xE74C3C;
+    } else {
+      winnings = bet;
+      result = t(locale, 'games.blackjack.push', { amount: bet.toLocaleString(), emoji: CURRENCY_EMOJI });
+      color = 0xF1C40F;
+    }
+
+    if (winnings > 0) {
+      addBalance(guildId, userId, winnings);
+      if (winnings > bet) {
+        logTransaction(guildId, userId, 'gamble', winnings - bet, 'Blackjack win');
+      }
+    } else {
+      logTransaction(guildId, userId, 'gamble', -bet, 'Blackjack loss');
+    }
+
+    const newWallet = getWallet(guildId, userId);
+
+    const embed = new EmbedBuilder()
+      .setTitle(t(locale, 'games.blackjack.title'))
+      .setDescription(
+        `**${t(locale, 'games.blackjack.yourHand')}:** ${formatHand(playerCards)} (${playerTotal})\n` +
+        `**${t(locale, 'games.blackjack.dealerHand')}:** ${formatHand(dealerCards)} (${dealerTotal})\n\n` +
+        `${result}\n\n` +
+        `💰 **${t(locale, 'casino.balance')}:** ${newWallet.balance.toLocaleString()} ${CURRENCY_EMOJI}`
+      )
+      .setColor(color);
+
+    const components = buildReplayButtons('blackjack', locale);
+    await interaction.update({ embeds: [embed], components });
+  }
 }

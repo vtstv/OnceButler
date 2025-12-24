@@ -13,6 +13,7 @@ Media/
 !.env.example
 deploy.ps1
 docs/
+scripts/
 
 # IDE
 .idea/

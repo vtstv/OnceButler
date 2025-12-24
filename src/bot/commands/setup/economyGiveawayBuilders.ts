@@ -107,10 +107,11 @@ export function buildGiveawaySettings(settings: GuildSettings): SetupView {
     .setPlaceholder('Max Winners per Giveaway')
     .setDisabled(!settings.enableGiveaways)
     .addOptions(
+      new StringSelectMenuOptionBuilder().setLabel('1 winner').setValue('1').setDefault((settings.giveawayMaxWinners ?? 10) === 1),
+      new StringSelectMenuOptionBuilder().setLabel('3 winners').setValue('3').setDefault((settings.giveawayMaxWinners ?? 10) === 3),
       new StringSelectMenuOptionBuilder().setLabel('5 winners').setValue('5').setDefault((settings.giveawayMaxWinners ?? 10) === 5),
       new StringSelectMenuOptionBuilder().setLabel('10 winners').setValue('10').setDefault((settings.giveawayMaxWinners ?? 10) === 10),
-      new StringSelectMenuOptionBuilder().setLabel('20 winners').setValue('20').setDefault((settings.giveawayMaxWinners ?? 10) === 20),
-      new StringSelectMenuOptionBuilder().setLabel('50 winners').setValue('50').setDefault((settings.giveawayMaxWinners ?? 10) === 50),
+      new StringSelectMenuOptionBuilder().setLabel('Custom...').setValue('custom').setDescription('Enter a custom number'),
     );
 
   const maxDurationSelect = new StringSelectMenuBuilder()

@@ -9,12 +9,13 @@ import {
   ButtonStyle,
   StringSelectMenuBuilder,
   ChannelSelectMenuBuilder,
+  RoleSelectMenuBuilder,
   ChannelType,
 } from 'discord.js';
 import type { GuildSettings } from '../../../database/repositories/settingsRepo.js';
 import type { SetupView } from './types.js';
 import { getReactionRolePanels } from '../../../database/repositories/reactionRolesRepo.js';
-import { getLevelRoles } from '../../../database/repositories/levelingRepo.js';
+import { getLevelRoles, removeLevelRole } from '../../../database/repositories/levelingRepo.js';
 
 export function buildReactionRolesSettings(settings: GuildSettings, guild: any): SetupView {
   const panels = getReactionRolePanels(settings.guildId);
@@ -45,8 +46,8 @@ export function buildReactionRolesSettings(settings: GuildSettings, guild: any):
     .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_toggle_reactionroles')
-        .setLabel(settings.enableReactionRoles ? '✅ Enabled' : '❌ Disabled')
-        .setStyle(settings.enableReactionRoles ? ButtonStyle.Success : ButtonStyle.Secondary),
+        .setLabel(settings.enableReactionRoles ? '⏸️ Disable Reaction Roles' : '▶️ Enable Reaction Roles')
+        .setStyle(settings.enableReactionRoles ? ButtonStyle.Danger : ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId('setup_back')
         .setLabel('◀️ Back')
@@ -116,12 +117,23 @@ export function buildLevelingSettings(settings: GuildSettings, guild: any): Setu
     .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_toggle_leveling')
-        .setLabel(settings.enableLeveling ? '✅ Enabled' : '❌ Disabled')
-        .setStyle(settings.enableLeveling ? ButtonStyle.Success : ButtonStyle.Secondary),
+        .setLabel(settings.enableLeveling ? '⏸️ Disable Leveling' : '▶️ Enable Leveling')
+        .setStyle(settings.enableLeveling ? ButtonStyle.Danger : ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId('setup_toggle_leveling_stack')
         .setLabel(settings.levelingStackRoles ? '🔄 Stack: ON' : '🔄 Stack: OFF')
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(!settings.enableLeveling),
+      new ButtonBuilder()
+        .setCustomId('setup_leveling_add_role')
+        .setLabel('➕ Add Level Role')
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(!settings.enableLeveling),
+      new ButtonBuilder()
+        .setCustomId('setup_leveling_manage_roles')
+        .setLabel('📋 Manage Roles')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(!settings.enableLeveling || levelRoles.length === 0),
     );
 
   const xpMessageSelect = new ActionRowBuilder<StringSelectMenuBuilder>()
@@ -170,5 +182,107 @@ export function buildLevelingSettings(settings: GuildSettings, guild: any): Setu
   return {
     embeds: [embed],
     components: [row1, xpMessageSelect, xpCooldownSelect, channelSelect, backRow],
+  };
+}
+
+export function buildLevelingAddRole(settings: GuildSettings): SetupView {
+  const embed = new EmbedBuilder()
+    .setTitle('➕ Add Level Role')
+    .setDescription('Select a role to assign at a specific level.')
+    .setColor(0x3498DB);
+
+  const roleSelect = new ActionRowBuilder<RoleSelectMenuBuilder>()
+    .addComponents(
+      new RoleSelectMenuBuilder()
+        .setCustomId('setup_leveling_role_select')
+        .setPlaceholder('Select a role')
+    );
+
+  const levelSelect = new ActionRowBuilder<StringSelectMenuBuilder>()
+    .addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId('setup_leveling_level_select')
+        .setPlaceholder('Select level to assign role at')
+        .addOptions([
+          { label: 'Level 1', value: '1' },
+          { label: 'Level 5', value: '5' },
+          { label: 'Level 10', value: '10' },
+          { label: 'Level 15', value: '15' },
+          { label: 'Level 20', value: '20' },
+          { label: 'Level 25', value: '25' },
+          { label: 'Level 30', value: '30' },
+          { label: 'Level 40', value: '40' },
+          { label: 'Level 50', value: '50' },
+          { label: 'Level 75', value: '75' },
+          { label: 'Level 100', value: '100' },
+        ])
+    );
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('setup_cat_leveling')
+        .setLabel('◀️ Back')
+        .setStyle(ButtonStyle.Secondary),
+    );
+
+  return {
+    embeds: [embed],
+    components: [roleSelect, levelSelect, backRow],
+  };
+}
+
+export function buildLevelingManageRoles(settings: GuildSettings, guild: any): SetupView {
+  const levelRoles = getLevelRoles(settings.guildId);
+  
+  const embed = new EmbedBuilder()
+    .setTitle('📋 Manage Level Roles')
+    .setDescription('Select a level role to remove it.')
+    .setColor(0x3498DB);
+
+  if (levelRoles.length === 0) {
+    embed.addFields({ name: 'No Level Roles', value: 'No level roles configured yet.' });
+  } else {
+    const rolesList = levelRoles.map(lr => {
+      const role = guild?.roles.cache.get(lr.roleId);
+      return `Level ${lr.level} → ${role?.name || 'Unknown Role'}`;
+    }).join('\n');
+    embed.addFields({ name: 'Current Level Roles', value: rolesList });
+  }
+
+  const components: ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[] = [];
+
+  if (levelRoles.length > 0) {
+    const roleSelect = new ActionRowBuilder<StringSelectMenuBuilder>()
+      .addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId('setup_leveling_delete_role')
+          .setPlaceholder('🗑️ Select a role to remove')
+          .addOptions(
+            levelRoles.slice(0, 25).map(lr => {
+              const role = guild?.roles.cache.get(lr.roleId);
+              return {
+                label: `Level ${lr.level} - ${role?.name || 'Unknown'}`,
+                value: lr.id.toString(),
+                description: `Remove role at level ${lr.level}`,
+              };
+            })
+          )
+      );
+    components.push(roleSelect);
+  }
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('setup_cat_leveling')
+        .setLabel('◀️ Back')
+        .setStyle(ButtonStyle.Secondary),
+    );
+  components.push(backRow);
+
+  return {
+    embeds: [embed],
+    components,
   };
 }

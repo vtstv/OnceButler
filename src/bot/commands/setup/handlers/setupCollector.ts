@@ -41,6 +41,8 @@ import {
   DEFAULT_LEAVE_MESSAGES 
 } from '../welcomeBuilder.js';
 import { createRolesByCategory, deleteRolesByCategory } from '../roleBuilders.js';
+import { buildLevelingAddRole, buildLevelingManageRoles } from '../newModulesBuilders.js';
+import { addLevelRole, removeLevelRole } from '../../../../database/repositories/levelingRepo.js';
 
 export async function startCollector(message: Message, userId: string, guildId: string): Promise<void> {
   const collector = message.createMessageComponentCollector({
@@ -51,6 +53,7 @@ export async function startCollector(message: Message, userId: string, guildId: 
   let currentRoleSubCategory: RoleSubCategory = 'overview';
   let wizardStep = 0;
   let wizardData: Partial<CustomRoleRule> = {};
+  let levelingRoleToAdd: { roleId?: string; level?: number } = {};
 
   collector.on('collect', async (i) => {
     if (i.user.id !== userId) {
@@ -80,10 +83,11 @@ export async function startCollector(message: Message, userId: string, guildId: 
 
       // Handle select menus
       if (i.isStringSelectMenu()) {
-        const handled = await handleStringSelectMenu(i, guildId, settings, currentCategory, currentRoleSubCategory, wizardStep, wizardData);
+        const handled = await handleStringSelectMenu(i, guildId, settings, currentCategory, currentRoleSubCategory, wizardStep, wizardData, levelingRoleToAdd);
         if (handled.shouldReturn) {
           if (handled.wizardStep !== undefined) wizardStep = handled.wizardStep;
           if (handled.wizardData) wizardData = handled.wizardData;
+          if (handled.levelingRoleToAdd !== undefined) levelingRoleToAdd = handled.levelingRoleToAdd;
           return;
         }
         const newSettings = getGuildSettings(guildId);
@@ -117,15 +121,32 @@ export async function startCollector(message: Message, userId: string, guildId: 
           await i.update({ embeds: wizardView.embeds, components: wizardView.components });
           return;
         }
+        if (i.customId === 'setup_leveling_role_select') {
+          const role = i.roles.first()!;
+          const newLevelingData = { ...levelingRoleToAdd, roleId: role.id };
+          if (newLevelingData.level) {
+            addLevelRole(guildId, newLevelingData.level, newLevelingData.roleId);
+            levelingRoleToAdd = {};
+            const newSettings = getGuildSettings(guildId);
+            const view = buildCategoryView('leveling', newSettings, i.guild!, currentRoleSubCategory);
+            await i.update({ embeds: view.embeds, components: view.components });
+            await i.followUp({ content: `✅ Level role added for **${role.name}**!`, flags: MessageFlags.Ephemeral });
+          } else {
+            levelingRoleToAdd = newLevelingData;
+            await i.reply({ content: `Role **${role.name}** selected. Now select a level.`, flags: MessageFlags.Ephemeral });
+          }
+          return;
+        }
       }
 
       // Handle buttons
       if (i.isButton()) {
-        const buttonResult = await handleButton(i, guildId, settings, currentCategory, currentRoleSubCategory, wizardStep, wizardData);
+        const buttonResult = await handleButton(i, guildId, settings, currentCategory, currentRoleSubCategory, wizardStep, wizardData, levelingRoleToAdd);
         if (buttonResult.shouldReturn) {
           if (buttonResult.wizardStep !== undefined) wizardStep = buttonResult.wizardStep;
           if (buttonResult.wizardData !== undefined) wizardData = buttonResult.wizardData;
           if (buttonResult.category) currentCategory = buttonResult.category;
+          if (buttonResult.levelingRoleToAdd !== undefined) levelingRoleToAdd = buttonResult.levelingRoleToAdd;
           return;
         }
 
@@ -151,6 +172,7 @@ interface SelectMenuResult {
   shouldReturn: boolean;
   wizardStep?: number;
   wizardData?: Partial<CustomRoleRule>;
+  levelingRoleToAdd?: { roleId?: string; level?: number };
 }
 
 async function handleStringSelectMenu(
@@ -160,7 +182,8 @@ async function handleStringSelectMenu(
   currentCategory: SetupCategory,
   currentRoleSubCategory: RoleSubCategory,
   wizardStep: number,
-  wizardData: Partial<CustomRoleRule>
+  wizardData: Partial<CustomRoleRule>,
+  levelingRoleToAdd: { roleId?: string; level?: number }
 ): Promise<SelectMenuResult> {
   switch (i.customId) {
     case 'setup_language':
@@ -255,9 +278,28 @@ async function handleStringSelectMenu(
       updateGuildSettings(guildId, { economyWorkCooldown: parseInt(i.values[0]) });
       return { shouldReturn: false };
     // Giveaway settings
-    case 'setup_giveaway_max_winners':
-      updateGuildSettings(guildId, { giveawayMaxWinners: parseInt(i.values[0]) });
+    case 'setup_giveaway_max_winners': {
+      const value = i.values[0];
+      if (value === 'custom') {
+        const modal = new ModalBuilder()
+          .setCustomId('setup_giveaway_custom_winners_modal')
+          .setTitle('Custom Max Winners');
+        
+        const winnersInput = new TextInputBuilder()
+          .setCustomId('winners')
+          .setLabel('Enter max winners (1-100)')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Enter a number')
+          .setRequired(true)
+          .setMaxLength(3);
+        
+        modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(winnersInput));
+        await i.showModal(modal);
+        return { shouldReturn: true };
+      }
+      updateGuildSettings(guildId, { giveawayMaxWinners: parseInt(value) });
       return { shouldReturn: false };
+    }
     case 'setup_giveaway_max_duration':
       updateGuildSettings(guildId, { giveawayMaxDuration: parseInt(i.values[0]) });
       return { shouldReturn: false };
@@ -268,6 +310,26 @@ async function handleStringSelectMenu(
     case 'setup_leveling_cooldown':
       updateGuildSettings(guildId, { levelingXpCooldown: parseInt(i.values[0]) });
       return { shouldReturn: false };
+    case 'setup_leveling_level_select': {
+      const newLevelingData = { ...levelingRoleToAdd, level: parseInt(i.values[0]) };
+      if (newLevelingData.roleId && newLevelingData.level) {
+        addLevelRole(guildId, newLevelingData.level, newLevelingData.roleId);
+        const newSettings = getGuildSettings(guildId);
+        const view = buildCategoryView('leveling', newSettings, i.guild!, currentRoleSubCategory);
+        await i.update({ embeds: view.embeds, components: view.components });
+        await i.followUp({ content: `✅ Level role added!`, flags: MessageFlags.Ephemeral });
+        return { shouldReturn: true, levelingRoleToAdd: {} };
+      }
+      await i.reply({ content: 'Please select a role first.', flags: MessageFlags.Ephemeral });
+      return { shouldReturn: true, levelingRoleToAdd: newLevelingData };
+    }
+    case 'setup_leveling_delete_role': {
+      const roleId = parseInt(i.values[0]);
+      removeLevelRole(roleId);
+      const manageView = buildLevelingManageRoles(settings, i.guild!);
+      await i.update({ embeds: manageView.embeds, components: manageView.components });
+      return { shouldReturn: true };
+    }
     // Custom roles management
     case 'setup_customroles_select': {
       const ruleId = parseInt(i.values[0]);
@@ -289,6 +351,7 @@ interface ButtonResult {
   wizardStep?: number;
   wizardData?: Partial<CustomRoleRule>;
   category?: SetupCategory;
+  levelingRoleToAdd?: { roleId?: string; level?: number };
 }
 
 async function handleButton(
@@ -298,7 +361,8 @@ async function handleButton(
   currentCategory: SetupCategory,
   currentRoleSubCategory: RoleSubCategory,
   wizardStep: number,
-  wizardData: Partial<CustomRoleRule>
+  wizardData: Partial<CustomRoleRule>,
+  levelingRoleToAdd: { roleId?: string; level?: number }
 ): Promise<ButtonResult> {
   switch (i.customId) {
     case 'setup_toggle_colors':
@@ -334,6 +398,16 @@ async function handleButton(
     case 'setup_toggle_leveling_stack':
       updateGuildSettings(guildId, { levelingStackRoles: !settings.levelingStackRoles });
       return { shouldReturn: false };
+    case 'setup_leveling_add_role': {
+      const addView = buildLevelingAddRole(settings);
+      await i.update({ embeds: addView.embeds, components: addView.components });
+      return { shouldReturn: true, levelingRoleToAdd: {} };
+    }
+    case 'setup_leveling_manage_roles': {
+      const manageView = buildLevelingManageRoles(settings, i.guild!);
+      await i.update({ embeds: manageView.embeds, components: manageView.components });
+      return { shouldReturn: true };
+    }
     case 'setup_complete':
       completeSetup(guildId);
       return { shouldReturn: false };

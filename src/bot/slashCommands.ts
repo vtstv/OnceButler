@@ -2,4 +2,4 @@
 // OnceButler Discord Bot - Slash Commands Export
 // Licensed under MIT License
 
-export { commands, handleInteraction, handleGiveawayButton, handleBlackjackButton, handleCasinoInteraction, handleCasinoModal } from './commands/index.js';
+export { commands, handleInteraction, handleGiveawayButton, handleBlackjackButton, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton } from './commands/index.js';

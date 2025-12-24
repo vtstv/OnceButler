@@ -196,8 +196,12 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 statGainMultiplier, statDrainMultiplier,
                                 enableWelcome, welcomeChannelId, welcomeMessage, leaveMessage,
                                 enableEconomy, economyCurrencyName, economyCurrencyEmoji, economyDailyAmount, economyWorkMin, economyWorkMax,
-                                enableGiveaways)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                economyDailyReward, economyWorkCooldown, economyBankInterest, economyTransferFee,
+                                enableGiveaways, giveawayMinDuration, giveawayMaxDuration, giveawayMaxWinners, giveawayDmWinners,
+                                enableReactionRoles, reactionRolesChannelId,
+                                enableLeveling, levelingXpPerMessage, levelingXpPerVoiceMinute, levelingXpCooldown, 
+                                levelingAnnouncementChannelId, levelingStackRoles)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -222,7 +226,23 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       economyDailyAmount = excluded.economyDailyAmount,
       economyWorkMin = excluded.economyWorkMin,
       economyWorkMax = excluded.economyWorkMax,
-      enableGiveaways = excluded.enableGiveaways
+      economyDailyReward = excluded.economyDailyReward,
+      economyWorkCooldown = excluded.economyWorkCooldown,
+      economyBankInterest = excluded.economyBankInterest,
+      economyTransferFee = excluded.economyTransferFee,
+      enableGiveaways = excluded.enableGiveaways,
+      giveawayMinDuration = excluded.giveawayMinDuration,
+      giveawayMaxDuration = excluded.giveawayMaxDuration,
+      giveawayMaxWinners = excluded.giveawayMaxWinners,
+      giveawayDmWinners = excluded.giveawayDmWinners,
+      enableReactionRoles = excluded.enableReactionRoles,
+      reactionRolesChannelId = excluded.reactionRolesChannelId,
+      enableLeveling = excluded.enableLeveling,
+      levelingXpPerMessage = excluded.levelingXpPerMessage,
+      levelingXpPerVoiceMinute = excluded.levelingXpPerVoiceMinute,
+      levelingXpCooldown = excluded.levelingXpCooldown,
+      levelingAnnouncementChannelId = excluded.levelingAnnouncementChannelId,
+      levelingStackRoles = excluded.levelingStackRoles
   `).run(
     guildId,
     merged.language,
@@ -249,7 +269,23 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.economyDailyAmount,
     merged.economyWorkMin,
     merged.economyWorkMax,
-    merged.enableGiveaways ? 1 : 0
+    merged.economyDailyReward,
+    merged.economyWorkCooldown,
+    merged.economyBankInterest,
+    merged.economyTransferFee,
+    merged.enableGiveaways ? 1 : 0,
+    merged.giveawayMinDuration,
+    merged.giveawayMaxDuration,
+    merged.giveawayMaxWinners,
+    merged.giveawayDmWinners ? 1 : 0,
+    merged.enableReactionRoles ? 1 : 0,
+    merged.reactionRolesChannelId,
+    merged.enableLeveling ? 1 : 0,
+    merged.levelingXpPerMessage,
+    merged.levelingXpPerVoiceMinute,
+    merged.levelingXpCooldown,
+    merged.levelingAnnouncementChannelId,
+    merged.levelingStackRoles ? 1 : 0
   );
 }
 
