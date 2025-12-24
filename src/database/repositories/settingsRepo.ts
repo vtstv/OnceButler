@@ -51,6 +51,7 @@ export interface GuildSettings {
   levelingXpPerVoiceMinute: number;
   levelingXpCooldown: number;
   levelingAnnouncementChannelId: string | null;
+  levelingAnnounceLevelUp: boolean;
   levelingStackRoles: boolean;
 }
 
@@ -100,6 +101,7 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   levelingXpPerVoiceMinute: 5,
   levelingXpCooldown: 60,
   levelingAnnouncementChannelId: null,
+  levelingAnnounceLevelUp: true,
   levelingStackRoles: false,
 };
 
@@ -116,7 +118,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
            enableGiveaways, giveawayMinDuration, giveawayMaxDuration, giveawayMaxWinners, giveawayDmWinners,
            enableReactionRoles, reactionRolesChannelId,
            enableLeveling, levelingXpPerMessage, levelingXpPerVoiceMinute, levelingXpCooldown, 
-           levelingAnnouncementChannelId, levelingStackRoles
+           levelingAnnouncementChannelId, levelingAnnounceLevelUp, levelingStackRoles
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as any;
 
@@ -166,6 +168,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
     levelingXpPerVoiceMinute: row.levelingXpPerVoiceMinute ?? 5,
     levelingXpCooldown: row.levelingXpCooldown ?? 60,
     levelingAnnouncementChannelId: row.levelingAnnouncementChannelId ?? null,
+    levelingAnnounceLevelUp: row.levelingAnnounceLevelUp !== 0,
     levelingStackRoles: row.levelingStackRoles === 1,
   };
 }
@@ -200,8 +203,8 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 enableGiveaways, giveawayMinDuration, giveawayMaxDuration, giveawayMaxWinners, giveawayDmWinners,
                                 enableReactionRoles, reactionRolesChannelId,
                                 enableLeveling, levelingXpPerMessage, levelingXpPerVoiceMinute, levelingXpCooldown, 
-                                levelingAnnouncementChannelId, levelingStackRoles)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                levelingAnnouncementChannelId, levelingAnnounceLevelUp, levelingStackRoles)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -242,6 +245,7 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       levelingXpPerVoiceMinute = excluded.levelingXpPerVoiceMinute,
       levelingXpCooldown = excluded.levelingXpCooldown,
       levelingAnnouncementChannelId = excluded.levelingAnnouncementChannelId,
+      levelingAnnounceLevelUp = excluded.levelingAnnounceLevelUp,
       levelingStackRoles = excluded.levelingStackRoles
   `).run(
     guildId,
@@ -285,6 +289,7 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.levelingXpPerVoiceMinute,
     merged.levelingXpCooldown,
     merged.levelingAnnouncementChannelId,
+    merged.levelingAnnounceLevelUp ? 1 : 0,
     merged.levelingStackRoles ? 1 : 0
   );
 }

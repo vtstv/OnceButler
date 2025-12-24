@@ -93,30 +93,35 @@ async function handleLevelUp(
     }
   }
 
-  if (channel) {
-    const memberData = getMemberLevel(guild.id, member.id);
-    const xpNeeded = getXpForLevel(newLevel + 1);
-    
-    const embed = new EmbedBuilder()
-      .setTitle('🎉 Level Up!')
-      .setDescription(`Congratulations ${member}! You've reached **Level ${newLevel}**!`)
-      .setColor(0xF1C40F)
-      .setThumbnail(member.displayAvatarURL())
-      .addFields(
-        { name: '📊 Progress', value: `${memberData.xp}/${xpNeeded} XP to next level`, inline: true },
-        { name: '💬 Messages', value: memberData.messagesCount.toLocaleString(), inline: true },
-        { name: '🎤 Voice Time', value: `${memberData.voiceMinutes} min`, inline: true },
-      )
-      .setTimestamp();
+  if (!settings.levelingAnnounceLevelUp || !channel) return;
 
-    if (levelRoles.length > 0) {
-      const roleNames = levelRoles
-        .map(lr => guild.roles.cache.get(lr.roleId)?.name)
-        .filter(Boolean)
-        .join(', ');
-      embed.addFields({ name: '🎭 Role Unlocked', value: roleNames || 'None', inline: false });
-    }
+  const memberData = getMemberLevel(guild.id, member.id);
+  const xpNeeded = getXpForLevel(newLevel + 1);
+  const voiceHours = Math.floor(memberData.voiceMinutes / 60);
+  const voiceRemainderMins = memberData.voiceMinutes % 60;
+  const voiceTimeFormatted = voiceHours > 0 
+    ? `${voiceHours}h ${voiceRemainderMins}m`
+    : `${voiceRemainderMins}m`;
+  
+  const embed = new EmbedBuilder()
+    .setTitle('🎉 Level Up!')
+    .setDescription(`Congratulations ${member}! You've reached **Level ${newLevel}**!`)
+    .setColor(0xF1C40F)
+    .setThumbnail(member.displayAvatarURL())
+    .addFields(
+      { name: '📊 Progress', value: `${memberData.xp}/${xpNeeded} XP to next level`, inline: true },
+      { name: '💬 Messages', value: memberData.messagesCount.toLocaleString(), inline: true },
+      { name: '🎤 Voice Time', value: voiceTimeFormatted, inline: true },
+    )
+    .setTimestamp();
 
-    await channel.send({ embeds: [embed] }).catch(() => {});
+  if (levelRoles.length > 0) {
+    const roleNames = levelRoles
+      .map(lr => guild.roles.cache.get(lr.roleId)?.name)
+      .filter(Boolean)
+      .join(', ');
+    embed.addFields({ name: '🎭 Role Unlocked', value: roleNames || 'None', inline: false });
   }
+
+  await channel.send({ embeds: [embed] }).catch(() => {});
 }

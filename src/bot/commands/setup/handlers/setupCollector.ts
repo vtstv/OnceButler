@@ -419,6 +419,9 @@ async function handleButton(
     case 'setup_toggle_leveling_stack':
       updateGuildSettings(guildId, { levelingStackRoles: !settings.levelingStackRoles });
       return { shouldReturn: false };
+    case 'setup_toggle_leveling_announce':
+      updateGuildSettings(guildId, { levelingAnnounceLevelUp: !settings.levelingAnnounceLevelUp });
+      return { shouldReturn: false };
     case 'setup_leveling_add_role': {
       const addView = buildLevelingAddRole(settings);
       await i.update({ embeds: addView.embeds, components: addView.components });

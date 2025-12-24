@@ -231,6 +231,7 @@ export function runMigrations(): void {
     `ALTER TABLE guild_settings ADD COLUMN levelingXpPerVoiceMinute INTEGER DEFAULT 5`,
     `ALTER TABLE guild_settings ADD COLUMN levelingXpCooldown INTEGER DEFAULT 60`,
     `ALTER TABLE guild_settings ADD COLUMN levelingAnnouncementChannelId TEXT DEFAULT NULL`,
+    `ALTER TABLE guild_settings ADD COLUMN levelingAnnounceLevelUp INTEGER DEFAULT 1`,
     `ALTER TABLE guild_settings ADD COLUMN levelingStackRoles INTEGER DEFAULT 0`,
   ];
 

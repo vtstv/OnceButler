@@ -177,7 +177,7 @@ export function buildLevelingSettings(settings: GuildSettings, guild: any): Setu
       },
       { 
         name: '📢 Announcements', 
-        value: `#${announcementChannel}`, 
+        value: settings.levelingAnnounceLevelUp ? `✅ #${announcementChannel}` : '❌ Disabled', 
         inline: true 
       },
       { 
@@ -204,10 +204,19 @@ export function buildLevelingSettings(settings: GuildSettings, guild: any): Setu
         .setLabel(settings.enableLeveling ? '⏸️ Disable Leveling' : '▶️ Enable Leveling')
         .setStyle(settings.enableLeveling ? ButtonStyle.Danger : ButtonStyle.Success),
       new ButtonBuilder()
+        .setCustomId('setup_toggle_leveling_announce')
+        .setLabel(settings.levelingAnnounceLevelUp ? '🔔 Announce: ON' : '🔕 Announce: OFF')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(!settings.enableLeveling),
+      new ButtonBuilder()
         .setCustomId('setup_toggle_leveling_stack')
         .setLabel(settings.levelingStackRoles ? '🔄 Stack: ON' : '🔄 Stack: OFF')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(!settings.enableLeveling),
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_leveling_add_role')
         .setLabel('➕ Add Level Role')
@@ -218,6 +227,10 @@ export function buildLevelingSettings(settings: GuildSettings, guild: any): Setu
         .setLabel('📋 Manage Roles')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(!settings.enableLeveling || levelRoles.length === 0),
+      new ButtonBuilder()
+        .setCustomId('setup_back')
+        .setLabel('◀️ Back')
+        .setStyle(ButtonStyle.Secondary),
     );
 
   const xpMessageSelect = new ActionRowBuilder<StringSelectMenuBuilder>()
@@ -255,17 +268,9 @@ export function buildLevelingSettings(settings: GuildSettings, guild: any): Setu
         .setChannelTypes(ChannelType.GuildText)
     );
 
-  const backRow = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('setup_back')
-        .setLabel('◀️ Back')
-        .setStyle(ButtonStyle.Secondary),
-    );
-
   return {
     embeds: [embed],
-    components: [row1, xpMessageSelect, xpCooldownSelect, channelSelect, backRow],
+    components: [row1, row2, xpMessageSelect, xpCooldownSelect, channelSelect],
   };
 }
 
