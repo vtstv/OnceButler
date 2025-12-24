@@ -56,7 +56,7 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         inline: true
       },
       {
-        name: '� Economy',
+        name: '💰 Economy',
         value: settings.enableEconomy
           ? `✅ Daily: ${settings.economyDailyReward} coins`
           : '❌ Disabled',
@@ -70,7 +70,19 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         inline: true
       },
       {
-        name: '�📈 Stat Rates',
+        name: '🎭 Reaction Roles',
+        value: settings.enableReactionRoles ? '✅ Enabled' : '❌ Disabled',
+        inline: true
+      },
+      {
+        name: '📈 Leveling',
+        value: settings.enableLeveling 
+          ? `✅ ${settings.levelingXpPerMessage} XP/msg`
+          : '❌ Disabled',
+        inline: true
+      },
+      {
+        name: '📈 Stat Rates',
         value: `Gain: \`${settings.statGainMultiplier}x\` | Loss: \`${settings.statDrainMultiplier}x\``,
         inline: false
       },
@@ -121,6 +133,14 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
       new ButtonBuilder()
         .setCustomId('setup_cat_giveaways')
         .setLabel('🎉 Giveaways')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('setup_cat_reactionRoles')
+        .setLabel('🎭 Reactions')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('setup_cat_leveling')
+        .setLabel('📈 Leveling')
         .setStyle(ButtonStyle.Secondary),
     );
 

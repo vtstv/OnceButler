@@ -98,6 +98,8 @@ export async function startCollector(message: Message, userId: string, guildId: 
           updateGuildSettings(guildId, { leaderboardChannelId: i.values[0] });
         } else if (i.customId === 'setup_welcome_channel') {
           updateGuildSettings(guildId, { welcomeChannelId: i.values[0] });
+        } else if (i.customId === 'setup_leveling_channel') {
+          updateGuildSettings(guildId, { levelingAnnouncementChannelId: i.values[0] });
         }
         const newSettings = getGuildSettings(guildId);
         const view = buildCategoryView(currentCategory, newSettings, i.guild!, currentRoleSubCategory);
@@ -259,6 +261,13 @@ async function handleStringSelectMenu(
     case 'setup_giveaway_max_duration':
       updateGuildSettings(guildId, { giveawayMaxDuration: parseInt(i.values[0]) });
       return { shouldReturn: false };
+    // Leveling settings
+    case 'setup_leveling_xp_message':
+      updateGuildSettings(guildId, { levelingXpPerMessage: parseInt(i.values[0]) });
+      return { shouldReturn: false };
+    case 'setup_leveling_cooldown':
+      updateGuildSettings(guildId, { levelingXpCooldown: parseInt(i.values[0]) });
+      return { shouldReturn: false };
     // Custom roles management
     case 'setup_customroles_select': {
       const ruleId = parseInt(i.values[0]);
@@ -316,9 +325,23 @@ async function handleButton(
     case 'setup_toggle_giveaway_dm':
       updateGuildSettings(guildId, { giveawayDmWinners: !settings.giveawayDmWinners });
       return { shouldReturn: false };
+    case 'setup_toggle_reactionroles':
+      updateGuildSettings(guildId, { enableReactionRoles: !settings.enableReactionRoles });
+      return { shouldReturn: false };
+    case 'setup_toggle_leveling':
+      updateGuildSettings(guildId, { enableLeveling: !settings.enableLeveling });
+      return { shouldReturn: false };
+    case 'setup_toggle_leveling_stack':
+      updateGuildSettings(guildId, { levelingStackRoles: !settings.levelingStackRoles });
+      return { shouldReturn: false };
     case 'setup_complete':
       completeSetup(guildId);
       return { shouldReturn: false };
+    case 'setup_back': {
+      const view = buildCategoryView('main', settings, i.guild!, currentRoleSubCategory);
+      await i.update({ embeds: view.embeds, components: view.components });
+      return { shouldReturn: true, category: 'main' };
+    }
 
     case 'setup_welcome_test': {
       if (!settings.welcomeChannelId) {

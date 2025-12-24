@@ -5,16 +5,22 @@
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { env } from '../config/env.js';
 
+export let client: Client;
+
 export function createClient(): Client {
-  return new Client({
+  client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMembers,
       GatewayIntentBits.GuildPresences,
       GatewayIntentBits.GuildVoiceStates,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMessageReactions,
     ],
-    partials: [Partials.GuildMember],
+    partials: [Partials.GuildMember, Partials.Message, Partials.Reaction],
   });
+  return client;
 }
 
 export async function loginClient(client: Client): Promise<void> {

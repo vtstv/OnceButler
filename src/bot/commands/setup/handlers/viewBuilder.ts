@@ -15,6 +15,7 @@ import { buildRolesSettings } from '../roleBuilders.js';
 import { buildWelcomeSettings } from '../welcomeBuilder.js';
 import { buildCustomRolesSettings } from '../customRolesBuilder.js';
 import { buildEconomySettings, buildGiveawaySettings } from '../economyGiveawayBuilders.js';
+import { buildReactionRolesSettings, buildLevelingSettings } from '../newModulesBuilders.js';
 
 export function buildCategoryView(
   category: SetupCategory, 
@@ -43,6 +44,10 @@ export function buildCategoryView(
       return buildEconomySettings(settings);
     case 'giveaways':
       return buildGiveawaySettings(settings);
+    case 'reactionRoles':
+      return buildReactionRolesSettings(settings, guild);
+    case 'leveling':
+      return buildLevelingSettings(settings, guild);
     default:
       return buildMainMenu(settings, guild);
   }

@@ -222,6 +222,16 @@ export function runMigrations(): void {
     `ALTER TABLE guild_settings ADD COLUMN giveawayMaxDuration INTEGER DEFAULT 10080`,
     `ALTER TABLE guild_settings ADD COLUMN giveawayMaxWinners INTEGER DEFAULT 10`,
     `ALTER TABLE guild_settings ADD COLUMN giveawayDmWinners INTEGER DEFAULT 1`,
+    // Reaction Roles module
+    `ALTER TABLE guild_settings ADD COLUMN enableReactionRoles INTEGER DEFAULT 0`,
+    `ALTER TABLE guild_settings ADD COLUMN reactionRolesChannelId TEXT DEFAULT NULL`,
+    // Leveling module
+    `ALTER TABLE guild_settings ADD COLUMN enableLeveling INTEGER DEFAULT 0`,
+    `ALTER TABLE guild_settings ADD COLUMN levelingXpPerMessage INTEGER DEFAULT 15`,
+    `ALTER TABLE guild_settings ADD COLUMN levelingXpPerVoiceMinute INTEGER DEFAULT 5`,
+    `ALTER TABLE guild_settings ADD COLUMN levelingXpCooldown INTEGER DEFAULT 60`,
+    `ALTER TABLE guild_settings ADD COLUMN levelingAnnouncementChannelId TEXT DEFAULT NULL`,
+    `ALTER TABLE guild_settings ADD COLUMN levelingStackRoles INTEGER DEFAULT 0`,
   ];
 
   for (const migration of migrations) {
@@ -231,4 +241,66 @@ export function runMigrations(): void {
       // Column already exists
     }
   }
+
+  // Reaction Roles tables
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS reaction_role_panels (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      message_id TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_reaction_role_panels_guild
+    ON reaction_role_panels(guild_id);
+
+    CREATE TABLE IF NOT EXISTS reaction_roles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      panel_id INTEGER NOT NULL,
+      emoji TEXT NOT NULL,
+      role_id TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (panel_id) REFERENCES reaction_role_panels(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_reaction_roles_panel
+    ON reaction_roles(panel_id);
+  `);
+
+  // Leveling tables
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS member_levels (
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      xp INTEGER DEFAULT 0,
+      level INTEGER DEFAULT 0,
+      total_xp INTEGER DEFAULT 0,
+      messages_count INTEGER DEFAULT 0,
+      voice_minutes INTEGER DEFAULT 0,
+      last_xp_gain TEXT DEFAULT NULL,
+      PRIMARY KEY (guild_id, user_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_member_levels_guild
+    ON member_levels(guild_id);
+
+    CREATE INDEX IF NOT EXISTS idx_member_levels_xp
+    ON member_levels(guild_id, total_xp DESC);
+
+    CREATE TABLE IF NOT EXISTS level_roles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      level INTEGER NOT NULL,
+      role_id TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(guild_id, level)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_level_roles_guild
+    ON level_roles(guild_id);
+  `);
 }

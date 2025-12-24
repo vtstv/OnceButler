@@ -6,10 +6,12 @@ import { Client, Events, GuildMember, MessageFlags } from 'discord.js';
 import { handleVoiceStateUpdate } from '../voice/voiceTracker.js';
 import { startTickScheduler } from '../scheduler/tickScheduler.js';
 import { ensureRolesExist } from '../roles/roleEngine.js';
-import { handleInteraction, handleGiveawayButton, handleBlackjackButton } from './slashCommands.js';
+import { handleInteraction, handleGiveawayButton, handleBlackjackButton, handleCasinoInteraction, handleCasinoModal } from './slashCommands.js';
 import { getMemberStats, upsertMemberStats } from '../database/repositories/memberStatsRepo.js';
 import { chance, randomInt } from '../utils/random.js';
 import { handleGuildMemberAdd, handleGuildMemberRemove } from './events/welcomeEvents.js';
+import { handleReactionAdd, handleReactionRemove } from './events/reactionRolesEvents.js';
+import { handleMessageXp } from './events/levelingEvents.js';
 import { updateGuildSettings, getGuildSettings } from '../database/repositories/settingsRepo.js';
 
 export function registerEvents(client: Client): void {
@@ -33,13 +35,24 @@ export function registerEvents(client: Client): void {
   });
 
   client.on(Events.GuildMemberRemove, async (member) => {
-    // member can be partial, check if it's a full GuildMember
     if (member.partial) return;
     await handleGuildMemberRemove(member);
   });
 
+  client.on(Events.MessageCreate, async (message) => {
+    if (message.author.bot) return;
+    await handleMessageXp(message);
+  });
+
+  client.on(Events.MessageReactionAdd, async (reaction, user) => {
+    await handleReactionAdd(reaction, user);
+  });
+
+  client.on(Events.MessageReactionRemove, async (reaction, user) => {
+    await handleReactionRemove(reaction, user);
+  });
+
   client.on(Events.InteractionCreate, async (interaction) => {
-    // Handle button interactions for giveaways
     if (interaction.isButton()) {
       if (interaction.customId.startsWith('giveaway_')) {
         await handleGiveawayButton(interaction);
@@ -49,10 +62,24 @@ export function registerEvents(client: Client): void {
         await handleBlackjackButton(interaction);
         return;
       }
+      if (interaction.customId.startsWith('casino_')) {
+        await handleCasinoInteraction(interaction);
+        return;
+      }
     }
 
-    // Handle modal submissions for welcome/leave messages
+    if (interaction.isStringSelectMenu()) {
+      if (interaction.customId.startsWith('casino_')) {
+        await handleCasinoInteraction(interaction);
+        return;
+      }
+    }
+
     if (interaction.isModalSubmit()) {
+      if (interaction.customId === 'casino_custom_bet_modal') {
+        await handleCasinoModal(interaction);
+        return;
+      }
       if (interaction.customId.startsWith('setup_welcome_modal_')) {
         try {
           const guildId = interaction.guild?.id;

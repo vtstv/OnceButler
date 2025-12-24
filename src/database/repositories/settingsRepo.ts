@@ -42,6 +42,16 @@ export interface GuildSettings {
   giveawayMaxDuration: number;
   giveawayMaxWinners: number;
   giveawayDmWinners: boolean;
+  // Reaction Roles module
+  enableReactionRoles: boolean;
+  reactionRolesChannelId: string | null;
+  // Leveling module
+  enableLeveling: boolean;
+  levelingXpPerMessage: number;
+  levelingXpPerVoiceMinute: number;
+  levelingXpCooldown: number;
+  levelingAnnouncementChannelId: string | null;
+  levelingStackRoles: boolean;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -81,6 +91,16 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   giveawayMaxDuration: 10080,
   giveawayMaxWinners: 10,
   giveawayDmWinners: true,
+  // Reaction Roles module
+  enableReactionRoles: false,
+  reactionRolesChannelId: null,
+  // Leveling module
+  enableLeveling: false,
+  levelingXpPerMessage: 15,
+  levelingXpPerVoiceMinute: 5,
+  levelingXpCooldown: 60,
+  levelingAnnouncementChannelId: null,
+  levelingStackRoles: false,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
@@ -93,43 +113,12 @@ export function getGuildSettings(guildId: string): GuildSettings {
            enableWelcome, welcomeChannelId, welcomeMessage, leaveMessage,
            enableEconomy, economyCurrencyName, economyCurrencyEmoji, economyDailyAmount, economyWorkMin, economyWorkMax,
            economyDailyReward, economyWorkCooldown, economyBankInterest, economyTransferFee,
-           enableGiveaways, giveawayMinDuration, giveawayMaxDuration, giveawayMaxWinners, giveawayDmWinners
+           enableGiveaways, giveawayMinDuration, giveawayMaxDuration, giveawayMaxWinners, giveawayDmWinners,
+           enableReactionRoles, reactionRolesChannelId,
+           enableLeveling, levelingXpPerMessage, levelingXpPerVoiceMinute, levelingXpCooldown, 
+           levelingAnnouncementChannelId, levelingStackRoles
     FROM guild_settings WHERE guildId = ?
-  `).get(guildId) as { 
-    language: string; 
-    managerRoles: string; 
-    rolePreset: string;
-    setupComplete: number;
-    enableRoleColors: number;
-    enableChaosRoles: number;
-    enableAchievements: number;
-    maxRolesPerUser: number;
-    enableAutoLeaderboard: number;
-    leaderboardChannelId: string | null;
-    leaderboardIntervalMinutes: number;
-    leaderboardMessageId: string | null;
-    statGainMultiplier: number | null;
-    statDrainMultiplier: number | null;
-    enableWelcome: number | null;
-    welcomeChannelId: string | null;
-    welcomeMessage: string | null;
-    leaveMessage: string | null;
-    enableEconomy: number | null;
-    economyCurrencyName: string | null;
-    economyCurrencyEmoji: string | null;
-    economyDailyAmount: number | null;
-    economyWorkMin: number | null;
-    economyWorkMax: number | null;
-    economyDailyReward: number | null;
-    economyWorkCooldown: number | null;
-    economyBankInterest: number | null;
-    economyTransferFee: number | null;
-    enableGiveaways: number | null;
-    giveawayMinDuration: number | null;
-    giveawayMaxDuration: number | null;
-    giveawayMaxWinners: number | null;
-    giveawayDmWinners: number | null;
-  } | undefined;
+  `).get(guildId) as any;
 
   if (!row) {
     return { guildId, ...DEFAULT_SETTINGS };
@@ -170,6 +159,14 @@ export function getGuildSettings(guildId: string): GuildSettings {
     giveawayMaxDuration: row.giveawayMaxDuration ?? 10080,
     giveawayMaxWinners: row.giveawayMaxWinners ?? 10,
     giveawayDmWinners: row.giveawayDmWinners !== 0,
+    enableReactionRoles: row.enableReactionRoles === 1,
+    reactionRolesChannelId: row.reactionRolesChannelId ?? null,
+    enableLeveling: row.enableLeveling === 1,
+    levelingXpPerMessage: row.levelingXpPerMessage ?? 15,
+    levelingXpPerVoiceMinute: row.levelingXpPerVoiceMinute ?? 5,
+    levelingXpCooldown: row.levelingXpCooldown ?? 60,
+    levelingAnnouncementChannelId: row.levelingAnnouncementChannelId ?? null,
+    levelingStackRoles: row.levelingStackRoles === 1,
   };
 }
 

@@ -303,5 +303,52 @@ export const commands = [
             .setRequired(true)
             .setMinValue(2)
             .setMaxValue(12))),
+
+  // Casino interactive menu
+  new SlashCommandBuilder()
+    .setName('casino')
+    .setDescription('Open the interactive casino menu'),
+
+  // Leveling commands
+  new SlashCommandBuilder()
+    .setName('level')
+    .setDescription('Leveling system commands')
+    .addSubcommand(sub =>
+      sub.setName('rank')
+        .setDescription('Check your or someone\'s level')
+        .addUserOption(opt => opt.setName('user').setDescription('User to check (optional)')))
+    .addSubcommand(sub =>
+      sub.setName('leaderboard')
+        .setDescription('View the level leaderboard'))
+    .addSubcommand(sub =>
+      sub.setName('setlevel')
+        .setDescription('Set a user\'s level (Admin only)')
+        .addUserOption(opt => opt.setName('user').setDescription('User to set level for').setRequired(true))
+        .addIntegerOption(opt => opt.setName('level').setDescription('Level to set').setRequired(true).setMinValue(0).setMaxValue(1000))),
+
+  // Reaction Roles commands
+  new SlashCommandBuilder()
+    .setName('reactionroles')
+    .setDescription('Manage reaction role panels')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
+    .addSubcommand(sub =>
+      sub.setName('create')
+        .setDescription('Create a new reaction role panel')
+        .addStringOption(opt => opt.setName('title').setDescription('Panel title').setRequired(true))
+        .addStringOption(opt => opt.setName('description').setDescription('Panel description'))
+        .addChannelOption(opt => opt.setName('channel').setDescription('Channel for the panel (default: current)')))
+    .addSubcommand(sub =>
+      sub.setName('add')
+        .setDescription('Add a role to a panel')
+        .addIntegerOption(opt => opt.setName('panel_id').setDescription('Panel ID').setRequired(true))
+        .addStringOption(opt => opt.setName('emoji').setDescription('Emoji to react with').setRequired(true))
+        .addRoleOption(opt => opt.setName('role').setDescription('Role to assign').setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('list')
+        .setDescription('List all reaction role panels'))
+    .addSubcommand(sub =>
+      sub.setName('delete')
+        .setDescription('Delete a reaction role panel')
+        .addIntegerOption(opt => opt.setName('panel_id').setDescription('Panel ID to delete').setRequired(true))),
 ];
 
