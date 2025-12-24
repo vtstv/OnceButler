@@ -357,9 +357,45 @@ const commands = [
       sub.setName('list')
         .setDescription('List all reaction role panels'))
     .addSubcommand(sub =>
+      sub.setName('remove')
+        .setDescription('Remove a role from a panel')
+        .addIntegerOption(opt => opt.setName('panel_id').setDescription('Panel ID').setRequired(true))
+        .addStringOption(opt => opt.setName('emoji').setDescription('Emoji to remove').setRequired(true)))
+    .addSubcommand(sub =>
       sub.setName('delete')
         .setDescription('Delete a reaction role panel')
         .addIntegerOption(opt => opt.setName('panel_id').setDescription('Panel ID to delete').setRequired(true))),
+
+  // Inventory commands
+  new SlashCommandBuilder()
+    .setName('inventory')
+    .setDescription('Manage your inventory and equipment')
+    .addSubcommand(sub =>
+      sub.setName('view')
+        .setDescription('View your inventory'))
+    .addSubcommand(sub =>
+      sub.setName('equip')
+        .setDescription('Equip an item')
+        .addIntegerOption(opt => opt.setName('item_id').setDescription('Item ID to equip').setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('unequip')
+        .setDescription('Unequip an item')
+        .addIntegerOption(opt => opt.setName('item_id').setDescription('Item ID to unequip').setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('use')
+        .setDescription('Use a consumable item (potion)')
+        .addIntegerOption(opt => opt.setName('item_id').setDescription('Item ID to use').setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('shop')
+        .setDescription('View the item shop'))
+    .addSubcommand(sub =>
+      sub.setName('buy')
+        .setDescription('Buy an item from the shop')
+        .addIntegerOption(opt => opt.setName('item_id').setDescription('Item ID to buy').setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('stats')
+        .setDescription('View combat stats from equipment')
+        .addUserOption(opt => opt.setName('user').setDescription('User to check (optional)'))),
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);

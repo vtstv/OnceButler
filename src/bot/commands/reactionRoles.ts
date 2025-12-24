@@ -15,6 +15,7 @@ import {
   addReactionRole,
   getReactionRolesByPanel,
   deleteReactionRolePanel,
+  removeReactionRole,
 } from '../../database/repositories/reactionRolesRepo.js';
 import { t, Locale } from '../../utils/i18n.js';
 
@@ -51,6 +52,9 @@ export async function handleReactionRoles(interaction: ChatInputCommandInteracti
       break;
     case 'list':
       await handleList(interaction, locale);
+      break;
+    case 'remove':
+      await handleRemove(interaction, locale);
       break;
     case 'delete':
       await handleDelete(interaction, locale);
@@ -146,16 +150,88 @@ async function handleList(interaction: ChatInputCommandInteraction, locale: Loca
   const lines = panels.map(p => {
     const roles = getReactionRolesByPanel(p.id);
     const channel = interaction.guild!.channels.cache.get(p.channelId);
-    return `**ID: ${p.id}** — ${p.title}\n` +
-      `  📍 ${channel?.name || 'Unknown'} | 🎭 ${roles.length} roles`;
+    const rolesList = roles.length > 0 
+      ? roles.map(r => {
+          const guildRole = interaction.guild!.roles.cache.get(r.roleId);
+          return `  ${r.emoji} → ${guildRole?.name || 'Unknown'} (ID: ${r.id})`;
+        }).join('\n')
+      : '  _No roles configured_';
+    return `**ID: ${p.id}** — ${p.title}\n  📍 ${channel?.name || 'Unknown'}\n${rolesList}`;
   });
 
   const embed = new EmbedBuilder()
     .setTitle('🎭 Reaction Role Panels')
     .setDescription(lines.join('\n\n'))
-    .setColor(0x5865F2);
+    .setColor(0x5865F2)
+    .setFooter({ text: 'Use /reactionroles remove to remove individual roles' });
 
   await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+}
+
+async function handleRemove(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
+  const panelId = interaction.options.getInteger('panel_id', true);
+  const emoji = interaction.options.getString('emoji', true);
+
+  const panels = getReactionRolePanels(interaction.guild!.id);
+  const panel = panels.find(p => p.id === panelId);
+
+  if (!panel) {
+    await interaction.reply({ content: '❌ Panel not found.', flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  const roles = getReactionRolesByPanel(panelId);
+  const roleToRemove = roles.find(r => r.emoji === emoji);
+
+  if (!roleToRemove) {
+    await interaction.reply({ content: `❌ Emoji ${emoji} not found in this panel.`, flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  try {
+    // Remove the reaction from the message
+    const channel = interaction.guild!.channels.cache.get(panel.channelId) as TextChannel;
+    if (channel) {
+      const message = await channel.messages.fetch(panel.messageId).catch(() => null);
+      if (message) {
+        const reactions = message.reactions.cache;
+        const reaction = reactions.find(r => 
+          r.emoji.id ? `<:${r.emoji.name}:${r.emoji.id}>` === emoji : r.emoji.name === emoji
+        );
+        if (reaction) {
+          await reaction.remove().catch(() => {});
+        }
+      }
+
+      // Update the embed
+      const remainingRoles = roles.filter(r => r.id !== roleToRemove.id);
+      const roleList = remainingRoles.map(r => {
+        const guildRole = interaction.guild!.roles.cache.get(r.roleId);
+        return `${r.emoji} → ${guildRole?.name || 'Unknown'}`;
+      }).join('\n');
+
+      if (message) {
+        const embed = new EmbedBuilder()
+          .setTitle(panel.title)
+          .setDescription((panel.description || 'React to get a role!') + (roleList ? '\n\n' + roleList : ''))
+          .setColor(0x5865F2)
+          .setFooter({ text: 'Click a reaction to get the role' });
+
+        await message.edit({ embeds: [embed] }).catch(() => {});
+      }
+    }
+
+    // Remove from database
+    removeReactionRole(roleToRemove.id);
+
+    await interaction.reply({
+      content: `✅ Removed ${emoji} from panel **${panel.title}**!`,
+      flags: MessageFlags.Ephemeral,
+    });
+  } catch (error) {
+    console.error('[ReactionRoles] Error removing role:', error);
+    await interaction.reply({ content: '❌ Failed to remove reaction role.', flags: MessageFlags.Ephemeral });
+  }
 }
 
 async function handleDelete(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {

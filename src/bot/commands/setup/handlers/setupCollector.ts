@@ -41,8 +41,9 @@ import {
   DEFAULT_LEAVE_MESSAGES 
 } from '../welcomeBuilder.js';
 import { createRolesByCategory, deleteRolesByCategory } from '../roleBuilders.js';
-import { buildLevelingAddRole, buildLevelingManageRoles } from '../newModulesBuilders.js';
+import { buildLevelingAddRole, buildLevelingManageRoles, buildReactionRolesManage } from '../newModulesBuilders.js';
 import { addLevelRole, removeLevelRole } from '../../../../database/repositories/levelingRepo.js';
+import { deleteReactionRolePanel, getReactionRolePanels } from '../../../../database/repositories/reactionRolesRepo.js';
 
 export async function startCollector(message: Message, userId: string, guildId: string): Promise<void> {
   const collector = message.createMessageComponentCollector({
@@ -330,6 +331,26 @@ async function handleStringSelectMenu(
       await i.update({ embeds: manageView.embeds, components: manageView.components });
       return { shouldReturn: true };
     }
+    case 'setup_reactionroles_select_panel': {
+      const panelId = parseInt(i.values[0]);
+      const panels = getReactionRolePanels(guildId);
+      const panel = panels.find(p => p.id === panelId);
+      if (panel) {
+        // Try to delete the message first
+        try {
+          const channel = i.guild!.channels.cache.get(panel.channelId) as any;
+          if (channel) {
+            const message = await channel.messages.fetch(panel.messageId).catch(() => null);
+            if (message) await message.delete().catch(() => {});
+          }
+        } catch {}
+        deleteReactionRolePanel(panelId);
+        await i.followUp({ content: `✅ Deleted panel **${panel.title}** (ID: ${panelId})`, flags: MessageFlags.Ephemeral });
+      }
+      const manageView = buildReactionRolesManage(guildId, i.guild!);
+      await i.update({ embeds: manageView.embeds, components: manageView.components });
+      return { shouldReturn: true };
+    }
     // Custom roles management
     case 'setup_customroles_select': {
       const ruleId = parseInt(i.values[0]);
@@ -405,6 +426,11 @@ async function handleButton(
     }
     case 'setup_leveling_manage_roles': {
       const manageView = buildLevelingManageRoles(settings, i.guild!);
+      await i.update({ embeds: manageView.embeds, components: manageView.components });
+      return { shouldReturn: true };
+    }
+    case 'setup_reactionroles_manage': {
+      const manageView = buildReactionRolesManage(guildId, i.guild!);
       await i.update({ embeds: manageView.embeds, components: manageView.components });
       return { shouldReturn: true };
     }

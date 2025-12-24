@@ -426,6 +426,31 @@
   "setup.reactionroles.description": "Let members self-assign roles by reacting to messages.",
   "setup.reactionroles.status": "Status",
   "setup.reactionroles.panels": "Active Panels",
-  "setup.reactionroles.howto": "1. Enable reaction roles\n2. Use `/reactionroles create` to create a panel\n3. Use `/reactionroles add` to add emoji-role pairs"
-}
+  "setup.reactionroles.howto": "1. Enable reaction roles\n2. Use `/reactionroles create` to create a panel\n3. Use `/reactionroles add` to add emoji-role pairs",
 
+  "inventory.title": "Inventory",
+  "inventory.empty": "Your inventory is empty!\nVisit the shop to buy items.",
+  "inventory.shopHint": "Use /inventory shop to browse items",
+  "inventory.equipped": "Equipped",
+  "inventory.backpack": "Backpack",
+  "inventory.unequipped": "Unequipped",
+  "inventory.notEquipped": "This item is not equipped.",
+  "inventory.itemNotFound": "Item not found.",
+  "inventory.notUsable": "This item cannot be used directly.",
+  "inventory.notOwned": "You don't own this item.",
+  "inventory.used": "Used",
+  "inventory.shopEmpty": "The shop is empty!",
+  "inventory.yourBalance": "Your Balance",
+  "inventory.weapons": "Weapons",
+  "inventory.armor": "Armor",
+  "inventory.accessories": "Accessories",
+  "inventory.potions": "Potions",
+  "inventory.buyHint": "Use /inventory buy item_id:<id> to purchase",
+  "inventory.purchased": "Purchased",
+  "inventory.price": "Price",
+  "inventory.newBalance": "New Balance",
+  "inventory.need": "Need",
+  "inventory.shop": "Item Shop",
+  "inventory.noEquipment": "No equipment equipped.",
+  "inventory.statsFooter": "Equipment affects /duel combat stats"
+}

@@ -13,6 +13,7 @@ import {
   ButtonInteraction,
 } from 'discord.js';
 import { getMemberStats, upsertMemberStats } from '../../database/repositories/memberStatsRepo.js';
+import { getCombatStats, getEquippedItems } from '../../database/repositories/inventoryRepo.js';
 import { t, type Locale } from '../../utils/i18n.js';
 import { getLocale } from './utils.js';
 import { randomInt } from '../../utils/random.js';
@@ -197,9 +198,31 @@ function executeDuel(
   const challengerStats = getMemberStats(guildId, challengerId);
   const opponentStats = getMemberStats(guildId, opponentId);
 
-  // Calculate fight power (energy + mood bonus + random factor)
-  const challengerPower = challengerStats.energy + (challengerStats.mood / 5) + randomInt(0, 30);
-  const opponentPower = opponentStats.energy + (opponentStats.mood / 5) + randomInt(0, 30);
+  // Get equipped item bonuses
+  const challengerCombat = getCombatStats(guildId, challengerId);
+  const opponentCombat = getCombatStats(guildId, opponentId);
+
+  // Calculate base power (energy + mood bonus)
+  const challengerBasePower = challengerStats.energy + (challengerStats.mood / 5);
+  const opponentBasePower = opponentStats.energy + (opponentStats.mood / 5);
+
+  // Apply item bonuses: attack adds to power, defense reduces incoming damage
+  const challengerAttack = challengerBasePower + challengerCombat.attackBonus;
+  const opponentAttack = opponentBasePower + opponentCombat.attackBonus;
+
+  // Calculate effective power after defense reduction
+  const challengerEffectivePower = Math.max(1, challengerAttack - (opponentCombat.defenseBonus * 0.5));
+  const opponentEffectivePower = Math.max(1, opponentAttack - (challengerCombat.defenseBonus * 0.5));
+
+  // Check for critical hits
+  const challengerCritRoll = randomInt(1, 100);
+  const opponentCritRoll = randomInt(1, 100);
+  const challengerCrit = challengerCritRoll <= challengerCombat.critChanceBonus;
+  const opponentCrit = opponentCritRoll <= opponentCombat.critChanceBonus;
+
+  // Apply crit multiplier and random factor
+  const challengerPower = (challengerEffectivePower + randomInt(0, 30)) * (challengerCrit ? 1.5 : 1);
+  const opponentPower = (opponentEffectivePower + randomInt(0, 30)) * (opponentCrit ? 1.5 : 1);
 
   const challengerWins = challengerPower > opponentPower;
   
@@ -207,13 +230,20 @@ function executeDuel(
   const loserId = challengerWins ? opponentId : challengerId;
   const winnerStats = challengerWins ? challengerStats : opponentStats;
   const loserStats = challengerWins ? opponentStats : challengerStats;
+  const winnerCrit = challengerWins ? challengerCrit : opponentCrit;
+  const winnerCombat = challengerWins ? challengerCombat : opponentCombat;
+  const loserCombat = challengerWins ? opponentCombat : challengerCombat;
 
   // Calculate actual loss (can't lose more than you have)
   const actualLoss = Math.min(loserStats.energy, betAmount);
   const prize = Math.floor(actualLoss * 0.8); // 80% goes to winner (20% "tax")
 
+  // Health bonus affects how much energy winner keeps
+  const healthBonusMultiplier = 1 + (winnerCombat.healthBonus / 100);
+  const adjustedPrize = Math.floor(prize * healthBonusMultiplier);
+
   // Update stats
-  winnerStats.energy = Math.min(100, winnerStats.energy + prize);
+  winnerStats.energy = Math.min(100, winnerStats.energy + adjustedPrize);
   winnerStats.mood = Math.min(100, winnerStats.mood + randomInt(3, 8)); // Winner feels good
   
   loserStats.energy = Math.max(0, loserStats.energy - actualLoss);
@@ -222,14 +252,32 @@ function executeDuel(
   upsertMemberStats(winnerStats);
   upsertMemberStats(loserStats);
 
-  // Pick random battle narrative
+  // Build narrative with equipment info
   const phraseIndex = randomInt(1, 8);
-  const narrative = t(locale, `duel.battle${phraseIndex}`);
+  let narrative = t(locale, `duel.battle${phraseIndex}`);
+  
+  // Add crit info
+  if (winnerCrit) {
+    narrative += '\n\n💥 **CRITICAL HIT!**';
+  }
+  
+  // Add equipment summary
+  const winnerItems = getEquippedItems(guildId, winnerId);
+  const loserItems = getEquippedItems(guildId, loserId);
+  if (winnerItems.length > 0 || loserItems.length > 0) {
+    narrative += '\n\n⚔️ **Equipment:**';
+    if (winnerItems.length > 0) {
+      narrative += `\n🏆 ${winnerItems.map(i => i.definition.name).join(', ')}`;
+    }
+    if (loserItems.length > 0) {
+      narrative += `\n💀 ${loserItems.map(i => i.definition.name).join(', ')}`;
+    }
+  }
 
   return {
     winnerId,
     loserId,
-    prize,
+    prize: adjustedPrize,
     loss: actualLoss,
     narrative,
   };

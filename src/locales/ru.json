@@ -426,6 +426,31 @@
   "setup.reactionroles.description": "Позвольте участникам назначать себе роли по реакциям.",
   "setup.reactionroles.status": "Статус",
   "setup.reactionroles.panels": "Активных панелей",
-  "setup.reactionroles.howto": "1. Включите роли по реакциям\n2. Используйте `/reactionroles create` для создания панели\n3. Используйте `/reactionroles add` для добавления эмодзи-ролей"
-}
+  "setup.reactionroles.howto": "1. Включите роли по реакциям\n2. Используйте `/reactionroles create` для создания панели\n3. Используйте `/reactionroles add` для добавления эмодзи-ролей",
 
+  "inventory.title": "Инвентарь",
+  "inventory.empty": "Ваш инвентарь пуст!\nПосетите магазин, чтобы купить предметы.",
+  "inventory.shopHint": "Используйте /inventory shop для просмотра предметов",
+  "inventory.equipped": "Экипировано",
+  "inventory.backpack": "Рюкзак",
+  "inventory.unequipped": "Снято",
+  "inventory.notEquipped": "Этот предмет не экипирован.",
+  "inventory.itemNotFound": "Предмет не найден.",
+  "inventory.notUsable": "Этот предмет нельзя использовать напрямую.",
+  "inventory.notOwned": "У вас нет этого предмета.",
+  "inventory.used": "Использовано",
+  "inventory.shopEmpty": "Магазин пуст!",
+  "inventory.yourBalance": "Ваш баланс",
+  "inventory.weapons": "Оружие",
+  "inventory.armor": "Броня",
+  "inventory.accessories": "Аксессуары",
+  "inventory.potions": "Зелья",
+  "inventory.buyHint": "Используйте /inventory buy item_id:<id> для покупки",
+  "inventory.purchased": "Куплено",
+  "inventory.price": "Цена",
+  "inventory.newBalance": "Новый баланс",
+  "inventory.need": "Нужно",
+  "inventory.shop": "Магазин предметов",
+  "inventory.noEquipment": "Экипировка не надета.",
+  "inventory.statsFooter": "Экипировка влияет на бой в /duel"
+}

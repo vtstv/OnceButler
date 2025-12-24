@@ -303,4 +303,47 @@ export function runMigrations(): void {
     CREATE INDEX IF NOT EXISTS idx_level_roles_guild
     ON level_roles(guild_id);
   `);
+
+  // Inventory & Items tables
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS item_definitions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      type TEXT NOT NULL,
+      rarity TEXT DEFAULT 'common',
+      price INTEGER NOT NULL,
+      attack_bonus INTEGER DEFAULT 0,
+      defense_bonus INTEGER DEFAULT 0,
+      health_bonus INTEGER DEFAULT 0,
+      crit_chance_bonus INTEGER DEFAULT 0,
+      energy_restore INTEGER DEFAULT 0,
+      mood_restore INTEGER DEFAULT 0,
+      is_default INTEGER DEFAULT 0,
+      enabled INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_item_definitions_guild
+    ON item_definitions(guild_id, enabled);
+
+    CREATE TABLE IF NOT EXISTS user_inventory (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      item_id INTEGER NOT NULL,
+      quantity INTEGER DEFAULT 1,
+      equipped INTEGER DEFAULT 0,
+      acquired_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(guild_id, user_id, item_id),
+      FOREIGN KEY (item_id) REFERENCES item_definitions(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_inventory_user
+    ON user_inventory(guild_id, user_id);
+
+    CREATE INDEX IF NOT EXISTS idx_user_inventory_equipped
+    ON user_inventory(guild_id, user_id, equipped);
+  `);
 }
