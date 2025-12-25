@@ -3,10 +3,10 @@
 // Licensed under MIT License
 
 import { Client, GuildMember } from 'discord.js';
-import { getMemberStats, upsertMemberStats } from '../database/repositories/memberStatsRepo.js';
+import { getMemberStats, upsertMemberStats, getAllGuildMembers } from '../database/repositories/memberStatsRepo.js';
 import { incrementVoiceTime, incrementOnlineTime, updateMemberProgress } from '../database/repositories/progressRepo.js';
 import { getGuildSettings, isSetupComplete } from '../database/repositories/settingsRepo.js';
-import { processTick, type StatModifiers, type StatRates } from './statEngine.js';
+import { processTick, applyBaseDrain, type StatModifiers, type StatRates } from './statEngine.js';
 import { syncMemberRoles, clearExpiredChaosRole, checkAndGrantAchievements } from '../roles/roleEngine.js';
 import { applyChaosEvent } from './chaosEngine.js';
 import { isInVoice } from '../voice/voiceTracker.js';
@@ -26,14 +26,34 @@ export async function processGuildTick(client: Client): Promise<void> {
     // Skip guilds that haven't completed setup
     if (!isSetupComplete(guild.id)) continue;
 
-    const members = guild.members.cache.filter(m => !m.user.bot && isOnline(m));
+    const settings = getGuildSettings(guild.id);
+    const rates: StatRates = {
+      gainMultiplier: settings.statGainMultiplier,
+      drainMultiplier: settings.statDrainMultiplier,
+    };
 
-    for (const member of members.values()) {
+    // Process ONLINE members (full tick with gains)
+    const onlineMembers = guild.members.cache.filter(m => !m.user.bot && isOnline(m));
+    const onlineUserIds = new Set(onlineMembers.map(m => m.id));
+
+    for (const member of onlineMembers.values()) {
       try {
         await processMemberTick(member);
       } catch (err) {
         console.error(`Tick failed for ${member.user.tag}:`, err);
       }
+    }
+
+    // Process OFFLINE members (drain only - stats decay when not active)
+    const allDbMembers = getAllGuildMembers(guild.id);
+    for (const stats of allDbMembers) {
+      // Skip if already processed as online
+      if (onlineUserIds.has(stats.userId)) continue;
+      
+      // Apply drain to offline members
+      applyBaseDrain(stats, rates);
+      clearExpiredChaosRole(stats);
+      upsertMemberStats(stats);
     }
   }
 }
