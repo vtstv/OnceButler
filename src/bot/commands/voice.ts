@@ -12,17 +12,19 @@ import {
 } from 'discord.js';
 import { isTempVoiceChannel, getTempChannelOwner } from '../../voice/tempVoiceService.js';
 import { getGuildSettings } from '../../database/repositories/settingsRepo.js';
+import { t, Locale } from '../../utils/i18n.js';
 
 export async function handleVoice(interaction: ChatInputCommandInteraction): Promise<void> {
   const subcommand = interaction.options.getSubcommand();
   const guildId = interaction.guildId!;
   const userId = interaction.user.id;
   const settings = getGuildSettings(guildId);
+  const locale = (settings.language || 'en') as Locale;
 
   // Check if temp voice is enabled
   if (!settings.enableTempVoice) {
     await interaction.reply({
-      content: '❌ Временные голосовые каналы отключены на этом сервере.',
+      content: t(locale, 'voice.disabled'),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -34,7 +36,7 @@ export async function handleVoice(interaction: ChatInputCommandInteraction): Pro
 
   if (!voiceChannel) {
     await interaction.reply({
-      content: '❌ Вы должны находиться в голосовом канале.',
+      content: t(locale, 'voice.notInChannel'),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -43,7 +45,7 @@ export async function handleVoice(interaction: ChatInputCommandInteraction): Pro
   // Check if it's a temp channel
   if (!isTempVoiceChannel(voiceChannel.id)) {
     await interaction.reply({
-      content: '❌ Эта команда работает только во временных голосовых каналах.',
+      content: t(locale, 'voice.notTempChannel'),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -53,7 +55,7 @@ export async function handleVoice(interaction: ChatInputCommandInteraction): Pro
   const ownerId = getTempChannelOwner(voiceChannel.id);
   if (ownerId !== userId) {
     await interaction.reply({
-      content: '❌ Только владелец канала может управлять им.',
+      content: t(locale, 'voice.notOwner'),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -61,38 +63,38 @@ export async function handleVoice(interaction: ChatInputCommandInteraction): Pro
 
   switch (subcommand) {
     case 'rename':
-      await handleRename(interaction, voiceChannel);
+      await handleRename(interaction, voiceChannel, locale);
       break;
     case 'limit':
-      await handleLimit(interaction, voiceChannel);
+      await handleLimit(interaction, voiceChannel, locale);
       break;
     case 'lock':
-      await handleLock(interaction, voiceChannel);
+      await handleLock(interaction, voiceChannel, locale);
       break;
     case 'unlock':
-      await handleUnlock(interaction, voiceChannel);
+      await handleUnlock(interaction, voiceChannel, locale);
       break;
     case 'kick':
-      await handleKick(interaction, voiceChannel);
+      await handleKick(interaction, voiceChannel, locale);
       break;
     case 'permit':
-      await handlePermit(interaction, voiceChannel);
+      await handlePermit(interaction, voiceChannel, locale);
       break;
     case 'reject':
-      await handleReject(interaction, voiceChannel);
+      await handleReject(interaction, voiceChannel, locale);
       break;
     case 'info':
-      await handleInfo(interaction, voiceChannel, ownerId);
+      await handleInfo(interaction, voiceChannel, ownerId, locale);
       break;
   }
 }
 
-async function handleRename(interaction: ChatInputCommandInteraction, channel: VoiceChannel): Promise<void> {
+async function handleRename(interaction: ChatInputCommandInteraction, channel: VoiceChannel, locale: Locale): Promise<void> {
   const newName = interaction.options.getString('name', true);
   
   if (newName.length > 100) {
     await interaction.reply({
-      content: '❌ Название канала не может быть длиннее 100 символов.',
+      content: t(locale, 'voice.rename.tooLong'),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -103,27 +105,27 @@ async function handleRename(interaction: ChatInputCommandInteraction, channel: V
     await channel.setName(newName);
     
     await interaction.reply({
-      content: `✅ Канал переименован: **${oldName}** → **${newName}**`,
+      content: t(locale, 'voice.rename.success', { oldName, newName }),
       flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     console.error('[Voice] Failed to rename channel:', error);
     await interaction.reply({
-      content: '❌ Не удалось переименовать канал.',
+      content: t(locale, 'voice.rename.failed'),
       flags: MessageFlags.Ephemeral,
     });
   }
 }
 
-async function handleLimit(interaction: ChatInputCommandInteraction, channel: VoiceChannel): Promise<void> {
+async function handleLimit(interaction: ChatInputCommandInteraction, channel: VoiceChannel, locale: Locale): Promise<void> {
   const limit = interaction.options.getInteger('count', true);
 
   try {
     await channel.setUserLimit(limit);
     
     const message = limit === 0 
-      ? '✅ Лимит пользователей убран.'
-      : `✅ Установлен лимит: **${limit}** пользователей.`;
+      ? t(locale, 'voice.limit.removed')
+      : t(locale, 'voice.limit.success', { limit: limit.toString() });
     
     await interaction.reply({
       content: message,
@@ -132,13 +134,13 @@ async function handleLimit(interaction: ChatInputCommandInteraction, channel: Vo
   } catch (error) {
     console.error('[Voice] Failed to set limit:', error);
     await interaction.reply({
-      content: '❌ Не удалось установить лимит.',
+      content: t(locale, 'voice.limit.failed'),
       flags: MessageFlags.Ephemeral,
     });
   }
 }
 
-async function handleLock(interaction: ChatInputCommandInteraction, channel: VoiceChannel): Promise<void> {
+async function handleLock(interaction: ChatInputCommandInteraction, channel: VoiceChannel, locale: Locale): Promise<void> {
   try {
     // Deny connect permission for @everyone
     await channel.permissionOverwrites.edit(interaction.guild!.roles.everyone, {
@@ -146,19 +148,19 @@ async function handleLock(interaction: ChatInputCommandInteraction, channel: Voi
     });
     
     await interaction.reply({
-      content: '🔒 Канал закрыт. Новые пользователи не могут присоединиться.',
+      content: t(locale, 'voice.lock.success'),
       flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     console.error('[Voice] Failed to lock channel:', error);
     await interaction.reply({
-      content: '❌ Не удалось закрыть канал.',
+      content: t(locale, 'voice.lock.failed'),
       flags: MessageFlags.Ephemeral,
     });
   }
 }
 
-async function handleUnlock(interaction: ChatInputCommandInteraction, channel: VoiceChannel): Promise<void> {
+async function handleUnlock(interaction: ChatInputCommandInteraction, channel: VoiceChannel, locale: Locale): Promise<void> {
   try {
     // Reset connect permission for @everyone
     await channel.permissionOverwrites.edit(interaction.guild!.roles.everyone, {
@@ -166,25 +168,25 @@ async function handleUnlock(interaction: ChatInputCommandInteraction, channel: V
     });
     
     await interaction.reply({
-      content: '🔓 Канал открыт. Все могут присоединиться.',
+      content: t(locale, 'voice.unlock.success'),
       flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     console.error('[Voice] Failed to unlock channel:', error);
     await interaction.reply({
-      content: '❌ Не удалось открыть канал.',
+      content: t(locale, 'voice.unlock.failed'),
       flags: MessageFlags.Ephemeral,
     });
   }
 }
 
-async function handleKick(interaction: ChatInputCommandInteraction, channel: VoiceChannel): Promise<void> {
+async function handleKick(interaction: ChatInputCommandInteraction, channel: VoiceChannel, locale: Locale): Promise<void> {
   const targetUser = interaction.options.getUser('user', true);
   
   // Can't kick yourself
   if (targetUser.id === interaction.user.id) {
     await interaction.reply({
-      content: '❌ Вы не можете выгнать себя.',
+      content: t(locale, 'voice.kick.self'),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -194,7 +196,7 @@ async function handleKick(interaction: ChatInputCommandInteraction, channel: Voi
   const targetMember = channel.members.get(targetUser.id);
   if (!targetMember) {
     await interaction.reply({
-      content: '❌ Этот пользователь не находится в вашем канале.',
+      content: t(locale, 'voice.kick.notInChannel'),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -204,19 +206,19 @@ async function handleKick(interaction: ChatInputCommandInteraction, channel: Voi
     await targetMember.voice.disconnect('Kicked by channel owner');
     
     await interaction.reply({
-      content: `✅ Пользователь **${targetUser.displayName}** был выгнан из канала.`,
+      content: t(locale, 'voice.kick.success', { user: targetUser.displayName }),
       flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     console.error('[Voice] Failed to kick user:', error);
     await interaction.reply({
-      content: '❌ Не удалось выгнать пользователя.',
+      content: t(locale, 'voice.kick.failed'),
       flags: MessageFlags.Ephemeral,
     });
   }
 }
 
-async function handlePermit(interaction: ChatInputCommandInteraction, channel: VoiceChannel): Promise<void> {
+async function handlePermit(interaction: ChatInputCommandInteraction, channel: VoiceChannel, locale: Locale): Promise<void> {
   const targetUser = interaction.options.getUser('user', true);
 
   try {
@@ -227,25 +229,25 @@ async function handlePermit(interaction: ChatInputCommandInteraction, channel: V
     });
     
     await interaction.reply({
-      content: `✅ Пользователь **${targetUser.displayName}** теперь может присоединиться к каналу.`,
+      content: t(locale, 'voice.permit.success', { user: targetUser.displayName }),
       flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     console.error('[Voice] Failed to permit user:', error);
     await interaction.reply({
-      content: '❌ Не удалось добавить разрешение.',
+      content: t(locale, 'voice.permit.failed'),
       flags: MessageFlags.Ephemeral,
     });
   }
 }
 
-async function handleReject(interaction: ChatInputCommandInteraction, channel: VoiceChannel): Promise<void> {
+async function handleReject(interaction: ChatInputCommandInteraction, channel: VoiceChannel, locale: Locale): Promise<void> {
   const targetUser = interaction.options.getUser('user', true);
   
   // Can't reject yourself
   if (targetUser.id === interaction.user.id) {
     await interaction.reply({
-      content: '❌ Вы не можете забанить себя.',
+      content: t(locale, 'voice.reject.self'),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -264,30 +266,30 @@ async function handleReject(interaction: ChatInputCommandInteraction, channel: V
     }
     
     await interaction.reply({
-      content: `✅ Пользователь **${targetUser.displayName}** заблокирован и не может присоединиться.`,
+      content: t(locale, 'voice.reject.success', { user: targetUser.displayName }),
       flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     console.error('[Voice] Failed to reject user:', error);
     await interaction.reply({
-      content: '❌ Не удалось заблокировать пользователя.',
+      content: t(locale, 'voice.reject.failed'),
       flags: MessageFlags.Ephemeral,
     });
   }
 }
 
-async function handleInfo(interaction: ChatInputCommandInteraction, channel: VoiceChannel, ownerId: string): Promise<void> {
+async function handleInfo(interaction: ChatInputCommandInteraction, channel: VoiceChannel, ownerId: string, locale: Locale): Promise<void> {
   const owner = await interaction.guild!.members.fetch(ownerId).catch(() => null);
   
   const embed = new EmbedBuilder()
-    .setTitle(`🔊 ${channel.name}`)
+    .setTitle(t(locale, 'voice.info.title', { name: channel.name }))
     .setColor(0x5865F2)
     .addFields(
-      { name: '👑 Владелец', value: owner ? `<@${ownerId}>` : 'Unknown', inline: true },
-      { name: '👥 Участников', value: `${channel.members.size}${channel.userLimit > 0 ? `/${channel.userLimit}` : ''}`, inline: true },
-      { name: '🔒 Статус', value: isChannelLocked(channel) ? 'Закрыт' : 'Открыт', inline: true },
-      { name: '📁 Категория', value: channel.parent?.name ?? 'None', inline: true },
-      { name: '🎚️ Битрейт', value: `${channel.bitrate / 1000}kbps`, inline: true },
+      { name: t(locale, 'voice.info.owner'), value: owner ? `<@${ownerId}>` : 'Unknown', inline: true },
+      { name: t(locale, 'voice.info.members'), value: `${channel.members.size}${channel.userLimit > 0 ? `/${channel.userLimit}` : ''}`, inline: true },
+      { name: t(locale, 'voice.info.status'), value: isChannelLocked(channel) ? t(locale, 'voice.info.locked') : t(locale, 'voice.info.unlocked'), inline: true },
+      { name: t(locale, 'voice.info.category'), value: channel.parent?.name ?? 'None', inline: true },
+      { name: t(locale, 'voice.info.bitrate'), value: `${channel.bitrate / 1000}kbps`, inline: true },
     )
     .setTimestamp();
 

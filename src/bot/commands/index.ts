@@ -15,7 +15,7 @@ import { handleHug } from './hug.js';
 import { handleDuel } from './duel.js';
 import { handleGiveaway, handleGiveawayButton } from './giveaway.js';
 import { handleEconomy } from './economy.js';
-import { handleGames, handleBlackjackButton } from './games.js';
+import { handleGames, handleBlackjackButton } from './games/index.js';
 import { handleCasino, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton } from './casino/index.js';
 import { handleLeveling } from './leveling.js';
 import { handleReactionRoles } from './reactionRoles.js';
