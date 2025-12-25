@@ -277,7 +277,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   if (provider === 'cloudflare') {
     result = await generateWithCloudflare(prompt, dimensions, steps, settings);
   } else if (provider === 'gemini') {
-    result = await generateWithGemini(prompt, settings);
+    result = await generateWithGemini(prompt, dimensions, settings);
   } else {
     result = await generateWithTogetherAI(prompt, dimensions, steps, settings);
   }

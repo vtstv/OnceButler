@@ -4,6 +4,7 @@
 
 import { Client, Events, GuildMember, MessageFlags } from 'discord.js';
 import { handleVoiceStateUpdate } from '../voice/voiceTracker.js';
+import { handleTempVoiceUpdate, initTempVoiceService } from '../voice/tempVoiceService.js';
 import { startTickScheduler } from '../scheduler/tickScheduler.js';
 import { ensureRolesExist } from '../roles/roleEngine.js';
 import { handleInteraction, handleGiveawayButton, handleBlackjackButton, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton } from './slashCommands.js';
@@ -18,6 +19,9 @@ export function registerEvents(client: Client): void {
   client.once(Events.ClientReady, async (c) => {
     console.log(`Logged in as ${c.user.tag}`);
 
+    // Initialize temp voice service
+    initTempVoiceService();
+
     for (const guild of c.guilds.cache.values()) {
       await ensureRolesExist(guild);
     }
@@ -25,8 +29,9 @@ export function registerEvents(client: Client): void {
     startTickScheduler(client);
   });
 
-  client.on(Events.VoiceStateUpdate, (oldState, newState) => {
+  client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
     handleVoiceStateUpdate(oldState, newState);
+    await handleTempVoiceUpdate(oldState, newState);
   });
 
   client.on(Events.GuildMemberAdd, async (member) => {
@@ -169,6 +174,24 @@ export function registerEvents(client: Client): void {
           await interaction.reply({ content: '✅ Account ID saved!', flags: MessageFlags.Ephemeral });
         } catch (error) {
           console.error('[MODAL] Error handling imagegen account modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
+      if (interaction.customId === 'setup_tempvoice_name_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          const nameTemplate = interaction.fields.getTextInputValue('name_template');
+          updateGuildSettings(guildId, { tempVoiceNameTemplate: nameTemplate });
+          await interaction.reply({ content: '✅ Name template saved!', flags: MessageFlags.Ephemeral });
+        } catch (error) {
+          console.error('[MODAL] Error handling tempvoice name modal:', error);
           if (!interaction.replied) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }

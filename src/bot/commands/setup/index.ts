@@ -44,3 +44,11 @@ export {
   buildEconomySettings,
   buildGiveawaySettings,
 } from './economyGiveawayBuilders.js';
+
+// New Modules (Reaction Roles, Leveling, Image Gen, Temp Voice)
+export {
+  buildReactionRolesSettings,
+  buildLevelingSettings,
+  buildImageGenSettings,
+  buildTempVoiceSettings,
+} from './newModulesBuilders.js';

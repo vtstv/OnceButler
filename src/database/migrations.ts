@@ -384,4 +384,21 @@ export function runMigrations(): void {
       if (!e.message.includes('duplicate column')) throw e;
     }
   }
+
+  // Add temp voice channels settings columns
+  const tempVoiceColumns = [
+    { name: 'enableTempVoice', sql: 'ALTER TABLE guild_settings ADD COLUMN enableTempVoice INTEGER DEFAULT 0' },
+    { name: 'tempVoiceTriggerChannelId', sql: 'ALTER TABLE guild_settings ADD COLUMN tempVoiceTriggerChannelId TEXT DEFAULT NULL' },
+    { name: 'tempVoiceCategoryId', sql: 'ALTER TABLE guild_settings ADD COLUMN tempVoiceCategoryId TEXT DEFAULT NULL' },
+    { name: 'tempVoiceNameTemplate', sql: "ALTER TABLE guild_settings ADD COLUMN tempVoiceNameTemplate TEXT DEFAULT '🔊 {user}'" },
+    { name: 'tempVoiceUserLimit', sql: 'ALTER TABLE guild_settings ADD COLUMN tempVoiceUserLimit INTEGER DEFAULT 0' },
+  ];
+
+  for (const col of tempVoiceColumns) {
+    try {
+      db.exec(col.sql);
+    } catch (e: any) {
+      if (!e.message.includes('duplicate column')) throw e;
+    }
+  }
 }

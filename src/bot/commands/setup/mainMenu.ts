@@ -89,7 +89,14 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         inline: true
       },
       {
-        name: '📈 Stat Rates',
+        name: '� Temp Voice',
+        value: settings.enableTempVoice 
+          ? '✅ Enabled'
+          : '❌ Disabled',
+        inline: true
+      },
+      {
+        name: '�📈 Stat Rates',
         value: `Gain: \`${settings.statGainMultiplier}x\` | Loss: \`${settings.statDrainMultiplier}x\``,
         inline: false
       },
@@ -149,9 +156,17 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         .setCustomId('setup_cat_leveling')
         .setLabel('📈 Leveling')
         .setStyle(ButtonStyle.Secondary),
+    );
+
+  const row4 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_cat_imageGen')
         .setLabel('🎨 Image Gen')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('setup_cat_tempVoice')
+        .setLabel('🔊 Temp Voice')
         .setStyle(ButtonStyle.Secondary),
     );
 
@@ -166,6 +181,6 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
 
   return {
     embeds: [embed],
-    components: [row1, row2, row3, actionButtons],
+    components: [row1, row2, row3, row4, actionButtons],
   };
 }

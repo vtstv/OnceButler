@@ -61,6 +61,12 @@ export interface GuildSettings {
   imageGenChannelId: string | null;
   imageGenUserDailyLimit: number;
   imageGenGuildDailyLimit: number;
+  // Temp Voice Channels module
+  enableTempVoice: boolean;
+  tempVoiceTriggerChannelId: string | null;
+  tempVoiceCategoryId: string | null;
+  tempVoiceNameTemplate: string;
+  tempVoiceUserLimit: number;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -119,6 +125,12 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   imageGenChannelId: null,
   imageGenUserDailyLimit: 5,
   imageGenGuildDailyLimit: 50,
+  // Temp Voice Channels module
+  enableTempVoice: false,
+  tempVoiceTriggerChannelId: null,
+  tempVoiceCategoryId: null,
+  tempVoiceNameTemplate: '🔊 {user}',
+  tempVoiceUserLimit: 0,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
@@ -136,7 +148,8 @@ export function getGuildSettings(guildId: string): GuildSettings {
            enableLeveling, levelingXpPerMessage, levelingXpPerVoiceMinute, levelingXpCooldown, 
            levelingAnnouncementChannelId, levelingAnnounceLevelUp, levelingStackRoles,
            enableImageGen, imageGenProvider, imageGenApiKey, imageGenAccountId, imageGenChannelId, 
-           imageGenUserDailyLimit, imageGenGuildDailyLimit
+           imageGenUserDailyLimit, imageGenGuildDailyLimit,
+           enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as any;
 
@@ -195,6 +208,11 @@ export function getGuildSettings(guildId: string): GuildSettings {
     imageGenChannelId: row.imageGenChannelId ?? null,
     imageGenUserDailyLimit: row.imageGenUserDailyLimit ?? 5,
     imageGenGuildDailyLimit: row.imageGenGuildDailyLimit ?? 50,
+    enableTempVoice: row.enableTempVoice === 1,
+    tempVoiceTriggerChannelId: row.tempVoiceTriggerChannelId ?? null,
+    tempVoiceCategoryId: row.tempVoiceCategoryId ?? null,
+    tempVoiceNameTemplate: row.tempVoiceNameTemplate ?? '🔊 {user}',
+    tempVoiceUserLimit: row.tempVoiceUserLimit ?? 0,
   };
 }
 
@@ -230,8 +248,9 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 enableLeveling, levelingXpPerMessage, levelingXpPerVoiceMinute, levelingXpCooldown, 
                                 levelingAnnouncementChannelId, levelingAnnounceLevelUp, levelingStackRoles,
                                 enableImageGen, imageGenProvider, imageGenApiKey, imageGenAccountId, imageGenChannelId,
-                                imageGenUserDailyLimit, imageGenGuildDailyLimit)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                imageGenUserDailyLimit, imageGenGuildDailyLimit,
+                                enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -280,7 +299,12 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       imageGenAccountId = excluded.imageGenAccountId,
       imageGenChannelId = excluded.imageGenChannelId,
       imageGenUserDailyLimit = excluded.imageGenUserDailyLimit,
-      imageGenGuildDailyLimit = excluded.imageGenGuildDailyLimit
+      imageGenGuildDailyLimit = excluded.imageGenGuildDailyLimit,
+      enableTempVoice = excluded.enableTempVoice,
+      tempVoiceTriggerChannelId = excluded.tempVoiceTriggerChannelId,
+      tempVoiceCategoryId = excluded.tempVoiceCategoryId,
+      tempVoiceNameTemplate = excluded.tempVoiceNameTemplate,
+      tempVoiceUserLimit = excluded.tempVoiceUserLimit
   `).run(
     guildId,
     merged.language,
@@ -331,7 +355,12 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.imageGenAccountId,
     merged.imageGenChannelId,
     merged.imageGenUserDailyLimit,
-    merged.imageGenGuildDailyLimit
+    merged.imageGenGuildDailyLimit,
+    merged.enableTempVoice ? 1 : 0,
+    merged.tempVoiceTriggerChannelId,
+    merged.tempVoiceCategoryId,
+    merged.tempVoiceNameTemplate,
+    merged.tempVoiceUserLimit
   );
 }
 

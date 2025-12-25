@@ -107,6 +107,10 @@ export async function startCollector(message: Message, userId: string, guildId: 
           updateGuildSettings(guildId, { levelingAnnouncementChannelId: i.values[0] });
         } else if (i.customId === 'setup_imagegen_channel') {
           updateGuildSettings(guildId, { imageGenChannelId: i.values[0] });
+        } else if (i.customId === 'setup_tempvoice_trigger') {
+          updateGuildSettings(guildId, { tempVoiceTriggerChannelId: i.values[0] });
+        } else if (i.customId === 'setup_tempvoice_category') {
+          updateGuildSettings(guildId, { tempVoiceCategoryId: i.values[0] });
         }
         const newSettings = getGuildSettings(guildId);
         const view = buildCategoryView(currentCategory, newSettings, i.guild!, currentRoleSubCategory);
@@ -323,6 +327,10 @@ async function handleStringSelectMenu(
     case 'setup_imagegen_guild_limit':
       updateGuildSettings(guildId, { imageGenGuildDailyLimit: parseInt(i.values[0]) });
       return { shouldReturn: false };
+    // Temp Voice settings
+    case 'setup_tempvoice_limit':
+      updateGuildSettings(guildId, { tempVoiceUserLimit: parseInt(i.values[0]) });
+      return { shouldReturn: false };
     case 'setup_leveling_level_select': {
       const newLevelingData = { ...levelingRoleToAdd, level: parseInt(i.values[0]) };
       if (newLevelingData.roleId && newLevelingData.level) {
@@ -437,6 +445,27 @@ async function handleButton(
     case 'setup_toggle_imagegen':
       updateGuildSettings(guildId, { enableImageGen: !settings.enableImageGen });
       return { shouldReturn: false };
+    case 'setup_toggle_tempvoice':
+      updateGuildSettings(guildId, { enableTempVoice: !settings.enableTempVoice });
+      return { shouldReturn: false };
+    case 'setup_tempvoice_name_modal': {
+      const modal = new ModalBuilder()
+        .setCustomId('setup_tempvoice_name_modal')
+        .setTitle('📝 Channel Name Template');
+      
+      const nameInput = new TextInputBuilder()
+        .setCustomId('name_template')
+        .setLabel('Name Template')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('🔊 {user}')
+        .setValue(settings.tempVoiceNameTemplate)
+        .setRequired(true)
+        .setMaxLength(50);
+      
+      modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(nameInput));
+      await i.showModal(modal);
+      return { shouldReturn: true };
+    }
     case 'setup_imagegen_api': {
       const modal = new ModalBuilder()
         .setCustomId('setup_imagegen_api_modal')

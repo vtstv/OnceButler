@@ -15,7 +15,7 @@ import { buildRolesSettings } from '../roleBuilders.js';
 import { buildWelcomeSettings } from '../welcomeBuilder.js';
 import { buildCustomRolesSettings } from '../customRolesBuilder.js';
 import { buildEconomySettings, buildGiveawaySettings } from '../economyGiveawayBuilders.js';
-import { buildReactionRolesSettings, buildLevelingSettings, buildImageGenSettings } from '../newModulesBuilders.js';
+import { buildReactionRolesSettings, buildLevelingSettings, buildImageGenSettings, buildTempVoiceSettings } from '../newModulesBuilders.js';
 
 export function buildCategoryView(
   category: SetupCategory, 
@@ -50,6 +50,8 @@ export function buildCategoryView(
       return buildLevelingSettings(settings, guild);
     case 'imageGen':
       return buildImageGenSettings(settings, guild);
+    case 'tempVoice':
+      return buildTempVoiceSettings(settings, guild);
     default:
       return buildMainMenu(settings, guild);
   }
