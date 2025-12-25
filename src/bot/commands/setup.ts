@@ -9,8 +9,7 @@ import {
 import { getGuildSettings } from '../../database/repositories/settingsRepo.js';
 import { t } from '../../utils/i18n.js';
 import { getLocale, hasAdminPermission } from './utils.js';
-import { buildCategoryView } from './setup/handlers/viewBuilder.js';
-import { startCollector } from './setup/handlers/setupCollector.js';
+import { buildCategoryView, startCollector } from './setup/handlers/index.js';
 
 export async function handleSetup(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.guild || !interaction.member) {
