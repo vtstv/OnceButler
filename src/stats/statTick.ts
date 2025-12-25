@@ -68,7 +68,6 @@ async function processMemberTick(member: GuildMember): Promise<void> {
     isIdle: presenceStatus === 'idle',
     isAfk: member.voice?.selfMute === true || member.voice?.selfDeaf === true,
     isInVoice: inVoice,
-    isOnlinePresence: presenceStatus === 'online' || presenceStatus === 'idle' || presenceStatus === 'dnd',
   };
 
   const rates: StatRates = {

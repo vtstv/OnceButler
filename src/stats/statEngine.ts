@@ -11,7 +11,6 @@ export interface StatModifiers {
   isIdle: boolean;
   isAfk: boolean;
   isInVoice: boolean;
-  isOnlinePresence: boolean; // true if user has online/idle/dnd status (not invisible)
 }
 
 export interface StatRates {
@@ -54,19 +53,6 @@ export function applyVoiceModifiers(stats: MemberStats, modifiers: StatModifiers
   }
 }
 
-/**
- * Bonus for being online (visible presence: online/idle/dnd)
- * This compensates for base drain, so online users maintain stats
- * Invisible users don't get this bonus - they rely on message activity
- */
-export function applyOnlinePresenceBonus(stats: MemberStats, modifiers: StatModifiers, rates: StatRates = DEFAULT_RATES): void {
-  if (modifiers.isOnlinePresence && !modifiers.isInVoice) {
-    // Small bonus that roughly matches base drain, keeping stats stable when online
-    stats.activity = clamp(stats.activity + 0.3 * rates.gainMultiplier, 0, 100);
-    stats.mood = clamp(stats.mood + 0.2 * rates.gainMultiplier, 0, 100);
-  }
-}
-
 export function applyTimeOfDayEffects(stats: MemberStats, rates: StatRates = DEFAULT_RATES): void {
   const hour = getCurrentHour();
 
@@ -93,7 +79,6 @@ export function processTick(stats: MemberStats, modifiers: StatModifiers, rates:
   applyBaseDrain(stats, rates);
   applyIdleModifiers(stats, modifiers, rates);
   applyVoiceModifiers(stats, modifiers, rates);
-  applyOnlinePresenceBonus(stats, modifiers, rates);
   applyTimeOfDayEffects(stats, rates);
   applyCustomTriggers(stats);
 }

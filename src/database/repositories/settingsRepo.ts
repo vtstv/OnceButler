@@ -55,7 +55,7 @@ export interface GuildSettings {
   levelingStackRoles: boolean;
   // Image Generation module
   enableImageGen: boolean;
-  imageGenProvider: 'cloudflare' | 'together' | 'gemini' | 'puter';
+  imageGenProvider: 'cloudflare' | 'together' | 'gemini';
   imageGenApiKey: string | null;
   imageGenAccountId: string | null;
   imageGenChannelId: string | null;

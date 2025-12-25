@@ -386,13 +386,11 @@ export function buildImageGenSettings(settings: GuildSettings, guild: any): Setu
     'cloudflare': '☁️ Cloudflare FLUX',
     'together': '🚀 Together AI FLUX',
     'gemini': '✨ Google Gemini',
-    'puter': '💻 Puter AI',
   };
   const providerColors: Record<string, number> = {
     'cloudflare': 0xF48120,
     'together': 0x0EA5E9,
     'gemini': 0x4285F4,
-    'puter': 0x7C3AED,
   };
   const providerName = providerNames[provider] || '🤖 AI';
   const providerColor = providerColors[provider] || 0x7C3AED;
@@ -402,7 +400,6 @@ export function buildImageGenSettings(settings: GuildSettings, guild: any): Setu
     'cloudflare': '1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)\n2. Navigate to AI → Workers AI\n3. Create an API Token with AI permissions\n4. Copy your Account ID from the URL',
     'together': '1. Go to [together.ai](https://api.together.xyz)\n2. Sign up (free $5 credits)\n3. Create API Key\n4. ~500 free images',
     'gemini': '1. Go to [Google AI Studio](https://aistudio.google.com/apikey)\n2. Create API Key\n3. Free: 500 images/day\n⚠️ Not available in EEA/UK/Switzerland',
-    'puter': '1. Go to [puter.com](https://puter.com)\n2. Create account (free)\n3. No API key needed for basic usage!\n4. Uses user\'s own AI credits',
   };
   const apiHelp = apiHelpMap[provider] || apiHelpMap['together'];
 
@@ -505,13 +502,6 @@ export function buildImageGenSettings(settings: GuildSettings, guild: any): Setu
             description: '✨ 500/day free (not EEA/UK)',
             emoji: '✨',
             default: provider === 'gemini'
-          },
-          { 
-            label: 'Puter AI', 
-            value: 'puter', 
-            description: '💻 Free, no API key required!',
-            emoji: '💻',
-            default: provider === 'puter'
           },
         ])
     );

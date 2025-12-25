@@ -156,6 +156,7 @@ async function generateWithTogetherAI(
 
 async function generateWithGemini(
   prompt: string,
+  dimensions: { width: number; height: number },
   settings: GuildSettings
 ): Promise<GenerationResult> {
   if (!settings.imageGenApiKey) {
@@ -164,21 +165,20 @@ async function generateWithGemini(
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${settings.imageGenApiKey}`,
+      'https://generativelanguage.googleapis.com/v1beta/openai/images/generations',
       {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${settings.imageGenApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Generate an image: ${prompt}`
-            }]
-          }],
-          generationConfig: {
-            responseModalities: ['TEXT', 'IMAGE']
-          }
+          model: 'imagen-3.0-generate-002',
+          prompt: prompt,
+          width: dimensions.width,
+          height: dimensions.height,
+          response_format: 'b64_json',
+          n: 1,
         }),
       }
     );
@@ -205,106 +205,15 @@ async function generateWithGemini(
 
     const data = await response.json() as any;
     
-    const candidates = data.candidates;
-    if (!candidates || candidates.length === 0) {
-      return { success: false, error: 'No image generated. Try a different prompt.' };
+    if (!data.data || data.data.length === 0 || !data.data[0].b64_json) {
+      return { success: false, error: 'No image in response.' };
     }
 
-    const parts = candidates[0].content?.parts;
-    if (!parts) {
-      return { success: false, error: 'Invalid response from Gemini.' };
-    }
-
-    for (const part of parts) {
-      if (part.inlineData && part.inlineData.mimeType?.startsWith('image/')) {
-        const imageBuffer = Buffer.from(part.inlineData.data, 'base64');
-        return { success: true, imageBuffer };
-      }
-    }
-
-    return { success: false, error: 'No image in response. Try a different prompt.' };
+    const imageBuffer = Buffer.from(data.data[0].b64_json, 'base64');
+    return { success: true, imageBuffer };
   } catch (error) {
     console.error('[IMAGINE] Gemini error:', error);
     return { success: false, error: 'Failed to connect to Gemini API.' };
-  }
-}
-
-async function generateWithPuter(
-  prompt: string,
-  settings: GuildSettings
-): Promise<GenerationResult> {
-  // Puter REST API for image generation
-  // Supports optional API key for authenticated requests
-  
-  try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    
-    if (settings.imageGenApiKey) {
-      headers['Authorization'] = `Bearer ${settings.imageGenApiKey}`;
-    }
-
-    const response = await fetch(
-      'https://api.puter.com/ai/txt2img',
-      {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          prompt: prompt,
-          test_mode: false,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({})) as any;
-      console.error('[IMAGINE] Puter API error:', response.status, errorData);
-      
-      if (response.status === 401) {
-        return { success: false, error: 'Puter authentication required. Please login at puter.com first.' };
-      }
-      if (response.status === 429) {
-        return { success: false, error: 'Puter rate limit exceeded. Please try again later.' };
-      }
-      if (response.status === 400) {
-        const msg = errorData?.message || errorData?.error || '';
-        if (msg.toLowerCase().includes('nsfw') || msg.toLowerCase().includes('safety')) {
-          return { success: false, error: '🚫 Prompt blocked by safety filter. Try a different prompt.' };
-        }
-        return { success: false, error: 'Invalid prompt. Try a simpler description.' };
-      }
-      return { success: false, error: `Puter API error: ${response.status}` };
-    }
-
-    const contentType = response.headers.get('content-type') || '';
-    
-    if (contentType.includes('image/')) {
-      const arrayBuffer = await response.arrayBuffer();
-      const imageBuffer = Buffer.from(arrayBuffer);
-      return { success: true, imageBuffer };
-    } else {
-      const data = await response.json() as any;
-      
-      if (data.image) {
-        const imageBuffer = Buffer.from(data.image, 'base64');
-        return { success: true, imageBuffer };
-      } else if (data.url) {
-        const imgResponse = await fetch(data.url);
-        if (!imgResponse.ok) {
-          return { success: false, error: 'Failed to download generated image.' };
-        }
-        const arrayBuffer = await imgResponse.arrayBuffer();
-        const imageBuffer = Buffer.from(arrayBuffer);
-        return { success: true, imageBuffer };
-      }
-      
-      console.error('[IMAGINE] Puter unexpected response:', data);
-      return { success: false, error: 'Unexpected response from Puter API.' };
-    }
-  } catch (error) {
-    console.error('[IMAGINE] Puter error:', error);
-    return { success: false, error: 'Failed to connect to Puter API.' };
   }
 }
 
@@ -321,8 +230,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     return;
   }
 
-  // Puter doesn't require API key, others do
-  if (settings.imageGenProvider !== 'puter' && !settings.imageGenApiKey) {
+  if (!settings.imageGenApiKey) {
     await interaction.reply({
       content: '❌ Image generation is not configured. Please ask an admin to set up the API key in `/setup`.',
       flags: MessageFlags.Ephemeral,
@@ -370,8 +278,6 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     result = await generateWithCloudflare(prompt, dimensions, steps, settings);
   } else if (provider === 'gemini') {
     result = await generateWithGemini(prompt, settings);
-  } else if (provider === 'puter') {
-    result = await generateWithPuter(prompt, settings);
   } else {
     result = await generateWithTogetherAI(prompt, dimensions, steps, settings);
   }
@@ -395,13 +301,11 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     'cloudflare': '☁️ Cloudflare FLUX',
     'gemini': '✨ Google Gemini',
     'together': '🚀 Together AI FLUX',
-    'puter': '💻 Puter AI',
   };
   const providerColors: Record<string, number> = {
     'cloudflare': 0xF48120,
     'gemini': 0x4285F4,
     'together': 0x0EA5E9,
-    'puter': 0x7C3AED,
   };
   const providerName = providerNames[provider] || '🤖 AI';
   
