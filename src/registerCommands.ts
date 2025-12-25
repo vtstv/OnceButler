@@ -429,6 +429,58 @@ const commands = [
         .setMinValue(4)
         .setMaxValue(8)
     ),
+
+  // Voice channel management
+  new SlashCommandBuilder()
+    .setName('voice')
+    .setDescription('Manage your temporary voice channel')
+    .addSubcommand(sub =>
+      sub.setName('rename')
+        .setDescription('Rename your channel')
+        .addStringOption(opt => 
+          opt.setName('name')
+            .setDescription('New channel name')
+            .setRequired(true)
+            .setMaxLength(100)))
+    .addSubcommand(sub =>
+      sub.setName('limit')
+        .setDescription('Set user limit for your channel')
+        .addIntegerOption(opt => 
+          opt.setName('count')
+            .setDescription('User limit (0 = unlimited)')
+            .setRequired(true)
+            .setMinValue(0)
+            .setMaxValue(99)))
+    .addSubcommand(sub =>
+      sub.setName('lock')
+        .setDescription('Lock your channel (prevent new users from joining)'))
+    .addSubcommand(sub =>
+      sub.setName('unlock')
+        .setDescription('Unlock your channel (allow everyone to join)'))
+    .addSubcommand(sub =>
+      sub.setName('kick')
+        .setDescription('Kick a user from your channel')
+        .addUserOption(opt =>
+          opt.setName('user')
+            .setDescription('User to kick')
+            .setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('permit')
+        .setDescription('Allow a user to join your locked channel')
+        .addUserOption(opt =>
+          opt.setName('user')
+            .setDescription('User to permit')
+            .setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('reject')
+        .setDescription('Ban a user from your channel')
+        .addUserOption(opt =>
+          opt.setName('user')
+            .setDescription('User to reject')
+            .setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('info')
+        .setDescription('View information about your channel')),
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
