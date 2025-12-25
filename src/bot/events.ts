@@ -7,7 +7,7 @@ import { handleVoiceStateUpdate } from '../voice/voiceTracker.js';
 import { startTickScheduler } from '../scheduler/tickScheduler.js';
 import { ensureRolesExist } from '../roles/roleEngine.js';
 import { handleInteraction, handleGiveawayButton, handleBlackjackButton, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton } from './slashCommands.js';
-import { getMemberStats, upsertMemberStats } from '../database/repositories/memberStatsRepo.js';
+import { getMemberStats, upsertMemberStats, boostActivityOnMessage } from '../database/repositories/memberStatsRepo.js';
 import { chance, randomInt } from '../utils/random.js';
 import { handleGuildMemberAdd, handleGuildMemberRemove } from './events/welcomeEvents.js';
 import { handleReactionAdd, handleReactionRemove } from './events/reactionRolesEvents.js';
@@ -41,6 +41,11 @@ export function registerEvents(client: Client): void {
 
   client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot) return;
+    if (!message.guild) return;
+    
+    // Boost activity on message (helps invisible users maintain stats)
+    boostActivityOnMessage(message.guild.id, message.author.id, 2.0);
+    
     await handleMessageXp(message);
   });
 

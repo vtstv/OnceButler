@@ -69,7 +69,6 @@ async function generateWithCloudflare(
         return { success: false, error: 'Rate limit exceeded. Please try again later.' };
       }
       if (response.status === 400) {
-        // Check for NSFW filter
         const errorMsg = errorData?.errors?.[0]?.message || '';
         if (errorMsg.includes('NSFW')) {
           return { success: false, error: '🚫 Prompt blocked by safety filter. Try a different prompt.' };
@@ -79,7 +78,6 @@ async function generateWithCloudflare(
       return { success: false, error: `Cloudflare API error: ${response.status}` };
     }
 
-    // Cloudflare returns JSON with base64 image in result.image
     const data = await response.json() as any;
     
     if (!data.result?.image) {
@@ -106,7 +104,6 @@ async function generateWithTogetherAI(
   }
 
   try {
-    // Together AI FLUX.1-schnell-Free - FREE!
     const response = await fetch(
       'https://api.together.xyz/v1/images/generations',
       {
@@ -166,7 +163,6 @@ async function generateWithGemini(
   }
 
   try {
-    // Gemini 2.5 Flash Image model
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${settings.imageGenApiKey}`,
       {
@@ -209,7 +205,6 @@ async function generateWithGemini(
 
     const data = await response.json() as any;
     
-    // Extract image from response
     const candidates = data.candidates;
     if (!candidates || candidates.length === 0) {
       return { success: false, error: 'No image generated. Try a different prompt.' };
@@ -220,7 +215,6 @@ async function generateWithGemini(
       return { success: false, error: 'Invalid response from Gemini.' };
     }
 
-    // Find inline_data part with image
     for (const part of parts) {
       if (part.inlineData && part.inlineData.mimeType?.startsWith('image/')) {
         const imageBuffer = Buffer.from(part.inlineData.data, 'base64');
@@ -235,12 +229,90 @@ async function generateWithGemini(
   }
 }
 
+async function generateWithPuter(
+  prompt: string,
+  settings: GuildSettings
+): Promise<GenerationResult> {
+  // Puter REST API for image generation
+  // Supports optional API key for authenticated requests
+  
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (settings.imageGenApiKey) {
+      headers['Authorization'] = `Bearer ${settings.imageGenApiKey}`;
+    }
+
+    const response = await fetch(
+      'https://api.puter.com/ai/txt2img',
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          prompt: prompt,
+          test_mode: false,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({})) as any;
+      console.error('[IMAGINE] Puter API error:', response.status, errorData);
+      
+      if (response.status === 401) {
+        return { success: false, error: 'Puter authentication required. Please login at puter.com first.' };
+      }
+      if (response.status === 429) {
+        return { success: false, error: 'Puter rate limit exceeded. Please try again later.' };
+      }
+      if (response.status === 400) {
+        const msg = errorData?.message || errorData?.error || '';
+        if (msg.toLowerCase().includes('nsfw') || msg.toLowerCase().includes('safety')) {
+          return { success: false, error: '🚫 Prompt blocked by safety filter. Try a different prompt.' };
+        }
+        return { success: false, error: 'Invalid prompt. Try a simpler description.' };
+      }
+      return { success: false, error: `Puter API error: ${response.status}` };
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    
+    if (contentType.includes('image/')) {
+      const arrayBuffer = await response.arrayBuffer();
+      const imageBuffer = Buffer.from(arrayBuffer);
+      return { success: true, imageBuffer };
+    } else {
+      const data = await response.json() as any;
+      
+      if (data.image) {
+        const imageBuffer = Buffer.from(data.image, 'base64');
+        return { success: true, imageBuffer };
+      } else if (data.url) {
+        const imgResponse = await fetch(data.url);
+        if (!imgResponse.ok) {
+          return { success: false, error: 'Failed to download generated image.' };
+        }
+        const arrayBuffer = await imgResponse.arrayBuffer();
+        const imageBuffer = Buffer.from(arrayBuffer);
+        return { success: true, imageBuffer };
+      }
+      
+      console.error('[IMAGINE] Puter unexpected response:', data);
+      return { success: false, error: 'Unexpected response from Puter API.' };
+    }
+  } catch (error) {
+    console.error('[IMAGINE] Puter error:', error);
+    return { success: false, error: 'Failed to connect to Puter API.' };
+  }
+}
+
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   const guildId = interaction.guildId!;
   const userId = interaction.user.id;
   const settings = getGuildSettings(guildId);
 
-  // Check if module is enabled
   if (!settings.enableImageGen) {
     await interaction.reply({
       content: '❌ Image generation is not enabled on this server.',
@@ -249,8 +321,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     return;
   }
 
-  // Check if API key is configured
-  if (!settings.imageGenApiKey) {
+  // Puter doesn't require API key, others do
+  if (settings.imageGenProvider !== 'puter' && !settings.imageGenApiKey) {
     await interaction.reply({
       content: '❌ Image generation is not configured. Please ask an admin to set up the API key in `/setup`.',
       flags: MessageFlags.Ephemeral,
@@ -258,7 +330,6 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     return;
   }
 
-  // Check channel restriction
   if (settings.imageGenChannelId && interaction.channelId !== settings.imageGenChannelId) {
     await interaction.reply({
       content: `❌ Image generation is only allowed in <#${settings.imageGenChannelId}>.`,
@@ -267,7 +338,6 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     return;
   }
 
-  // Check user daily limit
   const userUsage = getImageGenUsage(guildId, userId);
   if (userUsage.generationsToday >= settings.imageGenUserDailyLimit) {
     await interaction.reply({
@@ -277,7 +347,6 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     return;
   }
 
-  // Check server daily limit
   const guildStats = getGuildImageGenStats(guildId);
   if (guildStats.generationsToday >= settings.imageGenGuildDailyLimit) {
     await interaction.reply({
@@ -292,7 +361,6 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   const steps = interaction.options.getInteger('steps') ?? 4;
   const dimensions = ASPECT_RATIOS[aspect];
 
-  // Defer reply as generation can take time
   await interaction.deferReply();
 
   let result: GenerationResult;
@@ -302,8 +370,9 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     result = await generateWithCloudflare(prompt, dimensions, steps, settings);
   } else if (provider === 'gemini') {
     result = await generateWithGemini(prompt, settings);
+  } else if (provider === 'puter') {
+    result = await generateWithPuter(prompt, settings);
   } else {
-    // Together AI (default) - free FLUX model
     result = await generateWithTogetherAI(prompt, dimensions, steps, settings);
   }
 
@@ -314,11 +383,9 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     return;
   }
 
-  // Increment usage counters
   incrementImageGenUsage(guildId, userId);
   incrementGuildImageGenStats(guildId);
 
-  // Get updated usage for display
   const newUserUsage = getImageGenUsage(guildId, userId);
   const newGuildStats = getGuildImageGenStats(guildId);
 
@@ -328,11 +395,13 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     'cloudflare': '☁️ Cloudflare FLUX',
     'gemini': '✨ Google Gemini',
     'together': '🚀 Together AI FLUX',
+    'puter': '💻 Puter AI',
   };
   const providerColors: Record<string, number> = {
     'cloudflare': 0xF48120,
     'gemini': 0x4285F4,
     'together': 0x0EA5E9,
+    'puter': 0x7C3AED,
   };
   const providerName = providerNames[provider] || '🤖 AI';
   

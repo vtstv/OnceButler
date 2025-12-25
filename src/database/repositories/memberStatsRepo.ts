@@ -79,6 +79,20 @@ export function upsertMemberStats(stats: MemberStats): void {
   );
 }
 
+/**
+ * Boost activity stat when user sends a message
+ * This helps invisible users maintain activity through chat participation
+ */
+export function boostActivityOnMessage(guildId: string, userId: string, amount: number = 2.0): void {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO member_stats (guild_id, user_id, mood, energy, activity)
+    VALUES (?, ?, 30, 30, ?)
+    ON CONFLICT(guild_id, user_id) DO UPDATE SET
+      activity = MIN(100, activity + ?)
+  `).run(guildId, userId, Math.min(100, amount), amount);
+}
+
 export function getAllGuildMembers(guildId: string): MemberStats[] {
   const db = getDb();
   const rows = db.prepare(`
