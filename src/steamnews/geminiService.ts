@@ -21,7 +21,14 @@ export async function translateAndSummarize(
   content: string,
   apiKey: string
 ): Promise<string | null> {
+  // Get current date for accurate timestamp calculation
+  const now = new Date();
+  const currentDateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+  const currentUnix = Math.floor(now.getTime() / 1000);
+  
   const prompt = `Ты - помощник по обработке новостей для игры Once Human для Discord-канала.
+
+ВАЖНО: Сегодня ${currentDateStr}, текущий Unix timestamp: ${currentUnix}
 
 ЗАДАЧА: Создать СТРУКТУРИРОВАННОЕ SUMMARY новости на русском языке.
 
@@ -37,13 +44,20 @@ export async function translateAndSummarize(
 - Используй эмодзи и **жирный текст**
 - Объединяй похожие пункты, не дублируй
 - ИСКЛЮЧАЙ: RaidZone Mode, таблицы банов, информацию о магазине
-- Конвертируй даты в Discord timestamp: <t:UNIX:F> (<t:UNIX:R>)
-  - PT (Pacific Time) = UTC-8 зимой
-  - Пример: "January 8, 2026, 6:40 PM PT" → <t:1736390400:F>
 
-ПОЛНОСТЬЮ ИСКЛЮЧИ только:
-   - Любые упоминания RaidZone Mode
-   - Таблицы с банами игроков
+КОНВЕРТАЦИЯ ДАТ В DISCORD TIMESTAMP:
+- PT (Pacific Time) = UTC-8 зимой (ноябрь-март), UTC-7 летом
+- Формула: Unix = секунды с 1 января 1970 UTC
+- Для справки: ${currentDateStr} = ${currentUnix}
+- ИСПОЛЬЗУЙ формат: <t:UNIX:F> (<t:UNIX:R>)
+- Пример расчета для "January 8, 2026, 6:40 PM PT":
+  - 6:40 PM PT = 18:40 PT = 02:40 UTC следующего дня
+  - January 9, 2026 02:40 UTC = 1736390400
+  - Результат: <t:1736390400:F> (<t:1736390400:R>)
+
+ПОЛНОСТЬЮ ИСКЛЮЧИ:
+- Любые упоминания RaidZone Mode
+- Таблицы с банами игроков
 
 ЛИМИТ: 2000 символов. Будь лаконичен, но информативен!
 
