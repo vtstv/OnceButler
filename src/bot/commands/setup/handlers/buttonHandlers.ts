@@ -83,6 +83,9 @@ async function handleToggleButtons(
     'setup_toggle_imagegen': 'enableImageGen',
     'setup_toggle_tempvoice': 'enableTempVoice',
     'setup_toggle_steamnews': 'enableSteamNews',
+    'setup_ai_toggle': 'enableAI',
+    'setup_ai_allchannels': 'aiAllowAllChannels',
+    'setup_ai_dms': 'aiAllowDMs',
   };
 
   const settingKey = toggleMappings[i.customId];
@@ -171,6 +174,42 @@ async function handleModalButtons(
       await i.showModal(modal);
       return { shouldReturn: true };
     }
+
+    case 'setup_ai_apikey': {
+      const modal = new ModalBuilder()
+        .setCustomId('setup_ai_apikey_modal')
+        .setTitle('🔑 AI API Key');
+      
+      const apiKeyInput = new TextInputBuilder()
+        .setCustomId('api_key')
+        .setLabel('API Key')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Enter your API key')
+        .setRequired(true)
+        .setMaxLength(100);
+      
+      modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(apiKeyInput));
+      await i.showModal(modal);
+      return { shouldReturn: true };
+    }
+
+    case 'setup_ai_accountid': {
+      const modal = new ModalBuilder()
+        .setCustomId('setup_ai_accountid_modal')
+        .setTitle('🆔 Cloudflare Account ID');
+      
+      const accountInput = new TextInputBuilder()
+        .setCustomId('account_id')
+        .setLabel('Account ID')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Enter your Cloudflare Account ID')
+        .setRequired(true)
+        .setMaxLength(50);
+      
+      modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(accountInput));
+      await i.showModal(modal);
+      return { shouldReturn: true };
+    }
   }
 
   return null;
@@ -219,6 +258,12 @@ async function handleModuleButtons(
 
     case 'setup_steamnews_force':
       return handleSteamNewsForce(i, guildId, settings);
+
+    case 'setup_ai_test':
+      return handleAITest(i, guildId, settings);
+
+    case 'setup_ai_provider':
+      return handleAIProviderSelect(i, settings);
   }
 
   return null;
@@ -569,6 +614,67 @@ async function handleSteamNewsForce(
     console.error('[STEAM NEWS FORCE]', error);
     await i.editReply({ content: `❌ Error: ${(error as Error).message}` });
   }
+  
+  return { shouldReturn: true };
+}
+
+async function handleAITest(
+  i: ButtonInteraction,
+  guildId: string,
+  settings: any
+): Promise<ButtonResult> {
+  await i.deferReply({ flags: MessageFlags.Ephemeral });
+  
+  try {
+    if (!settings.aiApiKey) {
+      await i.editReply({ content: '❌ AI API key not set.' });
+      return { shouldReturn: true };
+    }
+    
+    if (settings.aiProvider === 'cloudflare' && !settings.aiAccountId) {
+      await i.editReply({ content: '❌ Cloudflare Account ID not set (required for Cloudflare provider).' });
+      return { shouldReturn: true };
+    }
+    
+    const { chat } = await import('../../../../ai/aiService.js');
+    
+    const response = await chat({
+      provider: settings.aiProvider,
+      apiKey: settings.aiApiKey,
+      accountId: settings.aiAccountId ?? undefined,
+    }, {
+      prompt: 'Say "Hello! AI is working correctly!" in a friendly way with an emoji.',
+      maxTokens: 100,
+    });
+    
+    if (!response.success) {
+      await i.editReply({ content: `❌ AI Error: ${response.error}` });
+      return { shouldReturn: true };
+    }
+    
+    await i.editReply({ 
+      content: `✅ **AI Test Successful!**\n\n**Provider:** ${settings.aiProvider}\n**Response:** ${response.content}` 
+    });
+  } catch (error) {
+    console.error('[AI TEST]', error);
+    await i.editReply({ content: `❌ Error: ${(error as Error).message}` });
+  }
+  
+  return { shouldReturn: true };
+}
+
+async function handleAIProviderSelect(
+  i: ButtonInteraction,
+  settings: any
+): Promise<ButtonResult> {
+  const { buildAIProviderSelect } = await import('../builders/aiBuilder.js');
+  const selectRow = buildAIProviderSelect(settings.aiProvider);
+  
+  await i.reply({
+    content: '🔄 **Select AI Provider:**',
+    components: [selectRow],
+    flags: MessageFlags.Ephemeral,
+  });
   
   return { shouldReturn: true };
 }

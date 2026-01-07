@@ -435,4 +435,24 @@ export function runMigrations(): void {
     CREATE INDEX IF NOT EXISTS idx_steam_news_guild
     ON steam_news_processed(guild_id);
   `);
+
+  // Add AI module settings columns
+  const aiColumns = [
+    { name: 'enableAI', sql: 'ALTER TABLE guild_settings ADD COLUMN enableAI INTEGER DEFAULT 0' },
+    { name: 'aiProvider', sql: "ALTER TABLE guild_settings ADD COLUMN aiProvider TEXT DEFAULT 'cloudflare'" },
+    { name: 'aiApiKey', sql: 'ALTER TABLE guild_settings ADD COLUMN aiApiKey TEXT DEFAULT NULL' },
+    { name: 'aiAccountId', sql: 'ALTER TABLE guild_settings ADD COLUMN aiAccountId TEXT DEFAULT NULL' },
+    { name: 'aiChannelId', sql: 'ALTER TABLE guild_settings ADD COLUMN aiChannelId TEXT DEFAULT NULL' },
+    { name: 'aiAllowAllChannels', sql: 'ALTER TABLE guild_settings ADD COLUMN aiAllowAllChannels INTEGER DEFAULT 0' },
+    { name: 'aiAllowDMs', sql: 'ALTER TABLE guild_settings ADD COLUMN aiAllowDMs INTEGER DEFAULT 0' },
+    { name: 'aiDefaultTranslateLanguage', sql: "ALTER TABLE guild_settings ADD COLUMN aiDefaultTranslateLanguage TEXT DEFAULT 'ru'" },
+  ];
+
+  for (const col of aiColumns) {
+    try {
+      db.exec(col.sql);
+    } catch (e: any) {
+      if (!e.message.includes('duplicate column')) throw e;
+    }
+  }
 }

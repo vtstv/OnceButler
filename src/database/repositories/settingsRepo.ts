@@ -72,6 +72,15 @@ export interface GuildSettings {
   steamNewsChannelId: string | null;
   steamNewsGeminiKey: string | null;
   steamNewsCheckInterval: number;
+  // AI Module
+  enableAI: boolean;
+  aiProvider: 'cloudflare' | 'gemini';
+  aiApiKey: string | null;
+  aiAccountId: string | null;
+  aiChannelId: string | null;
+  aiAllowAllChannels: boolean;
+  aiAllowDMs: boolean;
+  aiDefaultTranslateLanguage: string;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -141,6 +150,15 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   steamNewsChannelId: null,
   steamNewsGeminiKey: null,
   steamNewsCheckInterval: 60,
+  // AI Module
+  enableAI: false,
+  aiProvider: 'cloudflare',
+  aiApiKey: null,
+  aiAccountId: null,
+  aiChannelId: null,
+  aiAllowAllChannels: false,
+  aiAllowDMs: false,
+  aiDefaultTranslateLanguage: 'ru',
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
@@ -160,7 +178,8 @@ export function getGuildSettings(guildId: string): GuildSettings {
            enableImageGen, imageGenProvider, imageGenApiKey, imageGenAccountId, imageGenChannelId, 
            imageGenUserDailyLimit, imageGenGuildDailyLimit,
            enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit,
-           enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval
+           enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval,
+           enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as any;
 
@@ -228,6 +247,14 @@ export function getGuildSettings(guildId: string): GuildSettings {
     steamNewsChannelId: row.steamNewsChannelId ?? null,
     steamNewsGeminiKey: row.steamNewsGeminiKey ?? null,
     steamNewsCheckInterval: row.steamNewsCheckInterval ?? 60,
+    enableAI: row.enableAI === 1,
+    aiProvider: row.aiProvider ?? 'cloudflare',
+    aiApiKey: row.aiApiKey ?? null,
+    aiAccountId: row.aiAccountId ?? null,
+    aiChannelId: row.aiChannelId ?? null,
+    aiAllowAllChannels: row.aiAllowAllChannels === 1,
+    aiAllowDMs: row.aiAllowDMs === 1,
+    aiDefaultTranslateLanguage: row.aiDefaultTranslateLanguage ?? 'ru',
   };
 }
 
@@ -265,8 +292,9 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 enableImageGen, imageGenProvider, imageGenApiKey, imageGenAccountId, imageGenChannelId,
                                 imageGenUserDailyLimit, imageGenGuildDailyLimit,
                                 enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit,
-                                enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval,
+                                enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -324,7 +352,15 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       enableSteamNews = excluded.enableSteamNews,
       steamNewsChannelId = excluded.steamNewsChannelId,
       steamNewsGeminiKey = excluded.steamNewsGeminiKey,
-      steamNewsCheckInterval = excluded.steamNewsCheckInterval
+      steamNewsCheckInterval = excluded.steamNewsCheckInterval,
+      enableAI = excluded.enableAI,
+      aiProvider = excluded.aiProvider,
+      aiApiKey = excluded.aiApiKey,
+      aiAccountId = excluded.aiAccountId,
+      aiChannelId = excluded.aiChannelId,
+      aiAllowAllChannels = excluded.aiAllowAllChannels,
+      aiAllowDMs = excluded.aiAllowDMs,
+      aiDefaultTranslateLanguage = excluded.aiDefaultTranslateLanguage
   `).run(
     guildId,
     merged.language,
@@ -384,7 +420,15 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.enableSteamNews ? 1 : 0,
     merged.steamNewsChannelId,
     merged.steamNewsGeminiKey,
-    merged.steamNewsCheckInterval
+    merged.steamNewsCheckInterval,
+    merged.enableAI ? 1 : 0,
+    merged.aiProvider,
+    merged.aiApiKey,
+    merged.aiAccountId,
+    merged.aiChannelId,
+    merged.aiAllowAllChannels ? 1 : 0,
+    merged.aiAllowDMs ? 1 : 0,
+    merged.aiDefaultTranslateLanguage
   );
 }
 

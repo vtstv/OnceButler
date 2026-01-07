@@ -216,6 +216,42 @@ export function registerEvents(client: Client): void {
         }
         return;
       }
+      if (interaction.customId === 'setup_ai_apikey_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          const apiKey = interaction.fields.getTextInputValue('api_key');
+          updateGuildSettings(guildId, { aiApiKey: apiKey });
+          await interaction.reply({ content: '✅ AI API Key saved!', flags: MessageFlags.Ephemeral });
+        } catch (error) {
+          console.error('[MODAL] Error handling AI api modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
+      if (interaction.customId === 'setup_ai_accountid_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          const accountId = interaction.fields.getTextInputValue('account_id');
+          updateGuildSettings(guildId, { aiAccountId: accountId });
+          await interaction.reply({ content: '✅ Cloudflare Account ID saved!', flags: MessageFlags.Ephemeral });
+        } catch (error) {
+          console.error('[MODAL] Error handling AI account modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
     }
 
     await handleInteraction(interaction);

@@ -16,6 +16,7 @@ import { buildWelcomeSettings } from '../welcomeBuilder.js';
 import { buildCustomRolesSettings } from '../customRolesBuilder.js';
 import { buildEconomySettings, buildGiveawaySettings } from '../economyGiveawayBuilders.js';
 import { buildReactionRolesSettings, buildLevelingSettings, buildImageGenSettings, buildTempVoiceSettings, buildSteamNewsSettings } from '../newModulesBuilders.js';
+import { buildAISettingsEmbed, buildAISettingsButtons, buildAIChannelSelect, buildAILanguageSelect } from '../builders/aiBuilder.js';
 
 export function buildCategoryView(
   category: SetupCategory, 
@@ -54,7 +55,21 @@ export function buildCategoryView(
       return buildTempVoiceSettings(settings, guild);
     case 'steamNews':
       return buildSteamNewsSettings(settings, guild);
+    case 'ai':
+      return buildAISettings(settings, guild);
     default:
       return buildMainMenu(settings, guild);
   }
+}
+
+function buildAISettings(settings: GuildSettings, guild: any): SetupView {
+  const embed = buildAISettingsEmbed(settings);
+  const buttons = buildAISettingsButtons(settings);
+  const channelSelect = buildAIChannelSelect();
+  const languageSelect = buildAILanguageSelect(settings.aiDefaultTranslateLanguage);
+  
+  return {
+    embeds: [embed],
+    components: [...buttons.slice(0, 2), channelSelect, languageSelect, ...buttons.slice(2)],
+  };
 }

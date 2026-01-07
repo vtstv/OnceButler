@@ -471,4 +471,28 @@ export const commands = [
     .addSubcommand(sub =>
       sub.setName('info')
         .setDescription('View information about your channel')),
+
+  // AI Commands
+  new SlashCommandBuilder()
+    .setName('ai')
+    .setDescription('Chat with AI')
+    .addStringOption(opt =>
+      opt.setName('prompt')
+        .setDescription('Your message to AI')
+        .setRequired(true)
+        .setMaxLength(2000)),
+
+  new SlashCommandBuilder()
+    .setName('translate')
+    .setDescription('Translate text to another language')
+    .addStringOption(opt =>
+      opt.setName('text')
+        .setDescription('Text to translate')
+        .setRequired(true)
+        .setMaxLength(2000))
+    .addStringOption(opt =>
+      opt.setName('language')
+        .setDescription('Target language code (e.g., ru, en, de, fr)')
+        .setRequired(false)
+        .setMaxLength(5)),
 ];

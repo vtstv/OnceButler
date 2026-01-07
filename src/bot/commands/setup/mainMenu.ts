@@ -103,6 +103,13 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         inline: true
       },
       {
+        name: '🤖 AI Chat/Translate',
+        value: settings.enableAI 
+          ? `✅ ${settings.aiProvider}`
+          : '❌ Disabled',
+        inline: true
+      },
+      {
         name: '📈 Stat Rates',
         value: `Gain: \`${settings.statGainMultiplier}x\` | Loss: \`${settings.statDrainMultiplier}x\``,
         inline: false
@@ -178,6 +185,10 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
       new ButtonBuilder()
         .setCustomId('setup_cat_steamNews')
         .setLabel('📰 Steam News')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('setup_cat_ai')
+        .setLabel('🤖 AI')
         .setStyle(ButtonStyle.Secondary),
     );
 
