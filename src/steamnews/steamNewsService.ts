@@ -8,6 +8,7 @@ import { fetchSteamNews, isUpdateNews, shouldExcludeNews, cleanSteamContent, fil
 import { translateAndSummarize } from './geminiService.js';
 import { isNewsProcessed, markNewsProcessed, initSteamNewsTable } from './steamNewsRepo.js';
 import { getGuildSettings } from '../database/repositories/settingsRepo.js';
+import { replaceDatesWithTimestamps } from './dateParser.js';
 
 let initialized = false;
 
@@ -49,6 +50,43 @@ export async function processSteamNews(client: Client): Promise<void> {
   }
 }
 
+/**
+ * Force post latest news to a specific guild, ignoring already-posted check
+ */
+export async function forceSteamNewsPost(
+  client: Client,
+  guildId: string,
+  channelId: string,
+  geminiApiKey: string
+): Promise<number> {
+  initSteamNews();
+  console.log(`[STEAM NEWS] Force posting to guild ${guildId}`);
+
+  const newsItems = await fetchSteamNews(ONCE_HUMAN_CONFIG);
+  if (newsItems.length === 0) {
+    console.log('[STEAM NEWS] No news items fetched');
+    return 0;
+  }
+
+  const updateNews = newsItems.filter(item => 
+    isUpdateNews(item, ONCE_HUMAN_CONFIG) && !shouldExcludeNews(item, ONCE_HUMAN_CONFIG)
+  );
+
+  if (updateNews.length === 0) {
+    console.log('[STEAM NEWS] No relevant update news found');
+    // Fallback: try to post the latest non-excluded news item, or the first item
+    const fallback = newsItems.find(item => !shouldExcludeNews(item, ONCE_HUMAN_CONFIG)) ?? newsItems[0];
+    if (!fallback) return 0;
+    console.log('[STEAM NEWS] Fallback: posting latest available news item (not classified as update)');
+    return await processNewsForGuild(client, guildId, channelId, geminiApiKey, [fallback], true);
+  }
+
+  // Only post the latest news item
+  const latestNews = [updateNews[0]];
+  
+  return await processNewsForGuild(client, guildId, channelId, geminiApiKey, latestNews, true);
+}
+
 interface GuildNewsConfig {
   guildId: string;
   channelId: string;
@@ -77,22 +115,28 @@ async function processNewsForGuild(
   guildId: string,
   channelId: string,
   geminiApiKey: string,
-  newsItems: SteamNewsItem[]
-): Promise<void> {
+  newsItems: SteamNewsItem[],
+  forcePost: boolean = false
+): Promise<number> {
   const channel = await client.channels.fetch(channelId).catch(() => null) as TextChannel | null;
   if (!channel || !channel.isTextBased()) {
     console.log(`[STEAM NEWS] Channel ${channelId} not found for guild ${guildId}`);
-    return;
+    return 0;
   }
 
+  let postedCount = 0;
+
   for (const item of newsItems) {
-    if (isNewsProcessed(item.gid, guildId, channelId)) {
+    // Skip already processed unless force mode
+    if (!forcePost && isNewsProcessed(item.gid, guildId, channelId)) {
       continue;
     }
 
     try {
+      // Clean content and convert dates to Discord timestamps BEFORE sending to Gemini
       const cleanedContent = filterRaidZoneContent(cleanSteamContent(item.contents));
-      const translated = await translateAndSummarize(cleanedContent, geminiApiKey);
+      const contentWithTimestamps = replaceDatesWithTimestamps(cleanedContent);
+      const translated = await translateAndSummarize(contentWithTimestamps, geminiApiKey);
       
       if (!translated) {
         console.log(`[STEAM NEWS] Failed to translate news ${item.gid}`);
@@ -108,12 +152,15 @@ async function processNewsForGuild(
       
       markNewsProcessed(item.gid, guildId, channelId, item.title);
       console.log(`[STEAM NEWS] Posted news "${item.title}" to ${channel.name} in guild ${guildId}`);
+      postedCount++;
       
       await delay(2000);
     } catch (error) {
       console.error(`[STEAM NEWS] Error processing news ${item.gid}:`, error);
     }
   }
+  
+  return postedCount;
 }
 
 function buildNewsMessages(item: SteamNewsItem, translatedContent: string): string[] {

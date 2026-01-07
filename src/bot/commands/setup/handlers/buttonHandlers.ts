@@ -467,12 +467,16 @@ async function handleSteamNewsTest(
     const latest = updateNews[0];
     const cleaned = filterRaidZoneContent(cleanSteamContent(latest.contents));
     
+    // Convert dates to Discord timestamps before sending to Gemini
+    const { replaceDatesWithTimestamps } = await import('../../../../steamnews/dateParser.js');
+    const contentWithTimestamps = replaceDatesWithTimestamps(cleaned);
+    
     if (!settings.steamNewsGeminiKey) {
       await i.editReply({ content: '❌ Gemini API key not set.' });
       return { shouldReturn: true };
     }
     
-    const translated = await translateAndSummarize(cleaned, settings.steamNewsGeminiKey);
+    const translated = await translateAndSummarize(contentWithTimestamps, settings.steamNewsGeminiKey);
     if (!translated) {
       await i.editReply({ content: '❌ Failed to translate with Gemini. Check your API key.' });
       return { shouldReturn: true };
@@ -538,13 +542,29 @@ async function handleSteamNewsForce(
   await i.deferReply({ flags: MessageFlags.Ephemeral });
   
   try {
-    const { processSteamNews } = await import('../../../../steamnews/index.js');
+    if (!settings.steamNewsChannelId || !settings.steamNewsGeminiKey) {
+      await i.editReply({ content: '❌ Steam News is not fully configured. Set channel and API key first.' });
+      return { shouldReturn: true };
+    }
     
-    await processSteamNews(i.client);
+    const { forceSteamNewsPost } = await import('../../../../steamnews/index.js');
     
-    await i.editReply({ 
-      content: '✅ Steam News check completed! If there are new updates, they have been posted to the configured channel.' 
-    });
+    const postedCount = await forceSteamNewsPost(
+      i.client,
+      guildId,
+      settings.steamNewsChannelId,
+      settings.steamNewsGeminiKey
+    );
+    
+    if (postedCount > 0) {
+      await i.editReply({ 
+        content: `✅ Posted ${postedCount} news item(s) to <#${settings.steamNewsChannelId}>!` 
+      });
+    } else {
+      await i.editReply({ 
+        content: '⚠️ No update news found to post. Try again later when there are new updates on Steam.' 
+      });
+    }
   } catch (error) {
     console.error('[STEAM NEWS FORCE]', error);
     await i.editReply({ content: `❌ Error: ${(error as Error).message}` });
