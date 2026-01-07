@@ -89,14 +89,21 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         inline: true
       },
       {
-        name: '� Temp Voice',
+        name: '🔊 Temp Voice',
         value: settings.enableTempVoice 
           ? '✅ Enabled'
           : '❌ Disabled',
         inline: true
       },
       {
-        name: '�📈 Stat Rates',
+        name: '📰 Steam News',
+        value: settings.enableSteamNews 
+          ? '✅ Enabled'
+          : '❌ Disabled',
+        inline: true
+      },
+      {
+        name: '📈 Stat Rates',
         value: `Gain: \`${settings.statGainMultiplier}x\` | Loss: \`${settings.statDrainMultiplier}x\``,
         inline: false
       },
@@ -167,6 +174,10 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
       new ButtonBuilder()
         .setCustomId('setup_cat_tempVoice')
         .setLabel('🔊 Temp Voice')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('setup_cat_steamNews')
+        .setLabel('📰 Steam News')
         .setStyle(ButtonStyle.Secondary),
     );
 

@@ -6,3 +6,4 @@ export { buildReactionRolesSettings, buildReactionRolesManage } from './reaction
 export { buildLevelingSettings, buildLevelingAddRole, buildLevelingManageRoles } from './levelingBuilder.js';
 export { buildImageGenSettings } from './imageGenBuilder.js';
 export { buildTempVoiceSettings } from './tempVoiceBuilder.js';
+export { buildSteamNewsSettings } from './steamNewsBuilder.js';

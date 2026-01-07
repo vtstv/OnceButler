@@ -82,6 +82,7 @@ async function handleToggleButtons(
     'setup_toggle_leveling_announce': 'levelingAnnounceLevelUp',
     'setup_toggle_imagegen': 'enableImageGen',
     'setup_toggle_tempvoice': 'enableTempVoice',
+    'setup_toggle_steamnews': 'enableSteamNews',
   };
 
   const settingKey = toggleMappings[i.customId];
@@ -152,6 +153,24 @@ async function handleModalButtons(
       await i.showModal(modal);
       return { shouldReturn: true };
     }
+
+    case 'setup_steamnews_apikey_modal': {
+      const modal = new ModalBuilder()
+        .setCustomId('setup_steamnews_gemini_modal')
+        .setTitle('🔑 Gemini API Key');
+      
+      const apiKeyInput = new TextInputBuilder()
+        .setCustomId('gemini_key')
+        .setLabel('Gemini API Key')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Enter your Google Gemini API key')
+        .setRequired(true)
+        .setMaxLength(100);
+      
+      modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(apiKeyInput));
+      await i.showModal(modal);
+      return { shouldReturn: true };
+    }
   }
 
   return null;
@@ -194,6 +213,12 @@ async function handleModuleButtons(
 
     case 'setup_welcome_test':
       return handleWelcomeTest(i, settings);
+
+    case 'setup_steamnews_test':
+      return handleSteamNewsTest(i, guildId, settings);
+
+    case 'setup_steamnews_force':
+      return handleSteamNewsForce(i, guildId, settings);
   }
 
   return null;
@@ -413,4 +438,117 @@ async function handleDynamicButtons(
   }
 
   return null;
+}
+
+async function handleSteamNewsTest(
+  i: ButtonInteraction,
+  guildId: string,
+  settings: any
+): Promise<ButtonResult> {
+  await i.deferReply({ flags: MessageFlags.Ephemeral });
+  
+  try {
+    const { fetchSteamNews, cleanSteamContent, filterRaidZoneContent, isUpdateNews } = await import('../../../../steamnews/steamNewsApi.js');
+    const { translateAndSummarize } = await import('../../../../steamnews/geminiService.js');
+    const { ONCE_HUMAN_CONFIG } = await import('../../../../steamnews/types.js');
+    
+    const newsItems = await fetchSteamNews(ONCE_HUMAN_CONFIG);
+    if (newsItems.length === 0) {
+      await i.editReply({ content: '❌ Failed to fetch Steam news. Check your connection.' });
+      return { shouldReturn: true };
+    }
+    
+    const updateNews = newsItems.filter(item => isUpdateNews(item, ONCE_HUMAN_CONFIG));
+    if (updateNews.length === 0) {
+      await i.editReply({ content: '⚠️ No update news found. Try again later.' });
+      return { shouldReturn: true };
+    }
+    
+    const latest = updateNews[0];
+    const cleaned = filterRaidZoneContent(cleanSteamContent(latest.contents));
+    
+    if (!settings.steamNewsGeminiKey) {
+      await i.editReply({ content: '❌ Gemini API key not set.' });
+      return { shouldReturn: true };
+    }
+    
+    const translated = await translateAndSummarize(cleaned, settings.steamNewsGeminiKey);
+    if (!translated) {
+      await i.editReply({ content: '❌ Failed to translate with Gemini. Check your API key.' });
+      return { shouldReturn: true };
+    }
+    
+    // Format as regular message (same as actual posts)
+    const header = `# 📰 ${latest.title}\n🔗 <${latest.url}>\n\n`;
+    const footer = `\n\n─────────────────────────────\n*Test successful! | Once Human*`;
+    
+    // Split into chunks if needed (Discord message limit is 2000)
+    const maxLength = 1900;
+    const messages: string[] = [];
+    let remaining = translated;
+    let isFirst = true;
+    
+    while (remaining.length > 0) {
+      let chunk: string;
+      const availableLength = isFirst ? maxLength - header.length : maxLength;
+      
+      if (remaining.length <= availableLength) {
+        chunk = remaining;
+        remaining = '';
+      } else {
+        let breakPoint = remaining.lastIndexOf('\n', availableLength);
+        if (breakPoint < availableLength * 0.5) {
+          breakPoint = remaining.lastIndexOf(' ', availableLength);
+        }
+        if (breakPoint < availableLength * 0.3) {
+          breakPoint = availableLength;
+        }
+        chunk = remaining.slice(0, breakPoint);
+        remaining = remaining.slice(breakPoint).trim();
+      }
+      
+      if (isFirst) {
+        messages.push(header + chunk + (remaining.length === 0 ? footer : ''));
+        isFirst = false;
+      } else {
+        messages.push(chunk + (remaining.length === 0 ? footer : ''));
+      }
+    }
+    
+    // Send first message as reply, rest as follow-ups
+    await i.editReply({ content: messages[0] });
+    
+    // Send additional messages if content was split
+    for (let idx = 1; idx < messages.length; idx++) {
+      await i.followUp({ content: messages[idx], flags: MessageFlags.Ephemeral });
+    }
+  } catch (error) {
+    console.error('[STEAM NEWS TEST]', error);
+    await i.editReply({ content: `❌ Error: ${(error as Error).message}` });
+  }
+  
+  return { shouldReturn: true };
+}
+
+async function handleSteamNewsForce(
+  i: ButtonInteraction,
+  guildId: string,
+  settings: any
+): Promise<ButtonResult> {
+  await i.deferReply({ flags: MessageFlags.Ephemeral });
+  
+  try {
+    const { processSteamNews } = await import('../../../../steamnews/index.js');
+    
+    await processSteamNews(i.client);
+    
+    await i.editReply({ 
+      content: '✅ Steam News check completed! If there are new updates, they have been posted to the configured channel.' 
+    });
+  } catch (error) {
+    console.error('[STEAM NEWS FORCE]', error);
+    await i.editReply({ content: `❌ Error: ${(error as Error).message}` });
+  }
+  
+  return { shouldReturn: true };
 }

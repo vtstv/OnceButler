@@ -117,6 +117,10 @@ export async function handleStringSelectMenu(
       updateGuildSettings(guildId, { tempVoiceUserLimit: parseInt(i.values[0]) });
       return { shouldReturn: false };
 
+    case 'setup_steamnews_interval':
+      updateGuildSettings(guildId, { steamNewsCheckInterval: parseInt(i.values[0]) });
+      return { shouldReturn: false };
+
     case 'setup_leveling_level_select':
       return handleLevelingLevelSelect(i, guildId, currentRoleSubCategory, levelingRoleToAdd);
 
@@ -147,6 +151,7 @@ export async function handleChannelSelectMenu(
     'setup_imagegen_channel': 'imageGenChannelId',
     'setup_tempvoice_trigger': 'tempVoiceTriggerChannelId',
     'setup_tempvoice_category': 'tempVoiceCategoryId',
+    'setup_steamnews_channel': 'steamNewsChannelId',
   };
 
   const settingKey = channelMappings[i.customId];

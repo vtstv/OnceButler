@@ -8,13 +8,17 @@ import { processGuildTick } from '../stats/statTick.js';
 import { processAutoLeaderboards } from './leaderboardScheduler.js';
 import { evaluateAllMembersInGuild } from '../roles/customRolesEngine.js';
 import { getActiveGiveaways, selectWinners, endGiveaway } from '../database/repositories/giveawaysRepo.js';
+import { processSteamNews } from '../steamnews/index.js';
 
 let tickInterval: NodeJS.Timeout | null = null;
 let customRolesCounter = 0; // Process custom roles every 5th tick
 let giveawayCounter = 0; // Process giveaways every 3rd tick
+let steamNewsCounter = 0; // Process steam news every 60th tick (1 hour at 1min interval)
+let clientRef: Client | null = null; // Store client reference for manual triggers
 
 export function startTickScheduler(client: Client): void {
   if (tickInterval) return;
+  clientRef = client;
 
   console.log(`Starting tick scheduler (interval: ${env.tickIntervalMs}ms)`);
 
@@ -37,6 +41,17 @@ export function startTickScheduler(client: Client): void {
       if (giveawayCounter >= 3) {
         giveawayCounter = 0;
         await processExpiredGiveaways(client);
+      }
+      
+      // Process Steam news every 60th tick (approximately every hour)
+      steamNewsCounter++;
+      if (steamNewsCounter >= 60) {
+        steamNewsCounter = 0;
+        try {
+          await processSteamNews(client);
+        } catch (err) {
+          console.error('[STEAM NEWS] Error:', err);
+        }
       }
     } catch (err) {
       console.error('Tick scheduler error:', err);
@@ -99,5 +114,19 @@ export function stopTickScheduler(): void {
     clearInterval(tickInterval);
     tickInterval = null;
     console.log('Tick scheduler stopped');
+  }
+}
+
+// Manual trigger for Steam News (for testing or force refresh)
+export async function triggerSteamNewsCheck(): Promise<void> {
+  if (!clientRef) {
+    console.error('[STEAM NEWS] Cannot trigger: client not initialized');
+    return;
+  }
+  console.log('[STEAM NEWS] Manual trigger initiated');
+  try {
+    await processSteamNews(clientRef);
+  } catch (err) {
+    console.error('[STEAM NEWS] Manual trigger error:', err);
   }
 }

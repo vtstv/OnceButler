@@ -11,4 +11,5 @@ export {
   buildLevelingManageRoles,
   buildImageGenSettings,
   buildTempVoiceSettings,
+  buildSteamNewsSettings,
 } from './builders/index.js';

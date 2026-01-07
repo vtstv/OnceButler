@@ -67,6 +67,11 @@ export interface GuildSettings {
   tempVoiceCategoryId: string | null;
   tempVoiceNameTemplate: string;
   tempVoiceUserLimit: number;
+  // Steam News module
+  enableSteamNews: boolean;
+  steamNewsChannelId: string | null;
+  steamNewsGeminiKey: string | null;
+  steamNewsCheckInterval: number;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -131,6 +136,11 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   tempVoiceCategoryId: null,
   tempVoiceNameTemplate: '🔊 {user}',
   tempVoiceUserLimit: 0,
+  // Steam News module
+  enableSteamNews: false,
+  steamNewsChannelId: null,
+  steamNewsGeminiKey: null,
+  steamNewsCheckInterval: 60,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
@@ -149,7 +159,8 @@ export function getGuildSettings(guildId: string): GuildSettings {
            levelingAnnouncementChannelId, levelingAnnounceLevelUp, levelingStackRoles,
            enableImageGen, imageGenProvider, imageGenApiKey, imageGenAccountId, imageGenChannelId, 
            imageGenUserDailyLimit, imageGenGuildDailyLimit,
-           enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit
+           enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit,
+           enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as any;
 
@@ -213,6 +224,10 @@ export function getGuildSettings(guildId: string): GuildSettings {
     tempVoiceCategoryId: row.tempVoiceCategoryId ?? null,
     tempVoiceNameTemplate: row.tempVoiceNameTemplate ?? '🔊 {user}',
     tempVoiceUserLimit: row.tempVoiceUserLimit ?? 0,
+    enableSteamNews: row.enableSteamNews === 1,
+    steamNewsChannelId: row.steamNewsChannelId ?? null,
+    steamNewsGeminiKey: row.steamNewsGeminiKey ?? null,
+    steamNewsCheckInterval: row.steamNewsCheckInterval ?? 60,
   };
 }
 
@@ -249,8 +264,9 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 levelingAnnouncementChannelId, levelingAnnounceLevelUp, levelingStackRoles,
                                 enableImageGen, imageGenProvider, imageGenApiKey, imageGenAccountId, imageGenChannelId,
                                 imageGenUserDailyLimit, imageGenGuildDailyLimit,
-                                enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit,
+                                enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -304,7 +320,11 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       tempVoiceTriggerChannelId = excluded.tempVoiceTriggerChannelId,
       tempVoiceCategoryId = excluded.tempVoiceCategoryId,
       tempVoiceNameTemplate = excluded.tempVoiceNameTemplate,
-      tempVoiceUserLimit = excluded.tempVoiceUserLimit
+      tempVoiceUserLimit = excluded.tempVoiceUserLimit,
+      enableSteamNews = excluded.enableSteamNews,
+      steamNewsChannelId = excluded.steamNewsChannelId,
+      steamNewsGeminiKey = excluded.steamNewsGeminiKey,
+      steamNewsCheckInterval = excluded.steamNewsCheckInterval
   `).run(
     guildId,
     merged.language,
@@ -360,7 +380,11 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.tempVoiceTriggerChannelId,
     merged.tempVoiceCategoryId,
     merged.tempVoiceNameTemplate,
-    merged.tempVoiceUserLimit
+    merged.tempVoiceUserLimit,
+    merged.enableSteamNews ? 1 : 0,
+    merged.steamNewsChannelId,
+    merged.steamNewsGeminiKey,
+    merged.steamNewsCheckInterval
   );
 }
 

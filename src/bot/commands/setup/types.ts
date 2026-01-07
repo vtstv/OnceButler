@@ -6,7 +6,7 @@ import { EmbedBuilder, ActionRowBuilder } from 'discord.js';
 import type { GuildSettings } from '../../../database/repositories/settingsRepo.js';
 import type { CustomRoleRule } from '../../../database/repositories/customRolesRepo.js';
 
-export type SetupCategory = 'main' | 'general' | 'features' | 'leaderboard' | 'stats' | 'roles' | 'welcome' | 'customRoles' | 'economy' | 'giveaways' | 'reactionRoles' | 'leveling' | 'imageGen' | 'tempVoice';
+export type SetupCategory = 'main' | 'general' | 'features' | 'leaderboard' | 'stats' | 'roles' | 'welcome' | 'customRoles' | 'economy' | 'giveaways' | 'reactionRoles' | 'leveling' | 'imageGen' | 'tempVoice' | 'steamNews';
 export type RoleSubCategory = 'overview' | 'mood' | 'energy' | 'activity' | 'time' | 'chaos';
 
 export interface SetupView {

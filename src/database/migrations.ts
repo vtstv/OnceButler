@@ -401,4 +401,38 @@ export function runMigrations(): void {
       if (!e.message.includes('duplicate column')) throw e;
     }
   }
+
+  // Add Steam News module settings columns
+  const steamNewsColumns = [
+    { name: 'enableSteamNews', sql: 'ALTER TABLE guild_settings ADD COLUMN enableSteamNews INTEGER DEFAULT 0' },
+    { name: 'steamNewsChannelId', sql: 'ALTER TABLE guild_settings ADD COLUMN steamNewsChannelId TEXT DEFAULT NULL' },
+    { name: 'steamNewsGeminiKey', sql: 'ALTER TABLE guild_settings ADD COLUMN steamNewsGeminiKey TEXT DEFAULT NULL' },
+    { name: 'steamNewsCheckInterval', sql: 'ALTER TABLE guild_settings ADD COLUMN steamNewsCheckInterval INTEGER DEFAULT 15' },
+  ];
+
+  for (const col of steamNewsColumns) {
+    try {
+      db.exec(col.sql);
+    } catch (e: any) {
+      if (!e.message.includes('duplicate column')) throw e;
+    }
+  }
+
+  // Steam News processed table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS steam_news_processed (
+      gid TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      processed_at INTEGER NOT NULL,
+      PRIMARY KEY (gid, guild_id, channel_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_steam_news_gid
+    ON steam_news_processed(gid);
+
+    CREATE INDEX IF NOT EXISTS idx_steam_news_guild
+    ON steam_news_processed(guild_id);
+  `);
 }

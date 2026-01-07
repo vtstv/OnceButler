@@ -198,6 +198,24 @@ export function registerEvents(client: Client): void {
         }
         return;
       }
+      if (interaction.customId === 'setup_steamnews_gemini_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          const geminiKey = interaction.fields.getTextInputValue('gemini_key');
+          updateGuildSettings(guildId, { steamNewsGeminiKey: geminiKey });
+          await interaction.reply({ content: '✅ Gemini API Key saved!', flags: MessageFlags.Ephemeral });
+        } catch (error) {
+          console.error('[MODAL] Error handling steamnews gemini modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
     }
 
     await handleInteraction(interaction);
