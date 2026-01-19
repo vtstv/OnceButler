@@ -17,8 +17,9 @@ export function createClient(): Client {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.MessageContent,
       GatewayIntentBits.GuildMessageReactions,
+      GatewayIntentBits.DirectMessages,
     ],
-    partials: [Partials.GuildMember, Partials.Message, Partials.Reaction],
+    partials: [Partials.GuildMember, Partials.Message, Partials.Reaction, Partials.Channel],
   });
   return client;
 }

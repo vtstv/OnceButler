@@ -455,4 +455,13 @@ export function runMigrations(): void {
       if (!e.message.includes('duplicate column')) throw e;
     }
   }
+
+  // Blacklist table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS blacklist (
+      guild_id TEXT PRIMARY KEY,
+      reason TEXT DEFAULT '',
+      added_at INTEGER NOT NULL
+    );
+  `);
 }

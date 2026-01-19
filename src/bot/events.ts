@@ -14,6 +14,8 @@ import { handleGuildMemberAdd, handleGuildMemberRemove } from './events/welcomeE
 import { handleReactionAdd, handleReactionRemove } from './events/reactionRolesEvents.js';
 import { handleMessageXp } from './events/levelingEvents.js';
 import { updateGuildSettings, getGuildSettings } from '../database/repositories/settingsRepo.js';
+import { handleAdminDM } from './adminCommands.js';
+import { isBlacklisted } from '../database/repositories/blacklistRepo.js';
 
 export function registerEvents(client: Client): void {
   client.once(Events.ClientReady, async (c) => {
@@ -46,9 +48,12 @@ export function registerEvents(client: Client): void {
 
   client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot) return;
-    if (!message.guild) return;
+
+    if (!message.guild) {
+      handleAdminDM(client, message);
+      return;
+    }
     
-    // Boost activity on message (helps invisible users maintain stats)
     boostActivityOnMessage(message.guild.id, message.author.id, 2.0);
     
     await handleMessageXp(message);
@@ -258,6 +263,11 @@ export function registerEvents(client: Client): void {
   });
 
   client.on(Events.GuildCreate, async (guild) => {
+    if (isBlacklisted(guild.id)) {
+      console.log(`[BLACKLIST] Attempted to join blacklisted guild: ${guild.name} (${guild.id})`);
+      await guild.leave();
+      return;
+    }
     await ensureRolesExist(guild);
   });
 }

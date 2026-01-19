@@ -14,6 +14,7 @@ function requireEnv(key: string): string {
 export const env = {
   discordToken: requireEnv('DISCORD_TOKEN'),
   clientId: requireEnv('DISCORD_CLIENT_ID'),
+  adminId: process.env.ADMIN || '',
   dataPath: process.env.DATA_PATH || './data',
   tickIntervalMs: 60_000,
   roleUpdateCooldownMs: 30_000,
