@@ -126,8 +126,7 @@ export const commands = [
 
   new SlashCommandBuilder()
     .setName('setup')
-    .setDescription('Configure OnceButler for this server (required before bot starts working)')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .setDescription('Configure OnceButler for this server'),
 
   new SlashCommandBuilder()
     .setName('hug')

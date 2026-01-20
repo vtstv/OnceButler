@@ -34,6 +34,9 @@ export function handleAdminDM(client: Client, message: Message): void {
     case 'register':
       handleRegisterCommand(client, message);
       break;
+    case 'checkguild':
+      handleCheckGuildCommand(client, message, args);
+      break;
     case 'help':
       handleHelpCommand(message);
       break;
@@ -158,11 +161,61 @@ function handleHelpCommand(message: Message): void {
       { name: '!blacklist list', value: 'Show all blacklisted servers' },
       { name: '!leave <id>', value: 'Leave a specific server' },
       { name: '!register', value: 'Register/update slash commands' },
+      { name: '!checkguild <id>', value: 'Check guild settings and manager roles' },
       { name: '!help', value: 'Show this help message' }
     )
     .setTimestamp();
 
   message.reply({ embeds: [embed] });
+}
+
+async function handleCheckGuildCommand(client: Client, message: Message, args: string[]): Promise<void> {
+  const guildId = args[0];
+  
+  if (!guildId) {
+    message.reply('Usage: `!checkguild <guild_id>`');
+    return;
+  }
+  
+  const guild = client.guilds.cache.get(guildId);
+  if (!guild) {
+    message.reply(`❌ Bot is not in guild \`${guildId}\``);
+    return;
+  }
+  
+  try {
+    const { getGuildSettings, getManagerRoles } = await import('../database/repositories/settingsRepo.js');
+    const settings = getGuildSettings(guildId);
+    const managerRoles = getManagerRoles(guildId);
+    
+    const managerRoleNames = managerRoles.map(roleId => {
+      const role = guild.roles.cache.get(roleId);
+      return role ? `${role.name} (${roleId})` : `Unknown (${roleId})`;
+    });
+    
+    const embed = new EmbedBuilder()
+      .setTitle(`🔍 Guild Settings: ${guild.name}`)
+      .setColor(0x5865f2)
+      .addFields(
+        { name: 'Guild ID', value: `\`${guildId}\``, inline: true },
+        { name: 'Members', value: guild.memberCount.toString(), inline: true },
+        { name: 'Language', value: settings.language.toUpperCase(), inline: true },
+        { name: 'Setup Complete', value: settings.setupComplete ? '✅ Yes' : '❌ No', inline: true },
+        { name: 'Dynamic Roles', value: settings.enableDynamicRoles ? '✅ Enabled' : '❌ Disabled', inline: true },
+        { name: 'Economy', value: settings.enableEconomy ? '✅ Enabled' : '❌ Disabled', inline: true },
+        { 
+          name: `Manager Roles (${managerRoles.length})`, 
+          value: managerRoleNames.length > 0 ? managerRoleNames.join('\n') : 'None configured',
+          inline: false 
+        }
+      )
+      .setTimestamp();
+    
+    await message.reply({ embeds: [embed] });
+  } catch (error) {
+    console.error('[ADMIN] Error checking guild:', error);
+    await message.reply(`❌ Error: ${(error as Error).message}`);
+  }
 }
 
 async function handleRegisterCommand(client: Client, message: Message): Promise<void> {
