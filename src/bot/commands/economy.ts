@@ -36,6 +36,38 @@ import { getLocale, hasAdminPermission } from './utils.js';
 const CURRENCY_EMOJI = '🪙';
 const CURRENCY_NAME = 'coins';
 
+export async function handleEconomyAlias(interaction: ChatInputCommandInteraction): Promise<void> {
+  if (!interaction.guild) {
+    await interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  const locale = getLocale(interaction);
+  const settings = getGuildSettings(interaction.guild.id);
+  if (!settings.enableEconomy) {
+    await interaction.reply({ 
+      content: t(locale, 'economy.disabled'), 
+      flags: MessageFlags.Ephemeral 
+    });
+    return;
+  }
+
+  switch (interaction.commandName) {
+    case 'balance':
+      await handleBalance(interaction, locale);
+      break;
+    case 'daily':
+      await handleDaily(interaction, locale);
+      break;
+    case 'work':
+      await handleWork(interaction, locale);
+      break;
+    case 'shop':
+      await handleShop(interaction, locale);
+      break;
+  }
+}
+
 export async function handleEconomy(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.guild) {
     await interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });

@@ -31,6 +31,9 @@ export function handleAdminDM(client: Client, message: Message): void {
     case 'leave':
       handleLeaveCommand(client, message, args);
       break;
+    case 'register':
+      handleRegisterCommand(client, message);
+      break;
     case 'help':
       handleHelpCommand(message);
       break;
@@ -154,9 +157,32 @@ function handleHelpCommand(message: Message): void {
       { name: '!blacklist remove <id>', value: 'Remove a server from blacklist' },
       { name: '!blacklist list', value: 'Show all blacklisted servers' },
       { name: '!leave <id>', value: 'Leave a specific server' },
+      { name: '!register', value: 'Register/update slash commands' },
       { name: '!help', value: 'Show this help message' }
     )
     .setTimestamp();
 
   message.reply({ embeds: [embed] });
+}
+
+async function handleRegisterCommand(client: Client, message: Message): Promise<void> {
+  await message.reply('🔄 Registering slash commands...');
+  
+  try {
+    const { commands } = await import('./commands/index.js');
+    const { REST, Routes } = await import('discord.js');
+    
+    const rest = new REST({ version: '10' }).setToken(env.discordToken);
+    
+    await rest.put(
+      Routes.applicationCommands(env.clientId),
+      { body: commands.map(cmd => cmd.toJSON()) }
+    );
+    
+    await message.reply(`✅ Successfully registered ${commands.length} slash commands!`);
+    console.log(`[ADMIN] Registered ${commands.length} commands via DM`);
+  } catch (error) {
+    console.error('[ADMIN] Failed to register commands:', error);
+    await message.reply(`❌ Failed to register commands: ${(error as Error).message}`);
+  }
 }

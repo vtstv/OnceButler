@@ -14,7 +14,7 @@ import { handleSetup } from './setup.js';
 import { handleHug } from './hug.js';
 import { handleDuel } from './duel.js';
 import { handleGiveaway, handleGiveawayButton } from './giveaway.js';
-import { handleEconomy } from './economy.js';
+import { handleEconomy, handleEconomyAlias } from './economy.js';
 import { handleGames, handleBlackjackButton } from './games/index.js';
 import { handleCasino, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton } from './casino/index.js';
 import { handleLeveling } from './leveling.js';
@@ -69,6 +69,12 @@ export async function handleInteraction(interaction: Interaction): Promise<void>
         break;
       case 'economy':
         await handleEconomy(interaction);
+        break;
+      case 'balance':
+      case 'daily':
+      case 'work':
+      case 'shop':
+        await handleEconomyAlias(interaction);
         break;
       case 'games':
         await handleGames(interaction);

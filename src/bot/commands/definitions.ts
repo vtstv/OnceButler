@@ -252,6 +252,24 @@ export const commands = [
             .setDescription('Remove item from shop')
             .addIntegerOption(opt => opt.setName('item_id').setDescription('Item ID to remove').setRequired(true)))),
 
+  // Economy aliases for convenience
+  new SlashCommandBuilder()
+    .setName('balance')
+    .setDescription('Check your balance')
+    .addUserOption(opt => opt.setName('user').setDescription('User to check (optional)')),
+
+  new SlashCommandBuilder()
+    .setName('daily')
+    .setDescription('Claim your daily reward'),
+
+  new SlashCommandBuilder()
+    .setName('work')
+    .setDescription('Work to earn money'),
+
+  new SlashCommandBuilder()
+    .setName('shop')
+    .setDescription('View available items in shop'),
+
   // Mini-games commands
   new SlashCommandBuilder()
     .setName('games')

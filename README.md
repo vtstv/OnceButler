@@ -11,6 +11,7 @@ A dynamic role management bot for Discord that automatically assigns roles based
 
 - **Dynamic Roles** — Auto-assign roles based on mood, energy, activity stats
 - **Economy System** — Currency, daily rewards, work commands, shop with role rewards
+- **Casino & Mini-Games** — Slots, roulette, blackjack, coinflip, dice with interactive menu
 - **Leveling System** — XP from messages and voice, level roles, announcements
 - **Giveaways** — Create timed giveaways with multiple winners
 - **Reaction Roles** — Self-assignable roles via reactions
@@ -85,6 +86,8 @@ docker run -d \
 | `/daily`       | Claim daily reward           | Everyone   |
 | `/work`        | Earn currency                | Everyone   |
 | `/shop`        | Browse server shop           | Everyone   |
+| `/casino`      | Interactive casino menu      | Everyone   |
+| `/games`       | Mini-games (slots, roulette) | Everyone   |
 | `/giveaway`    | Create/manage giveaways      | Admin      |
 | `/ai`          | Chat with AI                 | Everyone   |
 | `/imagine`     | Generate AI images           | Everyone   |
