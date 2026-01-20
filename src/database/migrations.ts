@@ -456,6 +456,13 @@ export function runMigrations(): void {
     }
   }
 
+  // Dynamic Roles module
+  try {
+    db.exec('ALTER TABLE guild_settings ADD COLUMN enableDynamicRoles INTEGER DEFAULT 0');
+  } catch (e: any) {
+    if (!e.message.includes('duplicate column')) throw e;
+  }
+
   // Blacklist table
   db.exec(`
     CREATE TABLE IF NOT EXISTS blacklist (

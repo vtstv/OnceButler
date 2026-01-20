@@ -1,6 +1,6 @@
 # OnceButler
 
-A dynamic role management bot for Discord that automatically assigns roles based on member activity, engagement patterns, and time of day.
+A dynamic role management bot for Discord that automatically assigns roles based on member activity, engagement patterns.
 
 ![Discord.js](https://img.shields.io/badge/discord.js-v14-blue)
 ![Node](https://img.shields.io/badge/node-%3E%3D20-green)
@@ -9,13 +9,24 @@ A dynamic role management bot for Discord that automatically assigns roles based
 
 ## Features
 
-- **Dynamic Role Assignment** — Roles change automatically based on member stats
+- **Dynamic Roles** — Auto-assign roles based on mood, energy, activity stats
+- **Economy System** — Currency, daily rewards, work commands, shop with role rewards
+- **Leveling System** — XP from messages and voice, level roles, announcements
+- **Giveaways** — Create timed giveaways with multiple winners
+- **Reaction Roles** — Self-assignable roles via reactions
+- **Welcome/Leave** — Customizable messages with placeholders
+- **Temp Voice** — Auto-create temporary voice channels
+- **Steam News** — Auto-post Once Human updates with AI translation and summary
+- **AI Chat** — Cloudflare/Gemini AI chat integration and translation
+- **Image Generation** — AI image generation via Cloudflare/Gemini
+- **Achievements** — Unlock achievements based on milestones
+- **Custom Roles** — Create conditional role rules
 - **Activity Tracking** — Monitors chat activity, voice participation, and online time
 - **Stat System** — Mood, Energy, and Activity stats that evolve over time
 - **Custom Triggers** — Create server-wide events that affect member stats
 - **Achievements** — Unlock achievements based on milestones and behavior
-- **Localization** — Supports English, Russian, and German
 - **Manager Roles** — Delegate bot administration without granting full admin
+- **Localization** — English, Russian, German support
 
 ## Quick Start
 
@@ -64,34 +75,42 @@ docker run -d \
 
 ## Commands
 
-| Command         | Description                     | Permission |
-| --------------- | ------------------------------- | ---------- |
-| `/stats`        | View your current statistics    | Everyone   |
-| `/achievements` | View your unlocked achievements | Everyone   |
-| `/leaderboard`  | Server rankings by stat         | Everyone   |
-| `/version`      | Bot version and system info     | Everyone   |
-| `/roles`        | Manage role definitions         | Admin      |
-| `/trigger`      | Create stat-modifying events    | Admin      |
-| `/settings`     | Server configuration            | Admin      |
+| Command        | Description                  | Permission |
+| -------------- | ---------------------------- | ---------- |
+| `/setup`       | Interactive setup menu       | Admin      |
+| `/stats`       | View dynamic role statistics | Everyone   |
+| `/level`       | View your level and XP       | Everyone   |
+| `/leaderboard` | Server rankings              | Everyone   |
+| `/balance`     | Check your wallet            | Everyone   |
+| `/daily`       | Claim daily reward           | Everyone   |
+| `/work`        | Earn currency                | Everyone   |
+| `/shop`        | Browse server shop           | Everyone   |
+| `/giveaway`    | Create/manage giveaways      | Admin      |
+| `/ai`          | Chat with AI                 | Everyone   |
+| `/imagine`     | Generate AI images           | Everyone   |
+| `/version`     | Bot version info             | Everyone   |
 
 ## Configuration
 
 ### Environment Variables
 
-| Variable            | Description                             |
-| ------------------- | --------------------------------------- |
-| `DISCORD_TOKEN`     | Bot token from Discord Developer Portal |
-| `DISCORD_CLIENT_ID` | Application client ID                   |
+| Variable            | Description                             | Required |
+| ------------------- | --------------------------------------- | -------- |
+| `DISCORD_TOKEN`     | Bot token from Discord Developer Portal | Yes      |
+| `DISCORD_CLIENT_ID` | Application client ID                   | Yes      |
+| `ADMIN`             | Admin user ID for DM commands           | No       |
+| `DATA_PATH`         | Database storage path (default: ./data) | No       |
 
-### Role Categories
+### Module Configuration
 
-Roles are organized into categories that determine assignment logic:
+All features are configured via `/setup` command:
 
-- **mood** — Based on member's mood stat (0-100)
-- **energy** — Based on energy levels, affected by time of day
-- **activity** — Based on chat and voice activity
-- **time** — Changes with day/evening/night cycles
-- **chaos** — Random temporary roles for variety
+- **Dynamic Roles** — Optional stat-based role system
+- **Economy** — Currency name, daily amounts, shop items
+- **Leveling** — XP rates, level roles, announcements
+- **Giveaways** — Duration limits, max winners
+- **AI/Image Gen** — API keys for Cloudflare/Gemini
+- **Steam News** — Gemini API for translation
 
 ## Project Structure
 
@@ -99,14 +118,14 @@ Roles are organized into categories that determine assignment logic:
 src/
 ├── bot/           # Discord client and event handlers
 │   └── commands/  # Slash command implementations
-├── config/        # Environment and version config
+├── ai/            # AI chat and image generation
 ├── database/      # SQLite database and repositories
-├── locales/       # Internationalization files
-├── roles/         # Role engine and rule system
-├── scheduler/     # Periodic tick processing
-├── stats/         # Stat calculation engines
-├── utils/         # Helper utilities
-└── voice/         # Voice channel tracking
+├── roles/         # Dynamic role engine
+├── scheduler/     # Background tasks
+├── stats/         # Stat calculation
+├── steamnews/     # Steam news fetcher
+├── voice/         # Voice tracking and temp channels
+└── utils/         # Helper utilities
 ```
 
 ## Development

@@ -79,6 +79,7 @@ export function buildFeatureSettings(settings: GuildSettings): SetupView {
     .setDescription('Toggle bot features on or off.')
     .setColor(0x5865F2)
     .addFields(
+      { name: '🎭 Dynamic Roles', value: settings.enableDynamicRoles ? '✅ Enabled' : '❌ Disabled', inline: true },
       { name: '🎨 Role Colors', value: settings.enableRoleColors ? '✅ Enabled' : '❌ Disabled', inline: true },
       { name: '🎲 Chaos Roles', value: settings.enableChaosRoles ? '✅ Enabled' : '❌ Disabled', inline: true },
       { name: '🏆 Achievements', value: settings.enableAchievements ? '✅ Enabled' : '❌ Disabled', inline: true },
@@ -89,6 +90,10 @@ export function buildFeatureSettings(settings: GuildSettings): SetupView {
   const toggleButtons = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
+        .setCustomId('setup_toggle_dynamicroles')
+        .setLabel(settings.enableDynamicRoles ? '🎭 Disable Dynamic Roles' : '🎭 Enable Dynamic Roles')
+        .setStyle(settings.enableDynamicRoles ? ButtonStyle.Secondary : ButtonStyle.Success),
+      new ButtonBuilder()
         .setCustomId('setup_toggle_colors')
         .setLabel(settings.enableRoleColors ? '🎨 Disable Colors' : '🎨 Enable Colors')
         .setStyle(settings.enableRoleColors ? ButtonStyle.Secondary : ButtonStyle.Success),
@@ -96,14 +101,14 @@ export function buildFeatureSettings(settings: GuildSettings): SetupView {
         .setCustomId('setup_toggle_chaos')
         .setLabel(settings.enableChaosRoles ? '🎲 Disable Chaos' : '🎲 Enable Chaos')
         .setStyle(settings.enableChaosRoles ? ButtonStyle.Secondary : ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId('setup_toggle_achievements')
-        .setLabel(settings.enableAchievements ? '🏆 Disable Achievements' : '🏆 Enable Achievements')
-        .setStyle(settings.enableAchievements ? ButtonStyle.Secondary : ButtonStyle.Success),
     );
 
   const toggleButtons2 = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
+      new ButtonBuilder()
+        .setCustomId('setup_toggle_achievements')
+        .setLabel(settings.enableAchievements ? '🏆 Disable Achievements' : '🏆 Enable Achievements')
+        .setStyle(settings.enableAchievements ? ButtonStyle.Secondary : ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId('setup_toggle_economy')
         .setLabel(settings.enableEconomy ? '💰 Disable Economy' : '💰 Enable Economy')

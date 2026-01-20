@@ -81,6 +81,8 @@ export interface GuildSettings {
   aiAllowAllChannels: boolean;
   aiAllowDMs: boolean;
   aiDefaultTranslateLanguage: string;
+  // Dynamic Roles module
+  enableDynamicRoles: boolean;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -159,6 +161,8 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   aiAllowAllChannels: false,
   aiAllowDMs: false,
   aiDefaultTranslateLanguage: 'ru',
+  // Dynamic Roles module
+  enableDynamicRoles: false,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
@@ -179,7 +183,8 @@ export function getGuildSettings(guildId: string): GuildSettings {
            imageGenUserDailyLimit, imageGenGuildDailyLimit,
            enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit,
            enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval,
-           enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage
+           enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage,
+           enableDynamicRoles
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as any;
 
@@ -255,6 +260,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
     aiAllowAllChannels: row.aiAllowAllChannels === 1,
     aiAllowDMs: row.aiAllowDMs === 1,
     aiDefaultTranslateLanguage: row.aiDefaultTranslateLanguage ?? 'ru',
+    enableDynamicRoles: row.enableDynamicRoles === 1,
   };
 }
 
@@ -293,8 +299,9 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 imageGenUserDailyLimit, imageGenGuildDailyLimit,
                                 enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit,
                                 enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval,
-                                enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage,
+                                enableDynamicRoles)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -360,7 +367,8 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       aiChannelId = excluded.aiChannelId,
       aiAllowAllChannels = excluded.aiAllowAllChannels,
       aiAllowDMs = excluded.aiAllowDMs,
-      aiDefaultTranslateLanguage = excluded.aiDefaultTranslateLanguage
+      aiDefaultTranslateLanguage = excluded.aiDefaultTranslateLanguage,
+      enableDynamicRoles = excluded.enableDynamicRoles
   `).run(
     guildId,
     merged.language,
@@ -428,7 +436,8 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.aiChannelId,
     merged.aiAllowAllChannels ? 1 : 0,
     merged.aiAllowDMs ? 1 : 0,
-    merged.aiDefaultTranslateLanguage
+    merged.aiDefaultTranslateLanguage,
+    merged.enableDynamicRoles ? 1 : 0
   );
 }
 

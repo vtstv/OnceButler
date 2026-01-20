@@ -23,10 +23,11 @@ export async function processGuildTick(client: Client): Promise<void> {
   }
 
   for (const guild of client.guilds.cache.values()) {
-    // Skip guilds that haven't completed setup
-    if (!isSetupComplete(guild.id)) continue;
-
     const settings = getGuildSettings(guild.id);
+    
+    // Skip guilds that haven't enabled dynamic roles
+    if (!settings.enableDynamicRoles) continue;
+
     const rates: StatRates = {
       gainMultiplier: settings.statGainMultiplier,
       drainMultiplier: settings.statDrainMultiplier,

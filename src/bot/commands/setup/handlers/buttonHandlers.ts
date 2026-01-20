@@ -68,6 +68,7 @@ async function handleToggleButtons(
   settings: any
 ): Promise<ButtonResult | null> {
   const toggleMappings: Record<string, string> = {
+    'setup_toggle_dynamicroles': 'enableDynamicRoles',
     'setup_toggle_colors': 'enableRoleColors',
     'setup_toggle_chaos': 'enableChaosRoles',
     'setup_toggle_achievements': 'enableAchievements',

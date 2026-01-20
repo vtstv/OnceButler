@@ -21,12 +21,7 @@ export function registerEvents(client: Client): void {
   client.once(Events.ClientReady, async (c) => {
     console.log(`Logged in as ${c.user.tag}`);
 
-    // Initialize temp voice service
     initTempVoiceService();
-
-    for (const guild of c.guilds.cache.values()) {
-      await ensureRolesExist(guild);
-    }
 
     startTickScheduler(client);
   });
@@ -268,7 +263,7 @@ export function registerEvents(client: Client): void {
       await guild.leave();
       return;
     }
-    await ensureRolesExist(guild);
+    console.log(`[GUILD] Joined new guild: ${guild.name} (${guild.id})`);
   });
 }
 
