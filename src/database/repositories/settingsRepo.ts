@@ -172,7 +172,7 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   // Twitch Drops module
   enableTwitchDrops: false,
   twitchDropsChannelId: null,
-  twitchDropsApiUrl: 'http://localhost:8080',
+  twitchDropsApiUrl: 'http://twitch-drops-notifier:7080',
   twitchDropsApiKey: null,
   twitchDropsCheckInterval: 60,
 };

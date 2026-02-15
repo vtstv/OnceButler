@@ -168,35 +168,53 @@ function buildGameEmbed(gameName: string, campaigns: TwitchDropsCampaign[]): Emb
 }
 
 /**
+ * Build a single campaign embed (for testing/preview)
+ */
+export function buildCampaignEmbed(gameName: string, campaign: TwitchDropsCampaign): EmbedBuilder {
+  const embed = new EmbedBuilder()
+    .setColor(0x9146FF) // Twitch purple
+    .setTitle(`🎮 ${gameName} - Active Drops`)
+    .setDescription(campaign.name)
+    .setTimestamp()
+    .setFooter({ text: 'Twitch Drops Notifier' });
+
+  const fieldValue = buildCampaignFieldValue(campaign);
+  embed.addFields({
+    name: 'Campaign Details',
+    value: fieldValue,
+    inline: false,
+  });
+
+  return embed;
+}
+
+/**
  * Build the field value for a campaign
  */
 function buildCampaignFieldValue(campaign: TwitchDropsCampaign): string {
   const lines: string[] = [];
   
   // Campaign status
-  lines.push(`**Status:** ${campaign.status}`);
+  lines.push(`Status: ${campaign.status}`);
   
-  // Start and end times with Discord timestamp formatting
-  const startTimestamp = Math.floor(new Date(campaign.startAt).getTime() / 1000);
-  const endTimestamp = Math.floor(new Date(campaign.endAt).getTime() / 1000);
-  lines.push(`**Starts:** <t:${startTimestamp}:R>`);
-  lines.push(`**Ends:** <t:${endTimestamp}:R>`);
+  // Period formatting
+  const startDate = new Date(campaign.startAt);
+  const endDate = new Date(campaign.endAt);
+  const formatDate = (date: Date) => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+  lines.push(`Period: ${formatDate(startDate)} - ${formatDate(endDate)}`);
   
   // Drops section
   if (campaign.timeBasedDrops && campaign.timeBasedDrops.length > 0) {
-    lines.push('');
-    lines.push('**Drops:**');
+    lines.push('Drops:');
     
     for (const drop of campaign.timeBasedDrops) {
       const rewards = drop.benefitEdges.map(edge => edge.benefit.name).join(', ');
-      lines.push(`• ${drop.name} - Watch ${drop.requiredMinutesWatched} min`);
-      lines.push(`  Rewards: ${rewards}`);
-      
-      // Include image if available
-      const imageUrl = drop.benefitEdges[0]?.benefit.imageAssetURL;
-      if (imageUrl) {
-        lines.push(`  [View Reward](${imageUrl})`);
-      }
+      lines.push(`⏱️ ${rewards} - Watch ${drop.requiredMinutesWatched} minutes`);
     }
   }
   

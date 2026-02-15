@@ -716,6 +716,7 @@ async function handleTwitchDropsTest(
     }
     
     const { fetchAllDrops } = await import('../../../../twitchdrops/twitchDropsApi.js');
+    const { buildCampaignEmbed } = await import('../../../../twitchdrops/twitchDropsService.js');
     
     const response = await fetchAllDrops({
       apiUrl: settings.twitchDropsApiUrl,
@@ -739,6 +740,14 @@ async function handleTwitchDropsTest(
     await i.editReply({ 
       content: `✅ **API Connection Successful!**\n\n**Total Games:** ${response.games.length}\n**Total Campaigns:** ${totalCampaigns}\n\n${gamesList || 'No campaigns found'}` 
     });
+    
+    // Send detailed campaign embeds
+    for (const game of response.games) {
+      for (const campaign of game.campaigns) {
+        const embed = buildCampaignEmbed(game.gameName, campaign);
+        await i.followUp({ embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
+    }
   } catch (error) {
     console.error('[TWITCH DROPS TEST]', error);
     await i.editReply({ content: `❌ Error: ${(error as Error).message}` });
