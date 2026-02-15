@@ -103,6 +103,13 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         inline: true
       },
       {
+        name: '🎮 Twitch Drops',
+        value: settings.enableTwitchDrops 
+          ? '✅ Enabled'
+          : '❌ Disabled',
+        inline: true
+      },
+      {
         name: '🤖 AI Chat/Translate',
         value: settings.enableAI 
           ? `✅ ${settings.aiProvider}`
@@ -134,14 +141,14 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         .setCustomId('setup_cat_roles')
         .setLabel('🎭 Roles')
         .setStyle(ButtonStyle.Primary),
-    );
-
-  const row2 = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_cat_leaderboard')
         .setLabel('📊 Leaderboard')
         .setStyle(ButtonStyle.Secondary),
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_cat_welcome')
         .setLabel('👋 Welcome')
@@ -150,10 +157,6 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         .setCustomId('setup_cat_customRoles')
         .setLabel('🔧 Custom Roles')
         .setStyle(ButtonStyle.Secondary),
-    );
-
-  const row3 = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_cat_economy')
         .setLabel('💰 Economy')
@@ -166,14 +169,14 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         .setCustomId('setup_cat_reactionRoles')
         .setLabel('🎭 Reactions')
         .setStyle(ButtonStyle.Secondary),
+    );
+
+  const row3 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_cat_leveling')
         .setLabel('📈 Leveling')
         .setStyle(ButtonStyle.Secondary),
-    );
-
-  const row4 = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_cat_imageGen')
         .setLabel('🎨 Image Gen')
@@ -187,13 +190,17 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         .setLabel('📰 Steam News')
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
-        .setCustomId('setup_cat_ai')
-        .setLabel('🤖 AI')
+        .setCustomId('setup_cat_twitchDrops')
+        .setLabel('🎮 Twitch Drops')
         .setStyle(ButtonStyle.Secondary),
     );
 
-  const actionButtons = new ActionRowBuilder<ButtonBuilder>()
+  const row4 = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
+      new ButtonBuilder()
+        .setCustomId('setup_cat_ai')
+        .setLabel('🤖 AI')
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId('setup_complete')
         .setLabel(isComplete ? '✅ Setup Complete' : '🚀 Complete Setup')
@@ -203,6 +210,6 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
 
   return {
     embeds: [embed],
-    components: [row1, row2, row3, row4, actionButtons],
+    components: [row1, row2, row3, row4],
   };
 }

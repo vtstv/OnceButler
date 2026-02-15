@@ -216,6 +216,42 @@ export function registerEvents(client: Client): void {
         }
         return;
       }
+      if (interaction.customId === 'setup_twitchdrops_apiurl_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          const apiUrl = interaction.fields.getTextInputValue('api_url');
+          updateGuildSettings(guildId, { twitchDropsApiUrl: apiUrl });
+          await interaction.reply({ content: '✅ Twitch Drops API URL saved!', flags: MessageFlags.Ephemeral });
+        } catch (error) {
+          console.error('[MODAL] Error handling twitchdrops apiurl modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
+      if (interaction.customId === 'setup_twitchdrops_apikey_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          const apiKey = interaction.fields.getTextInputValue('api_key');
+          updateGuildSettings(guildId, { twitchDropsApiKey: apiKey });
+          await interaction.reply({ content: '✅ Twitch Drops API Key saved!', flags: MessageFlags.Ephemeral });
+        } catch (error) {
+          console.error('[MODAL] Error handling twitchdrops apikey modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
       if (interaction.customId === 'setup_ai_apikey_modal') {
         try {
           const guildId = interaction.guild?.id;

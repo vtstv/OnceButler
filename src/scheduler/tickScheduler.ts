@@ -9,11 +9,13 @@ import { processAutoLeaderboards } from './leaderboardScheduler.js';
 import { evaluateAllMembersInGuild } from '../roles/customRolesEngine.js';
 import { getActiveGiveaways, selectWinners, endGiveaway } from '../database/repositories/giveawaysRepo.js';
 import { processSteamNews } from '../steamnews/index.js';
+import { processTwitchDrops } from '../twitchdrops/index.js';
 
 let tickInterval: NodeJS.Timeout | null = null;
 let customRolesCounter = 0; // Process custom roles every 5th tick
 let giveawayCounter = 0; // Process giveaways every 3rd tick
 let steamNewsCounter = 0; // Process steam news every 60th tick (1 hour at 1min interval)
+let twitchDropsCounter = 0; // Process twitch drops every 60th tick (1 hour at 1min interval)
 let clientRef: Client | null = null; // Store client reference for manual triggers
 
 export function startTickScheduler(client: Client): void {
@@ -51,6 +53,17 @@ export function startTickScheduler(client: Client): void {
           await processSteamNews(client);
         } catch (err) {
           console.error('[STEAM NEWS] Error:', err);
+        }
+      }
+      
+      // Process Twitch drops every 60th tick (approximately every hour)
+      twitchDropsCounter++;
+      if (twitchDropsCounter >= 60) {
+        twitchDropsCounter = 0;
+        try {
+          await processTwitchDrops(client);
+        } catch (err) {
+          console.error('[TWITCH DROPS] Error:', err);
         }
       }
     } catch (err) {

@@ -25,11 +25,11 @@ export async function handleSetup(interaction: ChatInputCommandInteraction): Pro
 
   const settings = getGuildSettings(interaction.guild.id);
   
-  const message = await interaction.reply({ 
+  await interaction.reply({ 
     ...buildCategoryView('main', settings, interaction.guild),
     flags: MessageFlags.Ephemeral,
-    fetchReply: true 
   });
 
+  const message = await interaction.fetchReply();
   await startCollector(message, interaction.user.id, interaction.guild.id);
 }

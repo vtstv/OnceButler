@@ -12,4 +12,5 @@ export {
   buildImageGenSettings,
   buildTempVoiceSettings,
   buildSteamNewsSettings,
+  buildTwitchDropsSettings,
 } from './builders/index.js';

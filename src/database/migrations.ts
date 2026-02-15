@@ -463,6 +463,45 @@ export function runMigrations(): void {
     if (!e.message.includes('duplicate column')) throw e;
   }
 
+  // Twitch Drops module settings columns
+  const twitchDropsColumns = [
+    { name: 'enableTwitchDrops', sql: 'ALTER TABLE guild_settings ADD COLUMN enableTwitchDrops INTEGER DEFAULT 0' },
+    { name: 'twitchDropsChannelId', sql: 'ALTER TABLE guild_settings ADD COLUMN twitchDropsChannelId TEXT DEFAULT NULL' },
+    { name: 'twitchDropsApiUrl', sql: "ALTER TABLE guild_settings ADD COLUMN twitchDropsApiUrl TEXT DEFAULT 'http://localhost:8080'" },
+    { name: 'twitchDropsApiKey', sql: 'ALTER TABLE guild_settings ADD COLUMN twitchDropsApiKey TEXT DEFAULT NULL' },
+    { name: 'twitchDropsCheckInterval', sql: 'ALTER TABLE guild_settings ADD COLUMN twitchDropsCheckInterval INTEGER DEFAULT 60' },
+  ];
+
+  for (const col of twitchDropsColumns) {
+    try {
+      db.exec(col.sql);
+    } catch (e: any) {
+      if (!e.message.includes('duplicate column')) throw e;
+    }
+  }
+
+  // Twitch Drops posted campaigns tracking table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS twitch_drops_posted (
+      campaign_id TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      campaign_name TEXT NOT NULL,
+      game_name TEXT NOT NULL,
+      posted_at INTEGER NOT NULL,
+      PRIMARY KEY (campaign_id, guild_id, channel_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_twitch_drops_campaign
+    ON twitch_drops_posted(campaign_id);
+
+    CREATE INDEX IF NOT EXISTS idx_twitch_drops_guild
+    ON twitch_drops_posted(guild_id);
+
+    CREATE INDEX IF NOT EXISTS idx_twitch_drops_guild_channel
+    ON twitch_drops_posted(guild_id, channel_id);
+  `);
+
   // Blacklist table
   db.exec(`
     CREATE TABLE IF NOT EXISTS blacklist (

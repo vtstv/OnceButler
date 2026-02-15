@@ -7,3 +7,4 @@ export { buildLevelingSettings, buildLevelingAddRole, buildLevelingManageRoles }
 export { buildImageGenSettings } from './imageGenBuilder.js';
 export { buildTempVoiceSettings } from './tempVoiceBuilder.js';
 export { buildSteamNewsSettings } from './steamNewsBuilder.js';
+export { buildTwitchDropsSettings } from './twitchDropsBuilder.js';

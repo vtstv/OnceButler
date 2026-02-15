@@ -83,6 +83,12 @@ export interface GuildSettings {
   aiDefaultTranslateLanguage: string;
   // Dynamic Roles module
   enableDynamicRoles: boolean;
+  // Twitch Drops module
+  enableTwitchDrops: boolean;
+  twitchDropsChannelId: string | null;
+  twitchDropsApiUrl: string;
+  twitchDropsApiKey: string | null;
+  twitchDropsCheckInterval: number;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -163,6 +169,12 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   aiDefaultTranslateLanguage: 'ru',
   // Dynamic Roles module
   enableDynamicRoles: false,
+  // Twitch Drops module
+  enableTwitchDrops: false,
+  twitchDropsChannelId: null,
+  twitchDropsApiUrl: 'http://localhost:8080',
+  twitchDropsApiKey: null,
+  twitchDropsCheckInterval: 60,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
@@ -184,7 +196,8 @@ export function getGuildSettings(guildId: string): GuildSettings {
            enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit,
            enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval,
            enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage,
-           enableDynamicRoles
+           enableDynamicRoles,
+           enableTwitchDrops, twitchDropsChannelId, twitchDropsApiUrl, twitchDropsApiKey, twitchDropsCheckInterval
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as any;
 
@@ -261,6 +274,11 @@ export function getGuildSettings(guildId: string): GuildSettings {
     aiAllowDMs: row.aiAllowDMs === 1,
     aiDefaultTranslateLanguage: row.aiDefaultTranslateLanguage ?? 'ru',
     enableDynamicRoles: row.enableDynamicRoles === 1,
+    enableTwitchDrops: row.enableTwitchDrops === 1,
+    twitchDropsChannelId: row.twitchDropsChannelId ?? null,
+    twitchDropsApiUrl: row.twitchDropsApiUrl ?? 'http://localhost:8080',
+    twitchDropsApiKey: row.twitchDropsApiKey ?? null,
+    twitchDropsCheckInterval: row.twitchDropsCheckInterval ?? 60,
   };
 }
 
@@ -300,8 +318,9 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit,
                                 enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval,
                                 enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage,
-                                enableDynamicRoles)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                enableDynamicRoles,
+                                enableTwitchDrops, twitchDropsChannelId, twitchDropsApiUrl, twitchDropsApiKey, twitchDropsCheckInterval)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -368,7 +387,12 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       aiAllowAllChannels = excluded.aiAllowAllChannels,
       aiAllowDMs = excluded.aiAllowDMs,
       aiDefaultTranslateLanguage = excluded.aiDefaultTranslateLanguage,
-      enableDynamicRoles = excluded.enableDynamicRoles
+      enableDynamicRoles = excluded.enableDynamicRoles,
+      enableTwitchDrops = excluded.enableTwitchDrops,
+      twitchDropsChannelId = excluded.twitchDropsChannelId,
+      twitchDropsApiUrl = excluded.twitchDropsApiUrl,
+      twitchDropsApiKey = excluded.twitchDropsApiKey,
+      twitchDropsCheckInterval = excluded.twitchDropsCheckInterval
   `).run(
     guildId,
     merged.language,
@@ -437,7 +461,12 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.aiAllowAllChannels ? 1 : 0,
     merged.aiAllowDMs ? 1 : 0,
     merged.aiDefaultTranslateLanguage,
-    merged.enableDynamicRoles ? 1 : 0
+    merged.enableDynamicRoles ? 1 : 0,
+    merged.enableTwitchDrops ? 1 : 0,
+    merged.twitchDropsChannelId,
+    merged.twitchDropsApiUrl,
+    merged.twitchDropsApiKey,
+    merged.twitchDropsCheckInterval
   );
 }
 

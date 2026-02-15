@@ -67,6 +67,49 @@ async function handleToggleButtons(
   guildId: string,
   settings: any
 ): Promise<ButtonResult | null> {
+  // Special handling for Twitch Drops toggle - validate API connection before enabling
+  if (i.customId === 'setup_toggle_twitchdrops') {
+    if (!settings.enableTwitchDrops) {
+      // Trying to enable - validate first
+      if (!settings.twitchDropsApiUrl || !settings.twitchDropsApiKey || !settings.twitchDropsChannelId) {
+        await i.reply({ 
+          content: '❌ Cannot enable Twitch Drops. Please configure API URL, API Key, and notification channel first.', 
+          flags: MessageFlags.Ephemeral 
+        });
+        return { shouldReturn: true };
+      }
+      
+      // Test API connection
+      await i.deferReply({ flags: MessageFlags.Ephemeral });
+      try {
+        const { fetchAllDrops } = await import('../../../../twitchdrops/twitchDropsApi.js');
+        const response = await fetchAllDrops({
+          apiUrl: settings.twitchDropsApiUrl,
+          apiKey: settings.twitchDropsApiKey,
+          checkIntervalMinutes: settings.twitchDropsCheckInterval,
+        });
+        
+        if (!response || !response.success) {
+          await i.editReply({ content: '❌ API connection test failed. Please check your API URL and key.' });
+          return { shouldReturn: true };
+        }
+        
+        // Connection successful, enable the module
+        updateGuildSettings(guildId, { enableTwitchDrops: true });
+        await i.editReply({ content: '✅ Twitch Drops enabled successfully!' });
+        return { shouldReturn: false };
+      } catch (error) {
+        console.error('[TWITCH DROPS TOGGLE]', error);
+        await i.editReply({ content: `❌ API connection test failed: ${(error as Error).message}` });
+        return { shouldReturn: true };
+      }
+    } else {
+      // Disabling - no validation needed
+      updateGuildSettings(guildId, { enableTwitchDrops: false });
+      return { shouldReturn: false };
+    }
+  }
+
   const toggleMappings: Record<string, string> = {
     'setup_toggle_dynamicroles': 'enableDynamicRoles',
     'setup_toggle_colors': 'enableRoleColors',
@@ -176,6 +219,43 @@ async function handleModalButtons(
       return { shouldReturn: true };
     }
 
+    case 'setup_twitchdrops_apiurl_modal': {
+      const modal = new ModalBuilder()
+        .setCustomId('setup_twitchdrops_apiurl_modal')
+        .setTitle('🌐 Twitch Drops API URL');
+      
+      const apiUrlInput = new TextInputBuilder()
+        .setCustomId('api_url')
+        .setLabel('API URL')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('http://localhost:8080')
+        .setValue(settings.twitchDropsApiUrl || 'http://localhost:8080')
+        .setRequired(true)
+        .setMaxLength(200);
+      
+      modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(apiUrlInput));
+      await i.showModal(modal);
+      return { shouldReturn: true };
+    }
+
+    case 'setup_twitchdrops_apikey_modal': {
+      const modal = new ModalBuilder()
+        .setCustomId('setup_twitchdrops_apikey_modal')
+        .setTitle('🔑 Twitch Drops API Key');
+      
+      const apiKeyInput = new TextInputBuilder()
+        .setCustomId('api_key')
+        .setLabel('API Key')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Enter your API key')
+        .setRequired(true)
+        .setMaxLength(100);
+      
+      modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(apiKeyInput));
+      await i.showModal(modal);
+      return { shouldReturn: true };
+    }
+
     case 'setup_ai_apikey': {
       const modal = new ModalBuilder()
         .setCustomId('setup_ai_apikey_modal')
@@ -259,6 +339,9 @@ async function handleModuleButtons(
 
     case 'setup_steamnews_force':
       return handleSteamNewsForce(i, guildId, settings);
+
+    case 'setup_twitchdrops_test':
+      return handleTwitchDropsTest(i, guildId, settings);
 
     case 'setup_ai_test':
       return handleAITest(i, guildId, settings);
@@ -613,6 +696,51 @@ async function handleSteamNewsForce(
     }
   } catch (error) {
     console.error('[STEAM NEWS FORCE]', error);
+    await i.editReply({ content: `❌ Error: ${(error as Error).message}` });
+  }
+  
+  return { shouldReturn: true };
+}
+
+async function handleTwitchDropsTest(
+  i: ButtonInteraction,
+  guildId: string,
+  settings: any
+): Promise<ButtonResult> {
+  await i.deferReply({ flags: MessageFlags.Ephemeral });
+  
+  try {
+    if (!settings.twitchDropsApiUrl || !settings.twitchDropsApiKey) {
+      await i.editReply({ content: '❌ Twitch Drops is not fully configured. Set API URL and API key first.' });
+      return { shouldReturn: true };
+    }
+    
+    const { fetchAllDrops } = await import('../../../../twitchdrops/twitchDropsApi.js');
+    
+    const response = await fetchAllDrops({
+      apiUrl: settings.twitchDropsApiUrl,
+      apiKey: settings.twitchDropsApiKey,
+      checkIntervalMinutes: settings.twitchDropsCheckInterval,
+    });
+    
+    if (!response) {
+      await i.editReply({ content: '❌ Failed to connect to API. Check your API URL and key.' });
+      return { shouldReturn: true };
+    }
+    
+    if (!response.success) {
+      await i.editReply({ content: '❌ API returned an error. Check your configuration.' });
+      return { shouldReturn: true };
+    }
+    
+    const totalCampaigns = response.games.reduce((sum, game) => sum + game.campaigns.length, 0);
+    const gamesList = response.games.map(game => `• ${game.gameName}: ${game.campaigns.length} campaign(s)`).join('\n');
+    
+    await i.editReply({ 
+      content: `✅ **API Connection Successful!**\n\n**Total Games:** ${response.games.length}\n**Total Campaigns:** ${totalCampaigns}\n\n${gamesList || 'No campaigns found'}` 
+    });
+  } catch (error) {
+    console.error('[TWITCH DROPS TEST]', error);
     await i.editReply({ content: `❌ Error: ${(error as Error).message}` });
   }
   

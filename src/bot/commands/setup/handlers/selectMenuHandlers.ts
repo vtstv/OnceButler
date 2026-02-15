@@ -121,6 +121,10 @@ export async function handleStringSelectMenu(
       updateGuildSettings(guildId, { steamNewsCheckInterval: parseInt(i.values[0]) });
       return { shouldReturn: false };
 
+    case 'setup_twitchdrops_interval':
+      updateGuildSettings(guildId, { twitchDropsCheckInterval: parseInt(i.values[0]) });
+      return { shouldReturn: false };
+
     case 'setup_ai_provider_select':
       updateGuildSettings(guildId, { aiProvider: i.values[0] as 'cloudflare' | 'gemini' });
       await i.update({ content: `✅ AI Provider set to **${i.values[0] === 'cloudflare' ? 'Cloudflare Workers AI' : 'Google Gemini'}**!`, components: [] });
@@ -161,6 +165,7 @@ export async function handleChannelSelectMenu(
     'setup_tempvoice_trigger': 'tempVoiceTriggerChannelId',
     'setup_tempvoice_category': 'tempVoiceCategoryId',
     'setup_steamnews_channel': 'steamNewsChannelId',
+    'setup_twitchdrops_channel': 'twitchDropsChannelId',
     'setup_ai_channel': 'aiChannelId',
   };
 
