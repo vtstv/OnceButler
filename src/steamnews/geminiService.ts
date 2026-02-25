@@ -44,7 +44,8 @@ export async function translateAndSummarize(
 - Любые упоминания RaidZone Mode
 - Таблицы с банами игроков
 
-ЛИМИТ: 2000 символов. Будь лаконичен, но информативен!
+Generate a message under 2000 characters total. This is a strict limit and must not be exceeded (count all characters including spaces and line breaks).
+Будь лаконичен, но информативен!
 
 Текст новости:
 ${content}
