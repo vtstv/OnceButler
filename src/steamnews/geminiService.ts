@@ -7,14 +7,16 @@ interface GeminiResponse {
     content: {
       parts: Array<{ text: string }>;
     };
+    finishReason?: string;
   }>;
   error?: { message: string; code?: number };
 }
 
+// Model fallback order: fastest to most capable
 const GEMINI_MODELS = [
+  'gemini-3.1-flash-lite-preview',
+  'gemini-3-flash-preview',
   'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
 ];
 
 export async function translateAndSummarize(
@@ -71,24 +73,57 @@ async function tryModel(model: string, apiKey: string, prompt: string): Promise<
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.3,
+          temperature: 0.2,
           maxOutputTokens: 4000,
         },
+        safetySettings: [
+          {
+            category: 'HARM_CATEGORY_HARASSMENT',
+            threshold: 'BLOCK_ONLY_HIGH',
+          },
+          {
+            category: 'HARM_CATEGORY_HATE_SPEECH',
+            threshold: 'BLOCK_ONLY_HIGH',
+          },
+          {
+            category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+            threshold: 'BLOCK_ONLY_HIGH',
+          },
+          {
+            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+            threshold: 'BLOCK_ONLY_HIGH',
+          },
+        ],
       }),
     });
 
-    const data = await response.json() as GeminiResponse;
-    
+    const data = (await response.json()) as GeminiResponse;
+
     if (data.error) {
-      if (data.error.code === 429) {
-        console.log(`[GEMINI] Rate limited on ${model}, trying next...`);
-        return null;
-      }
-      console.error(`[GEMINI] Error on ${model}:`, data.error.message);
+      console.error(`[GEMINI] ${model} Error:`, data.error.message);
       return null;
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const candidate = data.candidates?.[0];
+    const finishReason = candidate?.finishReason;
+    const text = candidate?.content?.parts?.[0]?.text;
+
+    // Check finish reason - only STOP is acceptable
+    if (finishReason && finishReason !== 'STOP') {
+      console.warn(`[GEMINI] ${model} interrupted. Reason: ${finishReason}`);
+
+      if (finishReason === 'MAX_TOKENS') {
+        console.warn(`[GEMINI] ${model} hit token limit - trying next model`);
+      } else if (finishReason === 'SAFETY') {
+        console.warn(`[GEMINI] ${model} blocked by safety filter - trying next model`);
+      } else if (finishReason === 'RECITATION') {
+        console.warn(`[GEMINI] ${model} blocked due to recitation - trying next model`);
+      } else {
+        console.warn(`[GEMINI] ${model} stopped with reason: ${finishReason} - trying next model`);
+      }
+      return null;
+    }
+
     if (!text) {
       console.error(`[GEMINI] No text in response from ${model}`);
       return null;
@@ -96,6 +131,7 @@ async function tryModel(model: string, apiKey: string, prompt: string): Promise<
 
     console.log(`[GEMINI] Successfully used ${model}`);
     return text.trim();
+
   } catch (error) {
     console.error(`[GEMINI] Request to ${model} failed:`, error);
     return null;
