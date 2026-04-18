@@ -10,7 +10,7 @@ import {
   ActionRowBuilder,
 } from 'discord.js';
 import type { ButtonInteraction, StringSelectMenuInteraction, ChannelSelectMenuInteraction, RoleSelectMenuInteraction } from 'discord.js';
-import { getGuildSettings } from '../../../../database/repositories/settingsRepo.js';
+import { getGuildSettings, updateGuildSettings } from '../../../../database/repositories/settingsRepo.js';
 import {
   createEventNotification,
   getEventNotificationById,
@@ -38,6 +38,16 @@ export async function handleEventNotificationsButton(
   currentRoleSubCategory: RoleSubCategory,
   wizardData: any
 ): Promise<ButtonResult | null> {
+  // Toggle module
+  if (i.customId === 'setup_events_toggle_module') {
+    updateGuildSettings(guildId, { enableEventNotifications: !settings.enableEventNotifications });
+    const newSettings = getGuildSettings(guildId);
+    const { buildCategoryView } = await import('./viewBuilder.js');
+    const view = buildCategoryView('eventNotifications', newSettings, i.guild!, currentRoleSubCategory);
+    await i.update({ embeds: view.embeds, components: view.components });
+    return { shouldReturn: true };
+  }
+
   // Main buttons
   if (i.customId === 'setup_events_add') {
     const addView = buildEventNotificationsAdd(guildId);

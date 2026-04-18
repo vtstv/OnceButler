@@ -30,7 +30,12 @@ export function buildEventNotificationsSettings(settings: GuildSettings, guild: 
       '• Previous notification is deleted when new one posts\n' +
       '• Mentions configured role to alert players'
     )
-    .setColor(0x5865F2);
+    .setColor(0x5865F2)
+    .addFields({
+      name: '⚙️ Module Status',
+      value: settings.enableEventNotifications ? '✅ Enabled' : '❌ Disabled',
+      inline: false,
+    });
 
   if (events.length === 0) {
     embed.addFields({
@@ -61,14 +66,23 @@ export function buildEventNotificationsSettings(settings: GuildSettings, guild: 
   const row1 = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
+        .setCustomId('setup_events_toggle_module')
+        .setLabel(settings.enableEventNotifications ? 'Disable Module' : 'Enable Module')
+        .setStyle(settings.enableEventNotifications ? ButtonStyle.Secondary : ButtonStyle.Success),
+      new ButtonBuilder()
         .setCustomId('setup_events_add')
         .setLabel('➕ Add Event')
-        .setStyle(ButtonStyle.Success),
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(!settings.enableEventNotifications),
       new ButtonBuilder()
         .setCustomId('setup_events_manage')
         .setLabel('📋 Manage Events')
         .setStyle(ButtonStyle.Primary)
         .setDisabled(events.length === 0),
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_back')
         .setLabel('◀️ Back')
@@ -77,7 +91,7 @@ export function buildEventNotificationsSettings(settings: GuildSettings, guild: 
 
   return {
     embeds: [embed],
-    components: [row1],
+    components: [row1, row2],
   };
 }
 
