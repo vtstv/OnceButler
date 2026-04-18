@@ -47,6 +47,7 @@ export async function checkAndTriggerEvents(client: Client): Promise<void> {
     for (const event of events) {
       if (shouldTriggerEvent(event, now)) {
         try {
+          // console.log(`[EVENT SCHEDULER] Triggering event ${event.id} (${event.eventName})`);
           await postEventNotification(client, event);
         } catch (err) {
           console.error(`[EVENT SCHEDULER] Failed to post event ${event.id}:`, err);
@@ -59,30 +60,24 @@ export async function checkAndTriggerEvents(client: Client): Promise<void> {
 function shouldTriggerEvent(event: any, now: Date): boolean {
   const { schedule } = event;
   
-  // Check if already triggered recently to prevent duplicates
-  if (event.lastTriggeredAt) {
-    const lastTriggered = new Date(event.lastTriggeredAt);
-    const timeSinceLastTrigger = now.getTime() - lastTriggered.getTime();
-    const minutesSinceLastTrigger = timeSinceLastTrigger / (1000 * 60);
-    
-    // For interval-based events, check if interval has passed
-    if (schedule.intervalMinutes) {
-      // Allow some tolerance (1 minute) to account for scheduler timing
-      if (minutesSinceLastTrigger < schedule.intervalMinutes - 1) {
-        return false;
-      }
+  // For interval-based events
+  if (schedule.intervalMinutes) {
+    // If never triggered, trigger now
+    if (!event.lastTriggeredAt) {
       return true;
     }
     
-    // For hourly events, prevent triggering within 55 minutes
-    if (minutesSinceLastTrigger < 55) {
-      return false;
+    // Parse lastTriggeredAt (stored as UTC string from SQLite)
+    const lastTriggered = new Date(event.lastTriggeredAt + 'Z'); // Add Z to ensure UTC parsing
+    const timeSinceLastTrigger = now.getTime() - lastTriggered.getTime();
+    const minutesSinceLastTrigger = timeSinceLastTrigger / (1000 * 60);
+    
+    // Only trigger if the full interval has passed (with 0.5 minute tolerance)
+    if (minutesSinceLastTrigger >= schedule.intervalMinutes - 0.5) {
+      return true;
     }
-  }
-  
-  // For interval-based events, trigger if no lastTriggeredAt or interval passed
-  if (schedule.intervalMinutes) {
-    return true;
+    
+    return false;
   }
   
   // For hourly events with specific times
@@ -99,6 +94,17 @@ function shouldTriggerEvent(event: any, now: Date): boolean {
     // Check if current minute matches target minute
     if (currentMinute !== targetMinute) {
       return false;
+    }
+
+    // Prevent duplicate triggers within 55 minutes
+    if (event.lastTriggeredAt) {
+      const lastTriggered = new Date(event.lastTriggeredAt + 'Z');
+      const timeSinceLastTrigger = now.getTime() - lastTriggered.getTime();
+      const minutesSinceLastTrigger = timeSinceLastTrigger / (1000 * 60);
+      
+      if (minutesSinceLastTrigger < 55) {
+        return false;
+      }
     }
 
     return true;

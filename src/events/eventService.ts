@@ -11,6 +11,9 @@ export async function postEventNotification(
   client: Client,
   event: EventNotificationConfig
 ): Promise<void> {
+  // Update lastTriggeredAt IMMEDIATELY to prevent duplicate triggers
+  updateEventTrigger(event.id, event.lastMessageId || '', event.previousMessageIds);
+  
   const guild = client.guilds.cache.get(event.guildId);
   if (!guild) {
     console.error(`[EVENT] Guild ${event.guildId} not found`);
@@ -73,6 +76,7 @@ export async function postEventNotification(
   // Send new message
   try {
     const sentMessage = await channel.send({ embeds: [embed] });
+    // Update with the new message ID
     updateEventTrigger(event.id, sentMessage.id, previousMessageIds);
     console.log(`[EVENT] Posted ${event.eventType} notification in ${guild.name}`);
   } catch (err) {
