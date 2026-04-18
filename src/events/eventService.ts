@@ -27,7 +27,7 @@ export async function postEventNotification(
   }
 
   const settings = getGuildSettings(event.guildId);
-  const keepOldMessages = settings.eventNotificationsKeepOldMessages || 1;
+  const keepOldMessages = settings.eventNotificationsKeepOldMessages ?? 1;
 
   // Manage old messages
   const previousMessageIds = [...event.previousMessageIds];
