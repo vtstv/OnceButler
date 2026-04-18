@@ -59,21 +59,52 @@ export async function checkAndTriggerEvents(client: Client): Promise<void> {
 function shouldTriggerEvent(event: any, now: Date): boolean {
   const { schedule } = event;
   
-  // Get current time in the event's timezone
-  const currentHour = getHourInTimezone(now, schedule.timezone);
-  const currentMinute = now.getUTCMinutes();
+  // Check if already triggered recently to prevent duplicates
+  if (event.lastTriggeredAt) {
+    const lastTriggered = new Date(event.lastTriggeredAt);
+    const timeSinceLastTrigger = now.getTime() - lastTriggered.getTime();
+    const minutesSinceLastTrigger = timeSinceLastTrigger / (1000 * 60);
+    
+    // For interval-based events, check if interval has passed
+    if (schedule.intervalMinutes) {
+      // Allow some tolerance (1 minute) to account for scheduler timing
+      if (minutesSinceLastTrigger < schedule.intervalMinutes - 1) {
+        return false;
+      }
+      return true;
+    }
+    
+    // For hourly events, prevent triggering within 55 minutes
+    if (minutesSinceLastTrigger < 55) {
+      return false;
+    }
+  }
+  
+  // For interval-based events, trigger if no lastTriggeredAt or interval passed
+  if (schedule.intervalMinutes) {
+    return true;
+  }
+  
+  // For hourly events with specific times
+  if (schedule.hours) {
+    const currentHour = getHourInTimezone(now, schedule.timezone);
+    const currentMinute = now.getUTCMinutes();
+    const targetMinute = schedule.minutes ?? 0;
 
-  // Check if current hour matches any scheduled hour
-  if (!schedule.hours.includes(currentHour)) {
-    return false;
+    // Check if current hour matches any scheduled hour
+    if (!schedule.hours.includes(currentHour)) {
+      return false;
+    }
+
+    // Check if current minute matches target minute
+    if (currentMinute !== targetMinute) {
+      return false;
+    }
+
+    return true;
   }
 
-  // Only trigger at minute 0 (start of the hour)
-  if (currentMinute !== 0) {
-    return false;
-  }
-
-  return true;
+  return false;
 }
 
 function getHourInTimezone(date: Date, timezone: string): number {

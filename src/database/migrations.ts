@@ -538,6 +538,7 @@ export function runMigrations(): void {
   // Add event notifications settings columns
   const eventNotificationsColumns = [
     { name: 'enableEventNotifications', sql: 'ALTER TABLE guild_settings ADD COLUMN enableEventNotifications INTEGER DEFAULT 0' },
+    { name: 'eventNotificationsKeepOldMessages', sql: 'ALTER TABLE guild_settings ADD COLUMN eventNotificationsKeepOldMessages INTEGER DEFAULT 1' },
   ];
 
   for (const col of eventNotificationsColumns) {
@@ -546,5 +547,19 @@ export function runMigrations(): void {
     } catch (e: any) {
       if (!e.message.includes('duplicate column')) throw e;
     }
+  }
+
+  // Add lastTriggeredAt column to event_notifications
+  try {
+    db.exec('ALTER TABLE event_notifications ADD COLUMN lastTriggeredAt TEXT DEFAULT NULL');
+  } catch (e: any) {
+    if (!e.message.includes('duplicate column')) throw e;
+  }
+
+  // Add previousMessageIds column to store multiple old messages
+  try {
+    db.exec('ALTER TABLE event_notifications ADD COLUMN previousMessageIds TEXT DEFAULT "[]"');
+  } catch (e: any) {
+    if (!e.message.includes('duplicate column')) throw e;
   }
 }

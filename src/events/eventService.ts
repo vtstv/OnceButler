@@ -4,7 +4,8 @@
 
 import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import type { EventNotificationConfig } from './types.js';
-import { updateLastMessageId } from '../database/repositories/eventNotificationsRepo.js';
+import { updateEventTrigger } from '../database/repositories/eventNotificationsRepo.js';
+import { getGuildSettings } from '../database/repositories/settingsRepo.js';
 
 export async function postEventNotification(
   client: Client,
@@ -22,15 +23,29 @@ export async function postEventNotification(
     return;
   }
 
-  // Delete previous message if exists
+  const settings = getGuildSettings(event.guildId);
+  const keepOldMessages = settings.eventNotificationsKeepOldMessages || 1;
+
+  // Manage old messages
+  const previousMessageIds = [...event.previousMessageIds];
+  
+  // Add current message to previous list if it exists
   if (event.lastMessageId) {
-    try {
-      const oldMessage = await channel.messages.fetch(event.lastMessageId).catch(() => null);
-      if (oldMessage) {
-        await oldMessage.delete();
+    previousMessageIds.push(event.lastMessageId);
+  }
+
+  // Delete messages that exceed the keep limit
+  while (previousMessageIds.length > keepOldMessages) {
+    const oldMessageId = previousMessageIds.shift();
+    if (oldMessageId) {
+      try {
+        const oldMessage = await channel.messages.fetch(oldMessageId).catch(() => null);
+        if (oldMessage) {
+          await oldMessage.delete();
+        }
+      } catch (err) {
+        console.error(`[EVENT] Failed to delete old message ${oldMessageId}:`, err);
       }
-    } catch (err) {
-      console.error(`[EVENT] Failed to delete old message:`, err);
     }
   }
 
@@ -58,7 +73,7 @@ export async function postEventNotification(
   // Send new message
   try {
     const sentMessage = await channel.send({ embeds: [embed] });
-    updateLastMessageId(event.id, sentMessage.id);
+    updateEventTrigger(event.id, sentMessage.id, previousMessageIds);
     console.log(`[EVENT] Posted ${event.eventType} notification in ${guild.name}`);
   } catch (err) {
     console.error(`[EVENT] Failed to send message:`, err);
@@ -83,30 +98,48 @@ function formatEventMessage(event: EventNotificationConfig): string {
 
 function getNextEventTime(event: EventNotificationConfig): Date | null {
   const now = new Date();
-  const currentHour = now.getUTCHours();
   const { schedule } = event;
 
-  // Find next scheduled hour
-  let nextHour: number | null = null;
+  // For interval-based events
+  if (schedule.intervalMinutes) {
+    const nextTime = new Date(now);
+    nextTime.setMinutes(nextTime.getMinutes() + schedule.intervalMinutes);
+    nextTime.setSeconds(0, 0);
+    return nextTime;
+  }
 
-  for (const hour of schedule.hours) {
-    if (hour > currentHour) {
-      nextHour = hour;
-      break;
+  // For hourly events with specific times
+  if (schedule.hours) {
+    const currentHour = now.getUTCHours();
+    const currentMinute = now.getUTCMinutes();
+    const targetMinute = schedule.minutes ?? 0;
+
+    // Find next scheduled hour
+    let nextHour: number | null = null;
+    let isToday = true;
+
+    for (const hour of schedule.hours) {
+      // If hour is later today, or same hour but minute hasn't passed yet
+      if (hour > currentHour || (hour === currentHour && targetMinute > currentMinute)) {
+        nextHour = hour;
+        break;
+      }
     }
+
+    // If no hour found today, use first hour tomorrow
+    if (nextHour === null) {
+      nextHour = schedule.hours[0];
+      isToday = false;
+    }
+
+    // Set to next scheduled time
+    const nextTime = new Date(now);
+    if (!isToday) {
+      nextTime.setUTCDate(nextTime.getUTCDate() + 1);
+    }
+    nextTime.setUTCHours(nextHour, targetMinute, 0, 0);
+    return nextTime;
   }
 
-  // If no hour found today, use first hour tomorrow
-  if (nextHour === null) {
-    nextHour = schedule.hours[0];
-    const tomorrow = new Date(now);
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-    tomorrow.setUTCHours(nextHour, 0, 0, 0);
-    return tomorrow;
-  }
-
-  // Set to next hour today
-  const nextTime = new Date(now);
-  nextTime.setUTCHours(nextHour, 0, 0, 0);
-  return nextTime;
+  return null;
 }

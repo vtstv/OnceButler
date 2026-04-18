@@ -290,6 +290,44 @@ export function registerEvents(client: Client): void {
         }
         return;
       }
+      if (interaction.customId === 'setup_events_keep_old_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          
+          const keepOldMessages = parseInt(interaction.fields.getTextInputValue('keep_old_messages'));
+          
+          if (isNaN(keepOldMessages) || keepOldMessages < 0 || keepOldMessages > 10) {
+            await interaction.reply({ content: '❌ Please enter a number between 0 and 10.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          
+          updateGuildSettings(guildId, { eventNotificationsKeepOldMessages: keepOldMessages });
+          
+          let description: string;
+          if (keepOldMessages === 0) {
+            description = 'All old messages will be deleted immediately when a new event notification is posted.';
+          } else if (keepOldMessages === 1) {
+            description = 'The last message will be kept, older messages will be deleted.';
+          } else {
+            description = `The last ${keepOldMessages} messages will be kept, older messages will be deleted.`;
+          }
+          
+          await interaction.reply({ 
+            content: `✅ Keep old messages set to: **${keepOldMessages}**\n\n${description}`,
+            flags: MessageFlags.Ephemeral 
+          });
+        } catch (error) {
+          console.error('[MODAL] Error handling keep old messages modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
       if (interaction.customId.startsWith('setup_events_edit_name_modal_')) {
         try {
           const guildId = interaction.guild?.id;
@@ -311,6 +349,104 @@ export function registerEvents(client: Client): void {
           });
         } catch (error) {
           console.error('[MODAL] Error handling edit event name modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
+      if (interaction.customId.startsWith('setup_events_edit_message_modal_')) {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          
+          const eventId = parseInt(interaction.customId.replace('setup_events_edit_message_modal_', ''));
+          const newMessage = interaction.fields.getTextInputValue('message');
+          
+          const { updateEventNotification } = await import('../database/repositories/eventNotificationsRepo.js');
+          
+          updateEventNotification(eventId, { messageTemplate: newMessage });
+          
+          await interaction.reply({ 
+            content: `✅ Event message updated!`,
+            flags: MessageFlags.Ephemeral 
+          });
+        } catch (error) {
+          console.error('[MODAL] Error handling edit event message modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
+      if (interaction.customId.startsWith('setup_events_edit_schedule_modal_')) {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          
+          const eventId = parseInt(interaction.customId.replace('setup_events_edit_schedule_modal_', ''));
+          const { updateEventNotification, getEventNotificationById } = await import('../database/repositories/eventNotificationsRepo.js');
+          
+          const event = getEventNotificationById(eventId);
+          if (!event) {
+            await interaction.reply({ content: '❌ Event not found.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          
+          // Check if it's interval-based or hourly
+          if (event.schedule.intervalMinutes) {
+            const intervalMinutes = parseInt(interaction.fields.getTextInputValue('interval_minutes'));
+            
+            if (isNaN(intervalMinutes) || intervalMinutes < 1) {
+              await interaction.reply({ content: '❌ Please enter a valid interval (minimum 1 minute).', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            
+            updateEventNotification(eventId, { 
+              schedule: { intervalMinutes, timezone: 'GMT' }
+            });
+            
+            await interaction.reply({ 
+              content: `✅ Schedule updated to: Every ${intervalMinutes} minutes`,
+              flags: MessageFlags.Ephemeral 
+            });
+          } else {
+            const hoursStr = interaction.fields.getTextInputValue('hours');
+            const minutesStr = interaction.fields.getTextInputValue('minutes');
+            
+            const hours = hoursStr.split(',').map(h => parseInt(h.trim())).filter(h => !isNaN(h) && h >= 0 && h <= 23);
+            const minutes = parseInt(minutesStr);
+            
+            if (hours.length === 0) {
+              await interaction.reply({ content: '❌ Please enter valid hours (0-23).', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            
+            if (isNaN(minutes) || minutes < 0 || minutes > 59) {
+              await interaction.reply({ content: '❌ Please enter valid minutes (0-59).', flags: MessageFlags.Ephemeral });
+              return;
+            }
+            
+            updateEventNotification(eventId, { 
+              schedule: { hours, minutes, timezone: 'GMT' }
+            });
+            
+            const minuteStr = minutes.toString().padStart(2, '0');
+            const times = hours.map(h => `${h}:${minuteStr}`).join(', ');
+            
+            await interaction.reply({ 
+              content: `✅ Schedule updated to: ${times} GMT`,
+              flags: MessageFlags.Ephemeral 
+            });
+          }
+        } catch (error) {
+          console.error('[MODAL] Error handling edit event schedule modal:', error);
           if (!interaction.replied) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }

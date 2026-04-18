@@ -91,6 +91,7 @@ export interface GuildSettings {
   twitchDropsCheckInterval: number;
   // Event Notifications module
   enableEventNotifications: boolean;
+  eventNotificationsKeepOldMessages: number;
 }
 
 const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
@@ -179,6 +180,7 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   twitchDropsCheckInterval: 60,
   // Event Notifications module
   enableEventNotifications: false,
+  eventNotificationsKeepOldMessages: 1,
 };
 
 export function getGuildSettings(guildId: string): GuildSettings {
@@ -202,7 +204,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
            enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage,
            enableDynamicRoles,
            enableTwitchDrops, twitchDropsChannelId, twitchDropsApiUrl, twitchDropsApiKey, twitchDropsCheckInterval,
-           enableEventNotifications
+           enableEventNotifications, eventNotificationsKeepOldMessages
     FROM guild_settings WHERE guildId = ?
   `).get(guildId) as any;
 
@@ -285,6 +287,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
     twitchDropsApiKey: row.twitchDropsApiKey ?? null,
     twitchDropsCheckInterval: row.twitchDropsCheckInterval ?? 60,
     enableEventNotifications: row.enableEventNotifications === 1,
+    eventNotificationsKeepOldMessages: row.eventNotificationsKeepOldMessages ?? 1,
   };
 }
 
@@ -326,8 +329,8 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage,
                                 enableDynamicRoles,
                                 enableTwitchDrops, twitchDropsChannelId, twitchDropsApiUrl, twitchDropsApiKey, twitchDropsCheckInterval,
-                                enableEventNotifications)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                enableEventNotifications, eventNotificationsKeepOldMessages)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -400,7 +403,8 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       twitchDropsApiUrl = excluded.twitchDropsApiUrl,
       twitchDropsApiKey = excluded.twitchDropsApiKey,
       twitchDropsCheckInterval = excluded.twitchDropsCheckInterval,
-      enableEventNotifications = excluded.enableEventNotifications
+      enableEventNotifications = excluded.enableEventNotifications,
+      eventNotificationsKeepOldMessages = excluded.eventNotificationsKeepOldMessages
   `).run(
     guildId,
     merged.language,
@@ -475,7 +479,8 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.twitchDropsApiUrl,
     merged.twitchDropsApiKey,
     merged.twitchDropsCheckInterval,
-    merged.enableEventNotifications ? 1 : 0
+    merged.enableEventNotifications ? 1 : 0,
+    merged.eventNotificationsKeepOldMessages
   );
 }
 

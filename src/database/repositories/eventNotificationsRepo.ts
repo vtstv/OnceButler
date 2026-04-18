@@ -24,6 +24,8 @@ export function getEventNotifications(guildId: string): EventNotificationConfig[
     schedule: JSON.parse(row.schedule),
     enabled: row.enabled === 1,
     lastMessageId: row.lastMessageId,
+    previousMessageIds: row.previousMessageIds ? JSON.parse(row.previousMessageIds) : [],
+    lastTriggeredAt: row.lastTriggeredAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }));
@@ -52,6 +54,8 @@ export function getEventNotificationById(id: number): EventNotificationConfig | 
     schedule: JSON.parse(row.schedule),
     enabled: row.enabled === 1,
     lastMessageId: row.lastMessageId,
+    previousMessageIds: row.previousMessageIds ? JSON.parse(row.previousMessageIds) : [],
+    lastTriggeredAt: row.lastTriggeredAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -150,6 +154,18 @@ export function updateLastMessageId(id: number, messageId: string | null): void 
     SET lastMessageId = ?, updatedAt = datetime('now')
     WHERE id = ?
   `).run(messageId, id);
+}
+
+export function updateEventTrigger(id: number, messageId: string, previousMessageIds: string[]): void {
+  const db = getDb();
+  db.prepare(`
+    UPDATE event_notifications
+    SET lastMessageId = ?, 
+        previousMessageIds = ?,
+        lastTriggeredAt = datetime('now'),
+        updatedAt = datetime('now')
+    WHERE id = ?
+  `).run(messageId, JSON.stringify(previousMessageIds), id);
 }
 
 export function toggleEventNotification(id: number): void {

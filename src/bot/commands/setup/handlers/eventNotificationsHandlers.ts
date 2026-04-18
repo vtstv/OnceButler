@@ -48,6 +48,26 @@ export async function handleEventNotificationsButton(
     return { shouldReturn: true };
   }
 
+  // Keep old messages setting
+  if (i.customId === 'setup_events_keep_old') {
+    const modal = new ModalBuilder()
+      .setCustomId('setup_events_keep_old_modal')
+      .setTitle('Keep Old Messages');
+
+    const keepInput = new TextInputBuilder()
+      .setCustomId('keep_old_messages')
+      .setLabel('Number of old messages to keep (0-10)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('e.g., 0, 1, 2, 3')
+      .setValue(settings.eventNotificationsKeepOldMessages.toString())
+      .setRequired(true)
+      .setMaxLength(2);
+
+    modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(keepInput));
+    await i.showModal(modal);
+    return { shouldReturn: true };
+  }
+
   // Main buttons
   if (i.customId === 'setup_events_add') {
     const addView = buildEventNotificationsAdd(guildId);
@@ -251,6 +271,98 @@ export async function handleEventNotificationsButton(
 
     modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(nameInput));
     await i.showModal(modal);
+    return { shouldReturn: true };
+  }
+
+  if (i.customId.startsWith('setup_events_edit_message_')) {
+    const eventId = parseInt(i.customId.replace('setup_events_edit_message_', ''));
+    const event = getEventNotificationById(eventId);
+    
+    if (!event) {
+      await i.reply({ content: '❌ Event not found.', flags: MessageFlags.Ephemeral });
+      return { shouldReturn: true };
+    }
+    
+    const modal = new ModalBuilder()
+      .setCustomId(`setup_events_edit_message_modal_${eventId}`)
+      .setTitle('Edit Event Message');
+
+    const messageInput = new TextInputBuilder()
+      .setCustomId('message')
+      .setLabel('Notification Message')
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder('Variables: {role}, {eventName}')
+      .setValue(event.messageTemplate)
+      .setRequired(true)
+      .setMaxLength(500);
+
+    modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(messageInput));
+    await i.showModal(modal);
+    return { shouldReturn: true };
+  }
+
+  if (i.customId.startsWith('setup_events_edit_schedule_')) {
+    const eventId = parseInt(i.customId.replace('setup_events_edit_schedule_', ''));
+    const event = getEventNotificationById(eventId);
+    
+    if (!event) {
+      await i.reply({ content: '❌ Event not found.', flags: MessageFlags.Ephemeral });
+      return { shouldReturn: true };
+    }
+    
+    // For interval-based events
+    if (event.schedule.intervalMinutes) {
+      const modal = new ModalBuilder()
+        .setCustomId(`setup_events_edit_schedule_modal_${eventId}`)
+        .setTitle('Edit Schedule (Interval)');
+
+      const intervalInput = new TextInputBuilder()
+        .setCustomId('interval_minutes')
+        .setLabel('Interval in minutes')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('e.g., 5, 10, 15, 30, 60')
+        .setValue(event.schedule.intervalMinutes.toString())
+        .setRequired(true)
+        .setMaxLength(10);
+
+      modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(intervalInput));
+      await i.showModal(modal);
+      return { shouldReturn: true };
+    }
+    
+    // For hourly events
+    if (event.schedule.hours) {
+      const modal = new ModalBuilder()
+        .setCustomId(`setup_events_edit_schedule_modal_${eventId}`)
+        .setTitle('Edit Schedule (Hours)');
+
+      const hoursInput = new TextInputBuilder()
+        .setCustomId('hours')
+        .setLabel('Hours (comma-separated, 0-23)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('e.g., 0, 4, 8, 12, 16, 20')
+        .setValue(event.schedule.hours.join(', '))
+        .setRequired(true)
+        .setMaxLength(100);
+
+      const minutesInput = new TextInputBuilder()
+        .setCustomId('minutes')
+        .setLabel('Minutes (0-59)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('e.g., 0, 15, 30, 45')
+        .setValue((event.schedule.minutes ?? 0).toString())
+        .setRequired(true)
+        .setMaxLength(2);
+
+      modal.addComponents(
+        new ActionRowBuilder<TextInputBuilder>().addComponents(hoursInput),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(minutesInput)
+      );
+      await i.showModal(modal);
+      return { shouldReturn: true };
+    }
+    
+    await i.reply({ content: '❌ Unknown schedule type.', flags: MessageFlags.Ephemeral });
     return { shouldReturn: true };
   }
 

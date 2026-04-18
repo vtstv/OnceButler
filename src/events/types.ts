@@ -3,7 +3,9 @@
 // Licensed under MIT License
 
 export interface EventSchedule {
-  hours: number[];
+  hours?: number[]; // For hourly events (0-23)
+  minutes?: number; // Specific minute (0-59) for hourly events, default 0
+  intervalMinutes?: number; // For interval-based events (e.g., every 5 minutes)
   timezone: string;
 }
 
@@ -18,6 +20,8 @@ export interface EventNotificationConfig {
   schedule: EventSchedule;
   enabled: boolean;
   lastMessageId: string | null;
+  previousMessageIds: string[];
+  lastTriggeredAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,6 +40,7 @@ export const EVENT_PRESETS: Record<string, EventPreset> = {
     defaultMessage: '🎁 Loot has respawned! {role}',
     defaultSchedule: {
       hours: [0, 4, 8, 12, 16, 20],
+      minutes: 0,
       timezone: 'GMT',
     },
   },
@@ -45,6 +50,7 @@ export const EVENT_PRESETS: Record<string, EventPreset> = {
     defaultMessage: '⚔️ Boss has spawned! {role}',
     defaultSchedule: {
       hours: [0, 6, 12, 18],
+      minutes: 0,
       timezone: 'GMT',
     },
   },
@@ -54,6 +60,26 @@ export const EVENT_PRESETS: Record<string, EventPreset> = {
     defaultMessage: '🔄 Daily quests have reset! {role}',
     defaultSchedule: {
       hours: [0],
+      minutes: 0,
+      timezone: 'GMT',
+    },
+  },
+  halfHourEvent: {
+    eventType: 'halfHourEvent',
+    eventName: 'Half Hour Event',
+    defaultMessage: '⏰ Half hour event! {role}',
+    defaultSchedule: {
+      hours: [12, 16, 20],
+      minutes: 30,
+      timezone: 'GMT',
+    },
+  },
+  testEvent: {
+    eventType: 'testEvent',
+    eventName: 'Test Event (Every 5 min)',
+    defaultMessage: '🧪 Test notification {role}',
+    defaultSchedule: {
+      intervalMinutes: 5,
       timezone: 'GMT',
     },
   },
@@ -63,6 +89,7 @@ export const EVENT_PRESETS: Record<string, EventPreset> = {
     defaultMessage: '📢 Event notification {role}',
     defaultSchedule: {
       hours: [12],
+      minutes: 0,
       timezone: 'GMT',
     },
   },

@@ -31,11 +31,18 @@ export function buildEventNotificationsSettings(settings: GuildSettings, guild: 
       '• Mentions configured role to alert players'
     )
     .setColor(0x5865F2)
-    .addFields({
-      name: '⚙️ Module Status',
-      value: settings.enableEventNotifications ? '✅ Enabled' : '❌ Disabled',
-      inline: false,
-    });
+    .addFields(
+      {
+        name: '⚙️ Module Status',
+        value: settings.enableEventNotifications ? '✅ Enabled' : '❌ Disabled',
+        inline: true,
+      },
+      {
+        name: '📝 Keep Old Messages',
+        value: `${settings.eventNotificationsKeepOldMessages} message(s)`,
+        inline: true,
+      }
+    );
 
   if (events.length === 0) {
     embed.addFields({
@@ -48,7 +55,18 @@ export function buildEventNotificationsSettings(settings: GuildSettings, guild: 
       const status = e.enabled ? '✅' : '❌';
       const channel = guild.channels.cache.get(e.channelId);
       const role = e.roleId ? guild.roles.cache.get(e.roleId) : null;
-      const schedule = `${e.schedule.hours.join(', ')}:00 ${e.schedule.timezone}`;
+      
+      let schedule: string;
+      if (e.schedule.intervalMinutes) {
+        schedule = `Every ${e.schedule.intervalMinutes} minutes`;
+      } else if (e.schedule.hours) {
+        const minute = e.schedule.minutes ?? 0;
+        const minuteStr = minute.toString().padStart(2, '0');
+        const times = e.schedule.hours.map(h => `${h}:${minuteStr}`).join(', ');
+        schedule = `${times} ${e.schedule.timezone}`;
+      } else {
+        schedule = 'Unknown';
+      }
       
       return `${status} **${e.eventName}** (ID: ${e.id})\n` +
              `└ Channel: ${channel ? `<#${channel.id}>` : 'Unknown'}\n` +
@@ -70,6 +88,14 @@ export function buildEventNotificationsSettings(settings: GuildSettings, guild: 
         .setLabel(settings.enableEventNotifications ? 'Disable Module' : 'Enable Module')
         .setStyle(settings.enableEventNotifications ? ButtonStyle.Secondary : ButtonStyle.Success),
       new ButtonBuilder()
+        .setCustomId('setup_events_keep_old')
+        .setLabel('📝 Keep Old Messages')
+        .setStyle(ButtonStyle.Primary),
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
         .setCustomId('setup_events_add')
         .setLabel('➕ Add Event')
         .setStyle(ButtonStyle.Primary)
@@ -79,10 +105,6 @@ export function buildEventNotificationsSettings(settings: GuildSettings, guild: 
         .setLabel('📋 Manage Events')
         .setStyle(ButtonStyle.Primary)
         .setDisabled(events.length === 0),
-    );
-
-  const row2 = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
       new ButtonBuilder()
         .setCustomId('setup_back')
         .setLabel('◀️ Back')
@@ -101,11 +123,25 @@ export function buildEventNotificationsAdd(guildId: string): SetupView {
     .setDescription('Select a preset event type to configure.')
     .setColor(0x00FF00);
 
-  const presetOptions = Object.entries(EVENT_PRESETS).map(([key, preset]) => ({
-    label: preset.eventName,
-    value: key,
-    description: `Schedule: ${preset.defaultSchedule.hours.join(', ')}:00 ${preset.defaultSchedule.timezone}`,
-  }));
+  const presetOptions = Object.entries(EVENT_PRESETS).map(([key, preset]) => {
+    let scheduleDesc: string;
+    if (preset.defaultSchedule.intervalMinutes) {
+      scheduleDesc = `Every ${preset.defaultSchedule.intervalMinutes} minutes`;
+    } else if (preset.defaultSchedule.hours) {
+      const minute = preset.defaultSchedule.minutes ?? 0;
+      const minuteStr = minute.toString().padStart(2, '0');
+      const times = preset.defaultSchedule.hours.map(h => `${h}:${minuteStr}`).join(', ');
+      scheduleDesc = `${times} ${preset.defaultSchedule.timezone}`;
+    } else {
+      scheduleDesc = 'Custom schedule';
+    }
+    
+    return {
+      label: preset.eventName,
+      value: key,
+      description: scheduleDesc,
+    };
+  });
 
   const selectMenu = new StringSelectMenuBuilder()
     .setCustomId('setup_events_select_preset')
@@ -303,15 +339,25 @@ function buildWizardStepSchedule(wizardData: any): SetupView {
   const eventName = wizardData.eventName || preset.eventName;
   const isCustom = wizardData.presetKey === 'custom';
   
+  let defaultScheduleText: string;
+  if (preset.defaultSchedule.intervalMinutes) {
+    defaultScheduleText = `Every ${preset.defaultSchedule.intervalMinutes} minutes`;
+  } else if (preset.defaultSchedule.hours) {
+    const minute = preset.defaultSchedule.minutes ?? 0;
+    const minuteStr = minute.toString().padStart(2, '0');
+    const times = preset.defaultSchedule.hours.map(h => `${h}:${minuteStr}`).join(', ');
+    defaultScheduleText = `Times: ${times}\nTimezone: ${preset.defaultSchedule.timezone}`;
+  } else {
+    defaultScheduleText = 'Unknown';
+  }
+  
   const embed = new EmbedBuilder()
     .setTitle(`➕ Add Event: ${eventName} — Step 4/5`)
     .setDescription(
       (isCustom 
         ? 'Set the event schedule (when notifications will be posted).\n\n'
         : 'Customize the event schedule.\n\n') +
-      `**Default schedule:**\n` +
-      `Hours: ${preset.defaultSchedule.hours.join(', ')}:00\n` +
-      `Timezone: ${preset.defaultSchedule.timezone}`
+      `**Default schedule:**\n${defaultScheduleText}`
     )
     .setColor(0x5865F2);
 
@@ -343,6 +389,18 @@ function buildWizardStepConfirm(wizardData: any): SetupView {
   const message = wizardData.messageTemplate || preset.defaultMessage;
   const schedule = wizardData.schedule || preset.defaultSchedule;
   
+  let scheduleDisplay: string;
+  if (schedule.intervalMinutes) {
+    scheduleDisplay = `Every ${schedule.intervalMinutes} minutes`;
+  } else if (schedule.hours) {
+    const minute = schedule.minutes ?? 0;
+    const minuteStr = minute.toString().padStart(2, '0');
+    const times = schedule.hours.map((h: number) => `${h}:${minuteStr}`).join(', ');
+    scheduleDisplay = `${times} ${schedule.timezone}`;
+  } else {
+    scheduleDisplay = 'Unknown';
+  }
+  
   const embed = new EmbedBuilder()
     .setTitle(`➕ Add Event: ${eventName} — Step 5/5 (Confirm)`)
     .setDescription('Review your event configuration and confirm.')
@@ -352,7 +410,7 @@ function buildWizardStepConfirm(wizardData: any): SetupView {
       { name: 'Channel', value: wizardData.channelId ? `<#${wizardData.channelId}>` : 'Not set', inline: true },
       { name: 'Role', value: wizardData.roleId ? `<@&${wizardData.roleId}>` : 'None', inline: true },
       { name: 'Message', value: message, inline: false },
-      { name: 'Schedule', value: `${schedule.hours.join(', ')}:00 ${schedule.timezone}`, inline: false },
+      { name: 'Schedule', value: scheduleDisplay, inline: false },
     );
 
   const row1 = new ActionRowBuilder<ButtonBuilder>()
@@ -425,7 +483,15 @@ export function buildEventNotificationsManage(guildId: string, guild: any): Setu
 export function buildEventNotificationEdit(event: any, guild: any): SetupView {
   const channel = guild.channels.cache.get(event.channelId);
   const role = event.roleId ? guild.roles.cache.get(event.roleId) : null;
-  const schedule = `${event.schedule.hours.join(', ')}:00 ${event.schedule.timezone}`;
+  
+  let schedule: string;
+  if (event.schedule.intervalMinutes) {
+    schedule = `Every ${event.schedule.intervalMinutes} minutes`;
+  } else if (event.schedule.hours) {
+    schedule = `${event.schedule.hours.join(', ')}:00 ${event.schedule.timezone}`;
+  } else {
+    schedule = 'Unknown';
+  }
   
   const embed = new EmbedBuilder()
     .setTitle(`✏️ Edit Event: ${event.eventName}`)
@@ -455,16 +521,24 @@ export function buildEventNotificationEdit(event: any, guild: any): SetupView {
     .addComponents(
       new ButtonBuilder()
         .setCustomId(`setup_events_edit_name_${event.id}`)
-        .setLabel('✏️ Edit Name')
+        .setLabel('✏️ Name')
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
-        .setCustomId(`setup_events_delete_${event.id}`)
-        .setLabel('🗑️ Delete')
-        .setStyle(ButtonStyle.Danger),
+        .setCustomId(`setup_events_edit_message_${event.id}`)
+        .setLabel('✏️ Message')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(`setup_events_edit_schedule_${event.id}`)
+        .setLabel('✏️ Schedule')
+        .setStyle(ButtonStyle.Primary),
     );
 
   const row3 = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
+      new ButtonBuilder()
+        .setCustomId(`setup_events_delete_${event.id}`)
+        .setLabel('🗑️ Delete')
+        .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
         .setCustomId('setup_events_manage')
         .setLabel('◀️ Back to List')
