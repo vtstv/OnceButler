@@ -6,6 +6,7 @@ import { Client, Events, GuildMember, MessageFlags } from 'discord.js';
 import { handleVoiceStateUpdate } from '../voice/voiceTracker.js';
 import { handleTempVoiceUpdate, initTempVoiceService } from '../voice/tempVoiceService.js';
 import { startTickScheduler } from '../scheduler/tickScheduler.js';
+import { startEventScheduler } from '../events/eventScheduler.js';
 import { ensureRolesExist } from '../roles/roleEngine.js';
 import { handleInteraction, handleGiveawayButton, handleBlackjackButton, handleCasinoInteraction, handleCasinoModal, handleBlackjackCasinoButton } from './slashCommands.js';
 import { getMemberStats, upsertMemberStats, boostActivityOnMessage } from '../database/repositories/memberStatsRepo.js';
@@ -24,6 +25,7 @@ export function registerEvents(client: Client): void {
     initTempVoiceService();
 
     startTickScheduler(client);
+    startEventScheduler(client);
   });
 
   client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
@@ -282,6 +284,133 @@ export function registerEvents(client: Client): void {
           await interaction.reply({ content: '✅ Cloudflare Account ID saved!', flags: MessageFlags.Ephemeral });
         } catch (error) {
           console.error('[MODAL] Error handling AI account modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
+      if (interaction.customId.startsWith('setup_events_edit_name_modal_')) {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          
+          const eventId = parseInt(interaction.customId.replace('setup_events_edit_name_modal_', ''));
+          const newName = interaction.fields.getTextInputValue('event_name');
+          
+          const { updateEventNotification, getEventNotificationById } = await import('../database/repositories/eventNotificationsRepo.js');
+          
+          updateEventNotification(eventId, { eventName: newName });
+          
+          await interaction.reply({ 
+            content: `✅ Event name updated to: **${newName}**`,
+            flags: MessageFlags.Ephemeral 
+          });
+        } catch (error) {
+          console.error('[MODAL] Error handling edit event name modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
+      if (interaction.customId === 'setup_events_name_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          
+          const { setWizardState } = await import('../bot/commands/setup/handlers/wizardStateCache.js');
+          
+          const eventName = interaction.fields.getTextInputValue('event_name');
+          
+          // Save the event name to wizard state cache so the collector can pick it up
+          setWizardState(interaction.user.id, guildId, { eventName, fromModal: true });
+          
+          await interaction.reply({ 
+            content: `✅ Event name set to: **${eventName}**\n\n⚠️ Click the **"✏️ Set Custom Name"** button again in the setup message above to apply the name.`,
+            flags: MessageFlags.Ephemeral 
+          });
+        } catch (error) {
+          console.error('[MODAL] Error handling events name modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
+      if (interaction.customId === 'setup_events_message_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          
+          const { getWizardState, clearWizardState } = await import('../bot/commands/setup/handlers/wizardStateCache.js');
+          const { buildEventNotificationsWizard } = await import('../bot/commands/setup/builders/eventNotificationsBuilder.js');
+          
+          const wizardState = getWizardState(interaction.user.id, guildId);
+          if (!wizardState) {
+            await interaction.reply({ content: '❌ Wizard session expired. Please start over.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          
+          const message = interaction.fields.getTextInputValue('message');
+          const newWizardData = { ...wizardState, messageTemplate: message };
+          
+          const wizardView = buildEventNotificationsWizard(4, newWizardData);
+          await interaction.reply({ 
+            content: '✅ Message saved! Continue with the wizard below:',
+            embeds: wizardView.embeds,
+            components: wizardView.components,
+            flags: MessageFlags.Ephemeral 
+          });
+          
+          clearWizardState(interaction.user.id, guildId);
+        } catch (error) {
+          console.error('[MODAL] Error handling events message modal:', error);
+          if (!interaction.replied) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
+      if (interaction.customId === 'setup_events_schedule_modal') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          
+          const { setWizardState } = await import('../bot/commands/setup/handlers/wizardStateCache.js');
+          
+          const hoursStr = interaction.fields.getTextInputValue('hours');
+          const hours = hoursStr.split(',').map(h => parseInt(h.trim())).filter(h => !isNaN(h) && h >= 0 && h <= 23);
+          
+          if (hours.length === 0) {
+            await interaction.reply({ content: '❌ Please enter valid hours (0-23).', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          
+          // Save schedule to wizard state cache
+          setWizardState(interaction.user.id, guildId, { 
+            schedule: { hours, timezone: 'GMT' },
+            fromModal: true 
+          });
+          
+          await interaction.reply({ 
+            content: `✅ Schedule saved: ${hours.join(', ')}:00 GMT\n\n⚠️ Click the **"✏️ Customize Schedule"** button again in the setup message above to apply the schedule.`,
+            flags: MessageFlags.Ephemeral 
+          });
+        } catch (error) {
+          console.error('[MODAL] Error handling events schedule modal:', error);
           if (!interaction.replied) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }

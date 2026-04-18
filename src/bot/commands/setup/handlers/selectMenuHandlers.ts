@@ -21,6 +21,7 @@ import { buildCustomRoleAddWizard, buildCustomRuleEdit } from '../customRolesBui
 import { DEFAULT_WELCOME_MESSAGES, DEFAULT_LEAVE_MESSAGES } from '../welcomeBuilder.js';
 import { buildLevelingManageRoles, buildReactionRolesManage } from '../newModulesBuilders.js';
 import type { SelectMenuResult, LevelingRoleData } from './types.js';
+import { handleEventNotificationsSelectMenu, handleEventNotificationsChannelSelect, handleEventNotificationsRoleSelect } from './eventNotificationsHandlers.js';
 
 export async function handleStringSelectMenu(
   i: StringSelectMenuInteraction,
@@ -146,6 +147,10 @@ export async function handleStringSelectMenu(
     case 'setup_customroles_select':
       return handleCustomRolesSelect(i);
   }
+  
+  const eventNotificationsResult = await handleEventNotificationsSelectMenu(i, guildId, wizardData);
+  if (eventNotificationsResult) return eventNotificationsResult;
+  
   return { shouldReturn: false };
 }
 
@@ -153,8 +158,9 @@ export async function handleChannelSelectMenu(
   i: ChannelSelectMenuInteraction,
   guildId: string,
   currentCategory: SetupCategory,
-  currentRoleSubCategory: RoleSubCategory
-): Promise<void> {
+  currentRoleSubCategory: RoleSubCategory,
+  wizardData: any
+): Promise<SelectMenuResult> {
   const channelId = i.values[0];
   
   const channelMappings: Record<string, string> = {
@@ -174,9 +180,14 @@ export async function handleChannelSelectMenu(
     updateGuildSettings(guildId, { [settingKey]: channelId });
   }
 
+  const eventNotificationsResult = await handleEventNotificationsChannelSelect(i, wizardData);
+  if (eventNotificationsResult) return eventNotificationsResult;
+
   const newSettings = getGuildSettings(guildId);
   const view = buildCategoryView(currentCategory, newSettings, i.guild!, currentRoleSubCategory);
   await i.update({ embeds: view.embeds, components: view.components });
+  
+  return { shouldReturn: false };
 }
 
 export async function handleRoleSelectMenu(
@@ -210,6 +221,9 @@ export async function handleRoleSelectMenu(
     await i.reply({ content: `Role **${role.name}** selected. Now select a level.`, flags: MessageFlags.Ephemeral });
     return { shouldReturn: true, levelingRoleToAdd: newLevelingData };
   }
+
+  const eventNotificationsResult = await handleEventNotificationsRoleSelect(i, wizardData);
+  if (eventNotificationsResult) return eventNotificationsResult;
 
   return { shouldReturn: false };
 }

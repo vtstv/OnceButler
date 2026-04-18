@@ -110,6 +110,13 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
         inline: true
       },
       {
+        name: '📅 Event Notifications',
+        value: settings.enableEventNotifications 
+          ? '✅ Enabled'
+          : '❌ Disabled',
+        inline: true
+      },
+      {
         name: '🤖 AI Chat/Translate',
         value: settings.enableAI 
           ? `✅ ${settings.aiProvider}`
@@ -200,6 +207,10 @@ export function buildMainMenu(settings: GuildSettings, guild: any): SetupView {
       new ButtonBuilder()
         .setCustomId('setup_cat_ai')
         .setLabel('🤖 AI')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('setup_cat_eventNotifications')
+        .setLabel('📅 Events')
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId('setup_complete')

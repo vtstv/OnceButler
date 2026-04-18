@@ -30,6 +30,7 @@ import { formatWelcomeMessage, DEFAULT_WELCOME_MESSAGES, DEFAULT_LEAVE_MESSAGES 
 import { createRolesByCategory, deleteRolesByCategory } from '../roleBuilders.js';
 import { buildLevelingAddRole, buildLevelingManageRoles, buildReactionRolesManage } from '../newModulesBuilders.js';
 import type { ButtonResult, LevelingRoleData } from './types.js';
+import { handleEventNotificationsButton } from './eventNotificationsHandlers.js';
 
 export async function handleButton(
   i: ButtonInteraction,
@@ -58,6 +59,9 @@ export async function handleButton(
 
   const dynamicResult = await handleDynamicButtons(i, guildId, settings, currentRoleSubCategory);
   if (dynamicResult) return dynamicResult;
+
+  const eventNotificationsResult = await handleEventNotificationsButton(i, guildId, settings, currentRoleSubCategory, wizardData);
+  if (eventNotificationsResult) return eventNotificationsResult;
 
   return { shouldReturn: false };
 }

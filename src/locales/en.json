@@ -503,5 +503,21 @@
   "voice.info.locked": "Locked",
   "voice.info.unlocked": "Open",
   "voice.info.category": "📁 Category",
-  "voice.info.bitrate": "🎚️ Bitrate"
+  "voice.info.bitrate": "🎚️ Bitrate",
+
+  "events.title": "📅 Event Notifications",
+  "events.disabled": "❌ Event notifications are disabled on this server.",
+  "events.noEvents": "No events configured yet.",
+  "events.added": "✅ Event notification created!",
+  "events.updated": "✅ Event notification updated!",
+  "events.deleted": "✅ Event notification deleted!",
+  "events.triggered": "✅ Event notification triggered manually!",
+  "events.notFound": "❌ Event not found.",
+  "events.lootReset": "Loot Reset",
+  "events.lootResetDesc": "Loot has respawned!",
+  "events.nextEvent": "Next Event",
+  "events.schedule": "Schedule",
+  "events.message": "Message",
+  "events.role": "Role",
+  "events.channel": "Channel"
 }

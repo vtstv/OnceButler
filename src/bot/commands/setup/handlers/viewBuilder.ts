@@ -17,6 +17,7 @@ import { buildCustomRolesSettings } from '../customRolesBuilder.js';
 import { buildEconomySettings, buildGiveawaySettings } from '../economyGiveawayBuilders.js';
 import { buildReactionRolesSettings, buildLevelingSettings, buildImageGenSettings, buildTempVoiceSettings, buildSteamNewsSettings, buildTwitchDropsSettings } from '../newModulesBuilders.js';
 import { buildAISettingsEmbed, buildAISettingsButtons, buildAIChannelSelect, buildAILanguageSelect } from '../builders/aiBuilder.js';
+import { buildEventNotificationsSettings } from '../builders/eventNotificationsBuilder.js';
 
 export function buildCategoryView(
   category: SetupCategory, 
@@ -57,6 +58,8 @@ export function buildCategoryView(
       return buildSteamNewsSettings(settings, guild);
     case 'twitchDrops':
       return buildTwitchDropsSettings(settings, guild);
+    case 'eventNotifications':
+      return buildEventNotificationsSettings(settings, guild);
     case 'ai':
       return buildAISettings(settings, guild);
     default:

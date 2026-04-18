@@ -503,5 +503,21 @@
   "voice.info.locked": "Закрыт",
   "voice.info.unlocked": "Открыт",
   "voice.info.category": "📁 Категория",
-  "voice.info.bitrate": "🎚️ Битрейт"
+  "voice.info.bitrate": "🎚️ Битрейт",
+
+  "events.title": "📅 Уведомления о событиях",
+  "events.disabled": "❌ Уведомления о событиях отключены на этом сервере.",
+  "events.noEvents": "События ещё не настроены.",
+  "events.added": "✅ Уведомление о событии создано!",
+  "events.updated": "✅ Уведомление о событии обновлено!",
+  "events.deleted": "✅ Уведомление о событии удалено!",
+  "events.triggered": "✅ Уведомление о событии отправлено вручную!",
+  "events.notFound": "❌ Событие не найдено.",
+  "events.lootReset": "Обновление лута",
+  "events.lootResetDesc": "Лут обновился!",
+  "events.nextEvent": "Следующее событие",
+  "events.schedule": "Расписание",
+  "events.message": "Сообщение",
+  "events.role": "Роль",
+  "events.channel": "Канал"
 }

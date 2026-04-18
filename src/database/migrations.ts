@@ -510,4 +510,41 @@ export function runMigrations(): void {
       added_at INTEGER NOT NULL
     );
   `);
+
+  // Event Notifications table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS event_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guildId TEXT NOT NULL,
+      eventType TEXT NOT NULL,
+      eventName TEXT NOT NULL,
+      channelId TEXT NOT NULL,
+      roleId TEXT DEFAULT NULL,
+      messageTemplate TEXT NOT NULL,
+      schedule TEXT NOT NULL,
+      enabled INTEGER DEFAULT 1,
+      lastMessageId TEXT DEFAULT NULL,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_event_notifications_guild
+    ON event_notifications(guildId, enabled);
+
+    CREATE INDEX IF NOT EXISTS idx_event_notifications_type
+    ON event_notifications(eventType);
+  `);
+
+  // Add event notifications settings columns
+  const eventNotificationsColumns = [
+    { name: 'enableEventNotifications', sql: 'ALTER TABLE guild_settings ADD COLUMN enableEventNotifications INTEGER DEFAULT 0' },
+  ];
+
+  for (const col of eventNotificationsColumns) {
+    try {
+      db.exec(col.sql);
+    } catch (e: any) {
+      if (!e.message.includes('duplicate column')) throw e;
+    }
+  }
 }

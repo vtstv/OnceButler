@@ -55,8 +55,9 @@ export async function startCollector(message: Message, userId: string, guildId: 
       }
 
       if (i.isChannelSelectMenu()) {
-        await handleChannelSelectMenu(i, guildId, state.currentCategory, state.currentRoleSubCategory);
-        return;
+        const result = await handleChannelSelectMenu(i, guildId, state.currentCategory, state.currentRoleSubCategory, state.wizardData);
+        applySelectMenuResult(state, result);
+        if (result.shouldReturn) return;
       }
 
       if (i.isRoleSelectMenu()) {
