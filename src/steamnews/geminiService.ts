@@ -18,7 +18,7 @@ const GEMINI_MODELS = [
   'gemini-3-flash-preview',
   'gemini-2.5-flash',
 ];
-x
+
 export async function translateAndSummarize(
   content: string,
   apiKey: string

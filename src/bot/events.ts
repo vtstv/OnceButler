@@ -488,7 +488,7 @@ export function registerEvents(client: Client): void {
             return;
           }
           
-          const { getWizardState, clearWizardState } = await import('../bot/commands/setup/handlers/wizardStateCache.js');
+          const { getWizardState, setWizardState } = await import('../bot/commands/setup/handlers/wizardStateCache.js');
           const { buildEventNotificationsWizard } = await import('../bot/commands/setup/builders/eventNotificationsBuilder.js');
           
           const wizardState = getWizardState(interaction.user.id, guildId);
@@ -498,7 +498,10 @@ export function registerEvents(client: Client): void {
           }
           
           const message = interaction.fields.getTextInputValue('message');
-          const newWizardData = { ...wizardState, messageTemplate: message };
+          const newWizardData = { ...wizardState, messageTemplate: message, wizardStep: 4 };
+          
+          // Update wizard state instead of clearing it
+          setWizardState(interaction.user.id, guildId, newWizardData);
           
           const wizardView = buildEventNotificationsWizard(4, newWizardData);
           await interaction.reply({ 
@@ -507,8 +510,6 @@ export function registerEvents(client: Client): void {
             components: wizardView.components,
             flags: MessageFlags.Ephemeral 
           });
-          
-          clearWizardState(interaction.user.id, guildId);
         } catch (error) {
           console.error('[MODAL] Error handling events message modal:', error);
           if (!interaction.replied) {

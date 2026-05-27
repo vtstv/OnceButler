@@ -38,6 +38,13 @@ export async function handleEventNotificationsButton(
   currentRoleSubCategory: RoleSubCategory,
   wizardData: any
 ): Promise<ButtonResult | null> {
+  // Check if there's cached wizard state and merge it
+  const { getWizardState } = await import('./wizardStateCache.js');
+  const cachedState = getWizardState(i.user.id, guildId);
+  if (cachedState) {
+    wizardData = { ...wizardData, ...cachedState };
+  }
+  
   // Toggle module
   if (i.customId === 'setup_events_toggle_module') {
     updateGuildSettings(guildId, { enableEventNotifications: !settings.enableEventNotifications });
