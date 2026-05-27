@@ -26,14 +26,14 @@ export function initTwitchDrops(): void {
  */
 export async function processTwitchDrops(client: Client): Promise<void> {
   initTwitchDrops();
-  console.log('[TWITCH DROPS] Starting check...');
+  // console.log('[TWITCH DROPS] Starting check...');
   
   const guildsWithDrops = getGuildsWithTwitchDrops(client);
   if (guildsWithDrops.length === 0) {
     console.log('[TWITCH DROPS] No configured guilds found');
     return;
   }
-  console.log(`[TWITCH DROPS] Checking for ${guildsWithDrops.length} configured guild(s)`);
+  // console.log(`[TWITCH DROPS] Checking for ${guildsWithDrops.length} configured guild(s)`);
 
   // Process each guild independently
   for (const guild of guildsWithDrops) {

@@ -51,6 +51,15 @@ export async function handleReactionAdd(
     const role = guild.roles.cache.get(reactionRole.roleId);
     if (!role) return;
 
+    // Check if bot has permission to manage this role
+    const botMember = await guild.members.fetchMe();
+    const botHighestRole = botMember.roles.highest;
+    
+    if (role.position >= botHighestRole.position) {
+      console.error(`[ReactionRoles] Cannot add role "${role.name}" - it's higher than bot's highest role "${botHighestRole.name}". Move bot's role above "${role.name}" in Server Settings > Roles.`);
+      return;
+    }
+
     if (!member.roles.cache.has(role.id)) {
       await member.roles.add(role, 'Reaction role');
     }
@@ -97,6 +106,15 @@ export async function handleReactionRemove(
 
     const role = guild.roles.cache.get(reactionRole.roleId);
     if (!role) return;
+
+    // Check if bot has permission to manage this role
+    const botMember = await guild.members.fetchMe();
+    const botHighestRole = botMember.roles.highest;
+    
+    if (role.position >= botHighestRole.position) {
+      console.error(`[ReactionRoles] Cannot remove role "${role.name}" - it's higher than bot's highest role "${botHighestRole.name}". Move bot's role above "${role.name}" in Server Settings > Roles.`);
+      return;
+    }
 
     if (member.roles.cache.has(role.id)) {
       await member.roles.remove(role, 'Reaction role removed');

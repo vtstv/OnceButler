@@ -78,7 +78,7 @@ export async function postEventNotification(
     const sentMessage = await channel.send({ embeds: [embed] });
     // Update with the new message ID
     updateEventTrigger(event.id, sentMessage.id, previousMessageIds);
-    console.log(`[EVENT] Posted ${event.eventType} notification in ${guild.name}`);
+    // console.log(`[EVENT] Posted ${event.eventType} notification in ${guild.name}`);
   } catch (err) {
     console.error(`[EVENT] Failed to send message:`, err);
   }

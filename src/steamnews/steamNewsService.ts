@@ -21,14 +21,14 @@ export function initSteamNews(): void {
 
 export async function processSteamNews(client: Client): Promise<void> {
   initSteamNews();
-  console.log('[STEAM NEWS] Starting check...');
+  // console.log('[STEAM NEWS] Starting check...');
   
   const guildsWithNews = getGuildsWithSteamNews(client);
   if (guildsWithNews.length === 0) {
     console.log('[STEAM NEWS] No configured guilds found');
     return;
   }
-  console.log(`[STEAM NEWS] Checking for ${guildsWithNews.length} configured guild(s)`);
+  // console.log(`[STEAM NEWS] Checking for ${guildsWithNews.length} configured guild(s)`);
 
   const newsItems = await fetchSteamNews(ONCE_HUMAN_CONFIG);
   if (newsItems.length === 0) {
