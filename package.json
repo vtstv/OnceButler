@@ -20,9 +20,11 @@
   "author": "Murr <https://github.com/vtstv>",
   "license": "MIT",
   "dependencies": {
+    "@google/genai": "^2.10.0",
     "better-sqlite3": "^11.6.0",
     "discord.js": "^14.16.3",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "google-auth-library": "^10.9.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",

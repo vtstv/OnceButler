@@ -106,6 +106,10 @@ export async function handleStringSelectMenu(
       updateGuildSettings(guildId, { imageGenProvider: i.values[0] as 'cloudflare' | 'together' | 'gemini' });
       return { shouldReturn: false };
 
+    case 'setup_imagegen_gemini_method':
+      updateGuildSettings(guildId, { imageGenGeminiMethod: i.values[0] as 'api' | 'vertex' });
+      return { shouldReturn: false };
+
     case 'setup_imagegen_user_limit':
       updateGuildSettings(guildId, { imageGenUserDailyLimit: parseInt(i.values[0]) });
       return { shouldReturn: false };

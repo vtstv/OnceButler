@@ -87,11 +87,37 @@ export function buildImageGenSettings(settings: GuildSettings, guild: any): Setu
     });
   }
 
+  // Only show Gemini method for Gemini provider
+  if (provider === 'gemini') {
+    const method = settings.imageGenGeminiMethod ?? 'api';
+    const methodLabel = method === 'api' ? '📡 REST API' : '🔧 Vertex SDK';
+    embed.addFields({ 
+      name: '⚙️ Gemini Method', 
+      value: methodLabel, 
+      inline: true 
+    });
+  }
+
   embed.addFields({
     name: `📝 ${providerName.split(' ')[1]} Setup`,
     value: apiHelp,
     inline: false
   });
+
+  // Add note about Vertex SDK requirements
+  if (provider === 'gemini' && settings.imageGenGeminiMethod === 'vertex') {
+    embed.addFields({
+      name: '⚠️ Vertex SDK Requirements',
+      value: '**Vertex SDK uses Imagen 3.0 (not Gemini models):**\n' +
+             '• Service account JSON file\n' +
+             '• `GOOGLE_APPLICATION_CREDENTIALS` environment variable\n' +
+             '• Vertex AI User role permissions\n' +
+             '• Model: `imagen-3.0-fast-generate-001`\n' +
+             '• **Not configurable via Discord** - requires server access\n\n' +
+             '💡 Use **REST API method** for Gemini image models with AI Studio keys.',
+      inline: false
+    });
+  }
 
   const row1 = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
@@ -181,8 +207,37 @@ export function buildImageGenSettings(settings: GuildSettings, guild: any): Setu
         ])
     );
 
+  // Only show Gemini method selector when Gemini is selected
+  const components: any[] = [row1, providerSelect, userLimitSelect, guildLimitSelect];
+  
+  if (provider === 'gemini') {
+    const methodSelect = new ActionRowBuilder<StringSelectMenuBuilder>()
+      .addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId('setup_imagegen_gemini_method')
+          .setPlaceholder('⚙️ Gemini Method')
+          .addOptions([
+            { 
+              label: 'REST API', 
+              value: 'api', 
+              description: 'AI Studio API key (recommended)',
+              emoji: '📡',
+              default: settings.imageGenGeminiMethod === 'api'
+            },
+            { 
+              label: 'Vertex SDK', 
+              value: 'vertex', 
+              description: 'Imagen 3.0 via service account',
+              emoji: '🔧',
+              default: settings.imageGenGeminiMethod === 'vertex'
+            },
+          ])
+      );
+    components.push(methodSelect);
+  }
+
   return {
     embeds: [embed],
-    components: [row1, providerSelect, userLimitSelect, guildLimitSelect],
+    components: components,
   };
 }

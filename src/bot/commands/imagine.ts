@@ -164,64 +164,187 @@ async function generateWithGemini(
   }
 
   try {
-    // Use configurable Gemini model from environment
-    const { env } = await import('../../config/env.js');
-    const model = env.geminiImageModel;
+    const method = settings.imageGenGeminiMethod ?? 'api';
     
-    console.log(`[IMAGINE] Using Gemini model: ${model}`);
+    if (method === 'vertex') {
+      return await generateWithGeminiVertex(prompt, dimensions, settings);
+    } else {
+      return await generateWithGeminiAPI(prompt, dimensions, settings);
+    }
+  } catch (error) {
+    console.error('[IMAGINE] Gemini error:', error);
+    return { success: false, error: 'Failed to connect to Gemini API.' };
+  }
+}
+
+// Method 1: REST API (simple, works with AI Studio keys)
+async function generateWithGeminiAPI(
+  prompt: string,
+  dimensions: { width: number; height: number },
+  settings: GuildSettings
+): Promise<GenerationResult> {
+  const { env } = await import('../../config/env.js');
+  const model = env.geminiImageModel;
+  const method = settings.imageGenGeminiMethod ?? 'api';
+  
+  console.log(`[IMAGINE] Using Gemini API method (${method}) with model: ${model}`);
+  
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.imageGenApiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }]
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({})) as any;
+    console.error('[IMAGINE] Gemini API error:', response.status, errorData);
     
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.imageGenApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }]
-        }),
+    if (response.status === 401 || response.status === 403) {
+      return { success: false, error: 'Invalid Google Gemini API key.' };
+    }
+    if (response.status === 404) {
+      return { success: false, error: `Gemini model "${model}" not found. Check GEMINI_IMAGE_MODEL in .env` };
+    }
+    if (response.status === 429) {
+      const msg = errorData?.error?.message || '';
+      if (msg.toLowerCase().includes('quota')) {
+        return { success: false, error: 'Gemini API quota exceeded. Try again later or use Cloudflare/Together AI.' };
       }
-    );
+      return { success: false, error: 'Rate limit exceeded. Please try again in a minute.' };
+    }
+    if (response.status === 400) {
+      return { success: false, error: 'Invalid prompt or blocked by safety filters.' };
+    }
+    return { success: false, error: `Gemini API error: ${response.status}` };
+  }
+
+  const data = await response.json() as any;
+  
+  // Find image in response (inlineData format)
+  const imagePart = data.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData);
+  
+  if (imagePart?.inlineData?.data) {
+    const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
+    console.log(`[IMAGINE] Gemini API generated image: ${imageBuffer.length} bytes, ${imagePart.inlineData.mimeType}`);
+    return { success: true, imageBuffer };
+  }
+
+  console.error('[IMAGINE] No image found in Gemini response');
+  return { success: false, error: 'No image in response. The model may not support image generation.' };
+}
+
+// Method 2: Vertex AI SDK (uses Imagen 3.0 models)
+async function generateWithGeminiVertex(
+  prompt: string,
+  dimensions: { width: number; height: number },
+  settings: GuildSettings
+): Promise<GenerationResult> {
+  try {
+    const { GoogleAuth } = await import('google-auth-library');
+    
+    console.log(`[IMAGINE] Using Vertex AI Imagen 3.0`);
+    
+    // Check if service account credentials are available
+    const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (!credsPath) {
+      return { 
+        success: false, 
+        error: 'Vertex SDK requires GOOGLE_APPLICATION_CREDENTIALS environment variable. Use REST API method instead.' 
+      };
+    }
+
+    const auth = new GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    });
+    
+    const client = await auth.getClient();
+    const projectId = await auth.getProjectId();
+    const location = process.env.VERTEX_LOCATION || 'us-central1';
+    
+    // Use Imagen 3.0 model (works with Vertex AI)
+    const model = 'imagen-3.0-fast-generate-001';
+    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predict`;
+    
+    const accessToken = await client.getAccessToken();
+    if (!accessToken.token) {
+      return { success: false, error: 'Failed to get access token for Vertex AI' };
+    }
+
+    // Convert dimensions to aspect ratio
+    let aspectRatio = '1:1';
+    const ratio = dimensions.width / dimensions.height;
+    if (Math.abs(ratio - 16/9) < 0.01) aspectRatio = '16:9';
+    else if (Math.abs(ratio - 9/16) < 0.01) aspectRatio = '9:16';
+    else if (Math.abs(ratio - 4/3) < 0.01) aspectRatio = '4:3';
+    else if (Math.abs(ratio - 3/4) < 0.01) aspectRatio = '3:4';
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        instances: [{
+          prompt: prompt
+        }],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: aspectRatio,
+          safetyFilterLevel: 'block_some',
+          personGeneration: 'allow_adult'
+        }
+      }),
+    });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({})) as any;
-      console.error('[IMAGINE] Gemini API error:', response.status, errorData);
+      console.error('[IMAGINE] Vertex AI error:', response.status, errorData);
       
-      if (response.status === 401 || response.status === 403) {
-        return { success: false, error: 'Invalid Google Gemini API key.' };
+      if (response.status === 403) {
+        return { success: false, error: 'Vertex AI permission denied. Check service account has Vertex AI User role.' };
       }
       if (response.status === 404) {
-        return { success: false, error: `Gemini model "${model}" not found. Check GEMINI_IMAGE_MODEL in .env` };
+        return { success: false, error: 'Imagen 3.0 model not available. Check region and API enablement.' };
       }
       if (response.status === 429) {
-        const msg = errorData?.error?.message || '';
-        if (msg.toLowerCase().includes('quota')) {
-          return { success: false, error: 'Gemini API quota exceeded. Try again later or use Cloudflare/Together AI.' };
-        }
-        return { success: false, error: 'Rate limit exceeded. Please try again in a minute.' };
+        return { success: false, error: 'Vertex AI quota exceeded. Try again later.' };
       }
-      if (response.status === 400) {
-        return { success: false, error: 'Invalid prompt or blocked by safety filters.' };
-      }
-      return { success: false, error: `Gemini API error: ${response.status}` };
+      
+      return { 
+        success: false, 
+        error: `Vertex AI error: ${response.status}. Check service account permissions.` 
+      };
     }
 
     const data = await response.json() as any;
     
-    // Find image in response (inlineData format)
-    const imagePart = data.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData);
-    
-    if (imagePart?.inlineData?.data) {
-      const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
-      console.log(`[IMAGINE] Gemini generated image: ${imageBuffer.length} bytes, ${imagePart.inlineData.mimeType}`);
+    // Extract image from Imagen response
+    if (data.predictions?.[0]?.bytesBase64Encoded) {
+      const imageBuffer = Buffer.from(data.predictions[0].bytesBase64Encoded, 'base64');
+      console.log(`[IMAGINE] Vertex AI generated image: ${imageBuffer.length} bytes`);
       return { success: true, imageBuffer };
     }
 
-    console.error('[IMAGINE] No image found in Gemini response');
-    return { success: false, error: 'No image in response. The model may not support image generation.' };
-  } catch (error) {
-    console.error('[IMAGINE] Gemini error:', error);
-    return { success: false, error: 'Failed to connect to Gemini API.' };
+    console.error('[IMAGINE] No image in Vertex response');
+    return { success: false, error: 'No image in response.' };
+    
+  } catch (error: any) {
+    console.error('[IMAGINE] Vertex AI error:', error);
+    if (error.message?.includes('GOOGLE_APPLICATION_CREDENTIALS')) {
+      return { 
+        success: false, 
+        error: 'Vertex SDK requires service account JSON. Use REST API method or configure GOOGLE_APPLICATION_CREDENTIALS.' 
+      };
+    }
+    return { success: false, error: `Vertex AI error: ${error.message || 'Unknown error'}` };
   }
 }
 

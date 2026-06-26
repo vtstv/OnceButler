@@ -375,6 +375,7 @@ export function runMigrations(): void {
     { name: 'imageGenChannelId', sql: 'ALTER TABLE guild_settings ADD COLUMN imageGenChannelId TEXT DEFAULT NULL' },
     { name: 'imageGenUserDailyLimit', sql: 'ALTER TABLE guild_settings ADD COLUMN imageGenUserDailyLimit INTEGER DEFAULT 5' },
     { name: 'imageGenGuildDailyLimit', sql: 'ALTER TABLE guild_settings ADD COLUMN imageGenGuildDailyLimit INTEGER DEFAULT 50' },
+    { name: 'imageGenGeminiMethod', sql: "ALTER TABLE guild_settings ADD COLUMN imageGenGeminiMethod TEXT DEFAULT 'api'" },
   ];
 
   for (const col of imageGenColumns) {

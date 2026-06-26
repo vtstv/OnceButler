@@ -61,6 +61,7 @@ export interface GuildSettings {
   imageGenChannelId: string | null;
   imageGenUserDailyLimit: number;
   imageGenGuildDailyLimit: number;
+  imageGenGeminiMethod: 'api' | 'vertex';
   // Temp Voice Channels module
   enableTempVoice: boolean;
   tempVoiceTriggerChannelId: string | null;
@@ -150,6 +151,7 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   imageGenChannelId: null,
   imageGenUserDailyLimit: 5,
   imageGenGuildDailyLimit: 50,
+  imageGenGeminiMethod: 'api',
   // Temp Voice Channels module
   enableTempVoice: false,
   tempVoiceTriggerChannelId: null,
@@ -198,7 +200,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
            enableLeveling, levelingXpPerMessage, levelingXpPerVoiceMinute, levelingXpCooldown, 
            levelingAnnouncementChannelId, levelingAnnounceLevelUp, levelingStackRoles,
            enableImageGen, imageGenProvider, imageGenApiKey, imageGenAccountId, imageGenChannelId, 
-           imageGenUserDailyLimit, imageGenGuildDailyLimit,
+           imageGenUserDailyLimit, imageGenGuildDailyLimit, imageGenGeminiMethod,
            enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit,
            enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval,
            enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage,
@@ -263,6 +265,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
     imageGenChannelId: row.imageGenChannelId ?? null,
     imageGenUserDailyLimit: row.imageGenUserDailyLimit ?? 5,
     imageGenGuildDailyLimit: row.imageGenGuildDailyLimit ?? 50,
+    imageGenGeminiMethod: row.imageGenGeminiMethod ?? 'api',
     enableTempVoice: row.enableTempVoice === 1,
     tempVoiceTriggerChannelId: row.tempVoiceTriggerChannelId ?? null,
     tempVoiceCategoryId: row.tempVoiceCategoryId ?? null,
@@ -323,14 +326,14 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 enableLeveling, levelingXpPerMessage, levelingXpPerVoiceMinute, levelingXpCooldown, 
                                 levelingAnnouncementChannelId, levelingAnnounceLevelUp, levelingStackRoles,
                                 enableImageGen, imageGenProvider, imageGenApiKey, imageGenAccountId, imageGenChannelId,
-                                imageGenUserDailyLimit, imageGenGuildDailyLimit,
+                                imageGenUserDailyLimit, imageGenGuildDailyLimit, imageGenGeminiMethod,
                                 enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit,
                                 enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval,
                                 enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage,
                                 enableDynamicRoles,
                                 enableTwitchDrops, twitchDropsChannelId, twitchDropsApiUrl, twitchDropsApiKey, twitchDropsCheckInterval,
                                 enableEventNotifications, eventNotificationsKeepOldMessages)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -380,6 +383,7 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       imageGenChannelId = excluded.imageGenChannelId,
       imageGenUserDailyLimit = excluded.imageGenUserDailyLimit,
       imageGenGuildDailyLimit = excluded.imageGenGuildDailyLimit,
+      imageGenGeminiMethod = excluded.imageGenGeminiMethod,
       enableTempVoice = excluded.enableTempVoice,
       tempVoiceTriggerChannelId = excluded.tempVoiceTriggerChannelId,
       tempVoiceCategoryId = excluded.tempVoiceCategoryId,
@@ -456,6 +460,7 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.imageGenChannelId,
     merged.imageGenUserDailyLimit,
     merged.imageGenGuildDailyLimit,
+    merged.imageGenGeminiMethod,
     merged.enableTempVoice ? 1 : 0,
     merged.tempVoiceTriggerChannelId,
     merged.tempVoiceCategoryId,
