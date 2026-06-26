@@ -21,4 +21,6 @@ export const env = {
   chaosIntervalMs: 6 * 60 * 60 * 1000,
   chaosDurationMs: 60 * 60 * 1000,
   chaosChance: 0.05,
+  // Image generation settings
+  geminiImageModel: process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image',
 };

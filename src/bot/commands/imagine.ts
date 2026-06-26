@@ -164,21 +164,21 @@ async function generateWithGemini(
   }
 
   try {
+    // Use configurable Gemini model from environment
+    const { env } = await import('../../config/env.js');
+    const model = env.geminiImageModel;
+    
+    console.log(`[IMAGINE] Using Gemini model: ${model}`);
+    
     const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/openai/images/generations',
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.imageGenApiKey}`,
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${settings.imageGenApiKey}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'imagen-3.0-generate-002',
-          prompt: prompt,
-          width: dimensions.width,
-          height: dimensions.height,
-          response_format: 'b64_json',
-          n: 1,
+          contents: [{
+            parts: [{ text: prompt }]
+          }]
         }),
       }
     );
@@ -190,10 +190,13 @@ async function generateWithGemini(
       if (response.status === 401 || response.status === 403) {
         return { success: false, error: 'Invalid Google Gemini API key.' };
       }
+      if (response.status === 404) {
+        return { success: false, error: `Gemini model "${model}" not found. Check GEMINI_IMAGE_MODEL in .env` };
+      }
       if (response.status === 429) {
         const msg = errorData?.error?.message || '';
-        if (msg.includes('limit: 0')) {
-          return { success: false, error: '🚫 Image generation not available for your region (EEA/UK). Try Cloudflare or Together AI.' };
+        if (msg.toLowerCase().includes('quota')) {
+          return { success: false, error: 'Gemini API quota exceeded. Try again later or use Cloudflare/Together AI.' };
         }
         return { success: false, error: 'Rate limit exceeded. Please try again in a minute.' };
       }
@@ -205,12 +208,17 @@ async function generateWithGemini(
 
     const data = await response.json() as any;
     
-    if (!data.data || data.data.length === 0 || !data.data[0].b64_json) {
-      return { success: false, error: 'No image in response.' };
+    // Find image in response (inlineData format)
+    const imagePart = data.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData);
+    
+    if (imagePart?.inlineData?.data) {
+      const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
+      console.log(`[IMAGINE] Gemini generated image: ${imageBuffer.length} bytes, ${imagePart.inlineData.mimeType}`);
+      return { success: true, imageBuffer };
     }
 
-    const imageBuffer = Buffer.from(data.data[0].b64_json, 'base64');
-    return { success: true, imageBuffer };
+    console.error('[IMAGINE] No image found in Gemini response');
+    return { success: false, error: 'No image in response. The model may not support image generation.' };
   } catch (error) {
     console.error('[IMAGINE] Gemini error:', error);
     return { success: false, error: 'Failed to connect to Gemini API.' };
