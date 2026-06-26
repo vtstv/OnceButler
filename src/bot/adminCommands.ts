@@ -28,6 +28,9 @@ export function handleAdminDM(client: Client, message: Message): void {
     case 'blacklist':
       handleBlacklistCommand(client, message, args);
       break;
+    case 'vertexwl':
+      handleVertexWhitelistCommand(client, message, args);
+      break;
     case 'leave':
       handleLeaveCommand(client, message, args);
       break;
@@ -127,6 +130,68 @@ function handleBlacklistCommand(client: Client, message: Message, args: string[]
   }
 }
 
+async function handleVertexWhitelistCommand(client: Client, message: Message, args: string[]): Promise<void> {
+  const { 
+    addToVertexWhitelist, 
+    removeFromVertexWhitelist, 
+    getVertexWhitelist 
+  } = await import('../database/repositories/vertexWhitelistRepo.js');
+
+  const action = args[0]?.toLowerCase();
+
+  if (action === 'add') {
+    const guildId = args[1];
+    const note = args.slice(2).join(' ') || 'No note';
+
+    if (!guildId) {
+      message.reply('Usage: `!vertexwl add <guild_id> [note]`');
+      return;
+    }
+
+    const guild = client.guilds.cache.get(guildId);
+    const guildName = guild ? guild.name : 'Unknown';
+
+    addToVertexWhitelist(guildId, message.author.id, note);
+    message.reply(`✅ Guild \`${guildId}\` (${guildName}) added to Vertex SDK whitelist.\nNote: ${note}`);
+    
+  } else if (action === 'remove') {
+    const guildId = args[1];
+
+    if (!guildId) {
+      message.reply('Usage: `!vertexwl remove <guild_id>`');
+      return;
+    }
+
+    removeFromVertexWhitelist(guildId);
+    message.reply(`✅ Guild \`${guildId}\` removed from Vertex SDK whitelist.`);
+    
+  } else if (action === 'list') {
+    const whitelist = getVertexWhitelist();
+
+    if (whitelist.length === 0) {
+      message.reply('Vertex SDK whitelist is empty.');
+      return;
+    }
+
+    const entries = whitelist.map((entry, i) => {
+      const guild = client.guilds.cache.get(entry.guild_id);
+      const guildName = guild ? guild.name : 'Unknown/Left';
+      return `**${i + 1}.** ${guildName}\n└ ID: \`${entry.guild_id}\`\n└ Note: ${entry.note}\n└ Added: <t:${Math.floor(entry.added_at / 1000)}:R>`;
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle(`✨ Vertex SDK Whitelist (${whitelist.length})`)
+      .setColor(0x4285f4)
+      .setDescription(entries.join('\n\n'))
+      .setFooter({ text: 'Whitelisted servers can use Vertex AI Imagen 3.0' })
+      .setTimestamp();
+
+    message.reply({ embeds: [embed] });
+  } else {
+    message.reply('Usage: `!vertexwl <add|remove|list> [guild_id] [note]`');
+  }
+}
+
 function handleLeaveCommand(client: Client, message: Message, args: string[]): void {
   const guildId = args[0];
 
@@ -159,6 +224,9 @@ function handleHelpCommand(message: Message): void {
       { name: '!blacklist add <id> [reason]', value: 'Add a server to blacklist and leave it' },
       { name: '!blacklist remove <id>', value: 'Remove a server from blacklist' },
       { name: '!blacklist list', value: 'Show all blacklisted servers' },
+      { name: '!vertexwl add <id> [note]', value: 'Add server to Vertex SDK whitelist' },
+      { name: '!vertexwl remove <id>', value: 'Remove server from Vertex SDK whitelist' },
+      { name: '!vertexwl list', value: 'Show whitelisted servers for Vertex SDK' },
       { name: '!leave <id>', value: 'Leave a specific server' },
       { name: '!register', value: 'Register/update slash commands' },
       { name: '!checkguild <id>', value: 'Check guild settings and manager roles' },

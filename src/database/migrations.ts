@@ -512,6 +512,16 @@ export function runMigrations(): void {
     );
   `);
 
+  // Vertex AI Whitelist table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS vertex_whitelist (
+      guild_id TEXT PRIMARY KEY,
+      added_at INTEGER NOT NULL,
+      added_by TEXT NOT NULL,
+      note TEXT DEFAULT ''
+    );
+  `);
+
   // Event Notifications table
   db.exec(`
     CREATE TABLE IF NOT EXISTS event_notifications (

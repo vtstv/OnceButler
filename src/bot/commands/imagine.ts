@@ -369,6 +369,18 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     return;
   }
 
+  // Check Vertex SDK whitelist
+  if (settings.imageGenProvider === 'gemini' && settings.imageGenGeminiMethod === 'vertex') {
+    const { isInVertexWhitelist } = await import('../../database/repositories/vertexWhitelistRepo.js');
+    if (!isInVertexWhitelist(guildId)) {
+      await interaction.reply({
+        content: '❌ This server is not whitelisted for Vertex SDK usage. Contact bot admin to request access.\n💡 Use REST API method instead for unrestricted access.',
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+  }
+
   if (settings.imageGenChannelId && interaction.channelId !== settings.imageGenChannelId) {
     await interaction.reply({
       content: `❌ Image generation is only allowed in <#${settings.imageGenChannelId}>.`,
