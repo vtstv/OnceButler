@@ -79,13 +79,22 @@ export function filterRaidZoneContent(content: string): string {
   for (const line of lines) {
     const lower = line.toLowerCase();
     
-    if (lower.includes('raidzone mode') || lower.includes('raidzone')) {
+    // Skip RaidZone sections
+    if (lower.includes('raidzone mode') || lower.includes('raidzone update') || 
+        (lower.includes('raidzone') && (line.startsWith('## ') || line.startsWith('### ') || line.startsWith('**')))) {
       skipSection = true;
       continue;
     }
     
+    // Skip Custom Server sections
+    if (lower.includes('custom server') && (line.startsWith('## ') || line.startsWith('### ') || line.startsWith('**'))) {
+      skipSection = true;
+      continue;
+    }
+    
+    // Exit skip mode when new major section starts (not raidzone/custom server)
     if (skipSection && (line.startsWith('## ') || line.startsWith('### '))) {
-      if (!lower.includes('raidzone')) {
+      if (!lower.includes('raidzone') && !lower.includes('custom server')) {
         skipSection = false;
       }
     }
