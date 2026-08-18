@@ -43,9 +43,9 @@ export function buildTempVoiceInterfaceEmbed(locale: Locale = 'ru'): EmbedBuilde
     description = [
       'Этот **интерфейс** можно использовать для управления личными каналами. Дополнительные возможности доступны через `/voice` команды.',
       '',
-      '🔏 **НАЗВАНИЕ**  🛡️ **ДОСТУП**  👥 **ЛИМИТ**  👤🚫 **ЗАБАНИТЬ**  👤🔍 **РАЗБАНИТЬ**',
-      '📞🚫 **ВЫГНАТЬ**  📞➕ **ПРИГЛАСИТЬ**  👤➕ **ДОВЕРЯТЬ**  👤✖️ **НЕ ДОВЕРЯТЬ**  👑 **ЗАБРАТЬ**',
-      '👑↗️ **ПЕРЕДАТЬ**  🕒 **ПРИХОЖАЯ**  💬 **ЧАТ**  🌐 **РЕГИОН**  🗑️ **УДАЛИТЬ**',
+      '`🔏 НАЗВАНИЕ` `🛡️ ДОСТУП` `👥 ЛИМИТ` `👤🚫 ЗАБАНИТЬ` `👤🔍 РАЗБАНИТЬ`',
+      '`📞🚫 ВЫГНАТЬ` `📞➕ ПРИГЛАСИТЬ` `👤➕ ДОВЕРЯТЬ` `👤✖️ НЕ ДОВЕРЯТЬ` `👑 ЗАБРАТЬ`',
+      '`👑↗️ ПЕРЕДАТЬ` `🕒 ПРИХОЖАЯ` `💬 ЧАТ` `🌐 РЕГИОН` `🗑️ УДАЛИТЬ`',
       '',
       'Чтобы использовать функции интерфейса, воспользуйтесь кнопками ниже.',
     ].join('\n');
@@ -53,9 +53,9 @@ export function buildTempVoiceInterfaceEmbed(locale: Locale = 'ru'): EmbedBuilde
     description = [
       'Dieses **Interface** kann zur Verwaltung privater Kanäle verwendet werden. Weitere Optionen sind über `/voice` Befehle verfügbar.',
       '',
-      '🔏 **NAME**  🛡️ **ZUGANG**  👥 **LIMIT**  👤🚫 **BLOCKIEREN**  👤🔍 **ENTBLOCKEN**',
-      '📞🚫 **KICKEN**  📞➕ **EINLADEN**  👤➕ **VERTRAUEN**  👤✖️ **MISSTRAUEN**  👑 **ÜBERNEHMEN**',
-      '👑↗️ **ÜBERTRAGEN**  🕒 **WARTERAUM**  💬 **CHAT**  🌐 **BITRATE**  🗑️ **LÖSCHEN**',
+      '`🔏 NAME` `🛡️ ZUGANG` `👥 LIMIT` `👤🚫 BLOCKIEREN` `👤🔍 ENTBLOCKEN`',
+      '`📞🚫 KICKEN` `📞➕ EINLADEN` `👤➕ VERTRAUEN` `👤✖️ MISSTRAUEN` `👑 ÜBERNEHMEN`',
+      '`👑↗️ ÜBERTRAGEN` `🕒 WARTERAUM` `💬 CHAT` `🌐 REGION` `🗑️ LÖSCHEN`',
       '',
       'Klicke auf die Schaltflächen unten, um die Funktionen zu nutzen.',
     ].join('\n');
@@ -63,9 +63,9 @@ export function buildTempVoiceInterfaceEmbed(locale: Locale = 'ru'): EmbedBuilde
     description = [
       'This **interface** can be used to manage personal voice channels. Additional features are available via `/voice` commands.',
       '',
-      '🔏 **NAME**  🛡️ **ACCESS**  👥 **LIMIT**  👤🚫 **BAN**  👤🔍 **UNBAN**',
-      '📞🚫 **KICK**  📞➕ **INVITE**  👤➕ **TRUST**  👤✖️ **UNTRUST**  👑 **CLAIM**',
-      '👑↗️ **TRANSFER**  🕒 **WAITING ROOM**  💬 **CHAT**  🌐 **REGION**  🗑️ **DELETE**',
+      '`🔏 NAME` `🛡️ ACCESS` `👥 LIMIT` `👤🚫 BAN` `👤🔍 UNBAN`',
+      '`📞🚫 KICK` `📞➕ INVITE` `👤➕ TRUST` `👤✖️ UNTRUST` `👑 CLAIM`',
+      '`👑↗️ TRANSFER` `🕒 WAITING ROOM` `💬 CHAT` `🌐 REGION` `🗑️ DELETE`',
       '',
       'To use the interface features, use the buttons below.',
     ].join('\n');
@@ -74,7 +74,7 @@ export function buildTempVoiceInterfaceEmbed(locale: Locale = 'ru'): EmbedBuilde
   return new EmbedBuilder()
     .setTitle(title)
     .setDescription(description)
-    .setColor(0xE91E63);
+    .setColor(0xEB459E);
 }
 
 /**
@@ -147,7 +147,7 @@ export function buildTempVoiceInterfaceButtons(): ActionRowBuilder<ButtonBuilder
     new ButtonBuilder()
       .setCustomId('tv_btn_delete')
       .setEmoji('🗑️')
-      .setStyle(ButtonStyle.Danger),
+      .setStyle(ButtonStyle.Secondary),
   );
 
   return [row1, row2, row3];
