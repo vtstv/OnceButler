@@ -393,6 +393,8 @@ export function runMigrations(): void {
     { name: 'tempVoiceCategoryId', sql: 'ALTER TABLE guild_settings ADD COLUMN tempVoiceCategoryId TEXT DEFAULT NULL' },
     { name: 'tempVoiceNameTemplate', sql: "ALTER TABLE guild_settings ADD COLUMN tempVoiceNameTemplate TEXT DEFAULT '🔊 {user}'" },
     { name: 'tempVoiceUserLimit', sql: 'ALTER TABLE guild_settings ADD COLUMN tempVoiceUserLimit INTEGER DEFAULT 0' },
+    { name: 'tempVoiceControlChannelId', sql: 'ALTER TABLE guild_settings ADD COLUMN tempVoiceControlChannelId TEXT DEFAULT NULL' },
+    { name: 'tempVoiceControlMessageId', sql: 'ALTER TABLE guild_settings ADD COLUMN tempVoiceControlMessageId TEXT DEFAULT NULL' },
   ];
 
   for (const col of tempVoiceColumns) {

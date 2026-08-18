@@ -22,6 +22,7 @@ import { DEFAULT_WELCOME_MESSAGES, DEFAULT_LEAVE_MESSAGES } from '../welcomeBuil
 import { buildLevelingManageRoles, buildReactionRolesManage } from '../newModulesBuilders.js';
 import type { SelectMenuResult, LevelingRoleData } from './types.js';
 import { handleEventNotificationsSelectMenu, handleEventNotificationsChannelSelect, handleEventNotificationsRoleSelect } from './eventNotificationsHandlers.js';
+import { postOrUpdateTempVoiceInterface } from '../../../../voice/tempVoiceInterface.js';
 
 export async function handleStringSelectMenu(
   i: StringSelectMenuInteraction,
@@ -174,6 +175,7 @@ export async function handleChannelSelectMenu(
     'setup_imagegen_channel': 'imageGenChannelId',
     'setup_tempvoice_trigger': 'tempVoiceTriggerChannelId',
     'setup_tempvoice_category': 'tempVoiceCategoryId',
+    'setup_tempvoice_control_channel': 'tempVoiceControlChannelId',
     'setup_steamnews_channel': 'steamNewsChannelId',
     'setup_twitchdrops_channel': 'twitchDropsChannelId',
     'setup_ai_channel': 'aiChannelId',
@@ -182,6 +184,10 @@ export async function handleChannelSelectMenu(
   const settingKey = channelMappings[i.customId];
   if (settingKey) {
     updateGuildSettings(guildId, { [settingKey]: channelId });
+  }
+
+  if (i.customId === 'setup_tempvoice_control_channel' && i.guild) {
+    await postOrUpdateTempVoiceInterface(i.guild, channelId);
   }
 
   const eventNotificationsResult = await handleEventNotificationsChannelSelect(i, wizardData);

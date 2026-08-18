@@ -28,6 +28,7 @@ import { buildCategoryView } from './viewBuilder.js';
 import { buildCustomRoleAddWizard, buildCustomRoleManage, buildCustomRuleEdit } from '../customRolesBuilder.js';
 import { formatWelcomeMessage, DEFAULT_WELCOME_MESSAGES, DEFAULT_LEAVE_MESSAGES } from '../welcomeBuilder.js';
 import { createRolesByCategory, deleteRolesByCategory } from '../roleBuilders.js';
+import { postOrUpdateTempVoiceInterface } from '../../../../voice/tempVoiceInterface.js';
 import { buildLevelingAddRole, buildLevelingManageRoles, buildReactionRolesManage } from '../newModulesBuilders.js';
 import type { ButtonResult, LevelingRoleData } from './types.js';
 import { handleEventNotificationsButton } from './eventNotificationsHandlers.js';
@@ -353,6 +354,20 @@ async function handleModuleButtons(
 
     case 'setup_ai_provider':
       return handleAIProviderSelect(i, settings);
+
+    case 'setup_tempvoice_post_interface': {
+      if (!settings.tempVoiceControlChannelId) {
+        await i.reply({ content: '❌ Please select an Interface text channel first!', flags: MessageFlags.Ephemeral });
+        return { shouldReturn: true };
+      }
+      const msg = await postOrUpdateTempVoiceInterface(i.guild!, settings.tempVoiceControlChannelId);
+      if (msg) {
+        await i.reply({ content: `✅ TempVoice Interface control panel has been posted/updated in <#${settings.tempVoiceControlChannelId}>!`, flags: MessageFlags.Ephemeral });
+      } else {
+        await i.reply({ content: '❌ Failed to post interface message. Check bot permissions in that channel.', flags: MessageFlags.Ephemeral });
+      }
+      return { shouldReturn: true };
+    }
   }
 
   return null;

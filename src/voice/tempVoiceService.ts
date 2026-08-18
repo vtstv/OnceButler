@@ -199,6 +199,18 @@ export function getTempChannelOwner(channelId: string): string | null {
 }
 
 /**
+ * Update temp channel owner
+ */
+export function updateTempChannelOwner(channelId: string, newOwnerId: string): void {
+  const existing = tempChannels.get(channelId);
+  if (existing) {
+    existing.ownerId = newOwnerId;
+  }
+  const db = getDb();
+  db.prepare(`UPDATE temp_voice_channels SET owner_id = ? WHERE channel_id = ?`).run(newOwnerId, channelId);
+}
+
+/**
  * Clean up orphaned temp channels (channels that no longer exist)
  */
 export async function cleanupOrphanedChannels(guildId: string, guild: any): Promise<number> {

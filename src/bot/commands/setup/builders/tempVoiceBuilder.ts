@@ -21,10 +21,13 @@ export function buildTempVoiceSettings(settings: GuildSettings, guild: any): Set
   const categoryName = settings.tempVoiceCategoryId
     ? guild?.channels.cache.get(settings.tempVoiceCategoryId)?.name ?? 'Unknown'
     : 'Not set';
+  const controlChannelName = settings.tempVoiceControlChannelId
+    ? guild?.channels.cache.get(settings.tempVoiceControlChannelId)?.name ?? 'Unknown'
+    : 'Not set';
 
   const embed = new EmbedBuilder()
-    .setTitle('🔊 Temporary Voice Channels')
-    .setDescription('Create private voice channels when users join a trigger channel.')
+    .setTitle('🔊 Temporary Voice Channels & Interface')
+    .setDescription('Create private voice channels with interactive visual control interface.')
     .setColor(0x5865F2)
     .addFields(
       { 
@@ -43,6 +46,11 @@ export function buildTempVoiceSettings(settings: GuildSettings, guild: any): Set
         inline: true 
       },
       { 
+        name: '🎛️ Interface Channel', 
+        value: settings.tempVoiceControlChannelId ? `#${controlChannelName}` : '❌ Not set', 
+        inline: true 
+      },
+      { 
         name: '📝 Name Template', 
         value: `\`${settings.tempVoiceNameTemplate}\``, 
         inline: true 
@@ -54,7 +62,7 @@ export function buildTempVoiceSettings(settings: GuildSettings, guild: any): Set
       },
       {
         name: '💡 How it works',
-        value: '1. User joins the **trigger channel**\n2. Bot creates a private voice channel\n3. User is moved to their new channel\n4. Channel is deleted when empty',
+        value: '1. User joins the **trigger channel**\n2. Bot creates a private voice channel\n3. User is moved to their new channel\n4. User can manage channel via buttons in **Interface Channel** or `/voice`\n5. Channel is deleted when empty',
         inline: false
       },
       {
@@ -74,6 +82,11 @@ export function buildTempVoiceSettings(settings: GuildSettings, guild: any): Set
         .setCustomId('setup_tempvoice_name_modal')
         .setLabel('📝 Name Template')
         .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('setup_tempvoice_post_interface')
+        .setLabel('📢 Post Interface')
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(!settings.tempVoiceControlChannelId),
       new ButtonBuilder()
         .setCustomId('setup_back')
         .setLabel('◀️ Back')
@@ -96,6 +109,14 @@ export function buildTempVoiceSettings(settings: GuildSettings, guild: any): Set
         .addChannelTypes(ChannelType.GuildCategory)
     );
 
+  const controlChannelSelect = new ActionRowBuilder<ChannelSelectMenuBuilder>()
+    .addComponents(
+      new ChannelSelectMenuBuilder()
+        .setCustomId('setup_tempvoice_control_channel')
+        .setPlaceholder('🎛️ Select Interface / Control Text Channel')
+        .addChannelTypes(ChannelType.GuildText)
+    );
+
   const userLimitSelect = new ActionRowBuilder<StringSelectMenuBuilder>()
     .addComponents(
       new StringSelectMenuBuilder()
@@ -113,6 +134,6 @@ export function buildTempVoiceSettings(settings: GuildSettings, guild: any): Set
 
   return {
     embeds: [embed],
-    components: [row1, triggerSelect, categorySelect, userLimitSelect],
+    components: [row1, triggerSelect, categorySelect, controlChannelSelect, userLimitSelect],
   };
 }

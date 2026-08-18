@@ -5,6 +5,7 @@
 import { Client, Events, GuildMember, MessageFlags } from 'discord.js';
 import { handleVoiceStateUpdate } from '../voice/voiceTracker.js';
 import { handleTempVoiceUpdate, initTempVoiceService } from '../voice/tempVoiceService.js';
+import { handleTempVoiceInterfaceInteraction } from '../voice/tempVoiceInterface.js';
 import { startTickScheduler } from '../scheduler/tickScheduler.js';
 import { startEventScheduler } from '../events/eventScheduler.js';
 import { ensureRolesExist } from '../roles/roleEngine.js';
@@ -65,6 +66,11 @@ export function registerEvents(client: Client): void {
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
+    if ('customId' in interaction && typeof interaction.customId === 'string' && interaction.customId.startsWith('tv_')) {
+      await handleTempVoiceInterfaceInteraction(interaction);
+      return;
+    }
+
     if (interaction.isButton()) {
       if (interaction.customId.startsWith('giveaway_')) {
         await handleGiveawayButton(interaction);
