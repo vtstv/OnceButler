@@ -141,7 +141,7 @@ export function buildTempVoiceInterfaceButtons(): ActionRowBuilder<ButtonBuilder
       .setEmoji('💬')
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId('tv_btn_bitrate')
+      .setCustomId('tv_btn_region')
       .setEmoji('🌐')
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
@@ -520,25 +520,39 @@ async function handleButton(interaction: ButtonInteraction, member: GuildMember,
       break;
     }
 
+    case 'tv_btn_region':
     case 'tv_btn_bitrate': {
-      const maxBitrate = Math.round(interaction.guild!.maximumBitrate / 1000);
+      const currentRegion = voiceChannel.rtcRegion;
       const options = [
-        { label: '64 kbps', value: '64', description: 'Standard quality' },
-        { label: '96 kbps', value: '96', description: 'High quality' },
+        { label: '🌐 Автоматически (Auto)', value: 'auto', description: 'Оптимальный регион выбирается автоматически', default: !currentRegion },
+        { label: '🇷🇺 Россия (Russia)', value: 'russia', description: 'Россия (RTC Server)', default: currentRegion === 'russia' },
+        { label: '🇳🇱 Роттердам (Rotterdam)', value: 'rotterdam', description: 'Нидерланды / Западная Европа', default: currentRegion === 'rotterdam' },
+        { label: '🇩🇪 Франкфурт (Frankfurt)', value: 'frankfurt', description: 'Германия / Центральная Европа', default: currentRegion === 'frankfurt' },
+        { label: '🇵🇱 Варшава (Warsaw)', value: 'warsaw', description: 'Польша / Восточная Европа', default: currentRegion === 'warsaw' },
+        { label: '🇫🇮 Хельсинки (Helsinki)', value: 'helsinki', description: 'Финляндия / Северная Европа', default: currentRegion === 'helsinki' },
+        { label: '🇷🇴 Бухарест (Bucharest)', value: 'bucharest', description: 'Румыния / Юго-Восточная Европа', default: currentRegion === 'bucharest' },
+        { label: '🇬🇧 Лондон (London)', value: 'london', description: 'Великобритания', default: currentRegion === 'london' },
+        { label: '🇪🇸 Мадрид (Madrid)', value: 'madrid', description: 'Испания / Южная Европа', default: currentRegion === 'madrid' },
+        { label: '🇸🇪 Стокгольм (Stockholm)', value: 'stockholm', description: 'Швеция / Скандинавия', default: currentRegion === 'stockholm' },
+        { label: '🇺🇸 US East', value: 'us-east', description: 'Восточное побережье США', default: currentRegion === 'us-east' },
+        { label: '🇺🇸 US Central', value: 'us-central', description: 'Центральная часть США', default: currentRegion === 'us-central' },
+        { label: '🇺🇸 US West', value: 'us-west', description: 'Западное побережье США', default: currentRegion === 'us-west' },
+        { label: '🇸🇬 Singapore', value: 'singapore', description: 'Сингапур / Юго-Восточная Азия', default: currentRegion === 'singapore' },
+        { label: '🇯🇵 Japan', value: 'japan', description: 'Япония / Азия', default: currentRegion === 'japan' },
+        { label: '🇭🇰 Hong Kong', value: 'hongkong', description: 'Гонконг / Азия', default: currentRegion === 'hongkong' },
+        { label: '🇧🇷 Brazil', value: 'brazil', description: 'Бразилия / Южная Америка', default: currentRegion === 'brazil' },
+        { label: '🇦🇺 Sydney', value: 'sydney', description: 'Австралия / Океания', default: currentRegion === 'sydney' },
+        { label: '🇮🇳 India', value: 'india', description: 'Индия', default: currentRegion === 'india' },
       ];
 
-      if (maxBitrate >= 128) options.push({ label: '128 kbps', value: '128', description: 'Tier 1 Boost' });
-      if (maxBitrate >= 256) options.push({ label: '256 kbps', value: '256', description: 'Tier 2 Boost' });
-      if (maxBitrate >= 384) options.push({ label: '384 kbps', value: '384', description: 'Tier 3 Boost' });
-
       const selectMenu = new StringSelectMenuBuilder()
-        .setCustomId('tv_select_bitrate')
-        .setPlaceholder(t(locale, 'voice.interface.selectBitrate'))
+        .setCustomId('tv_select_region')
+        .setPlaceholder(t(locale, 'voice.interface.selectRegion'))
         .addOptions(options);
 
       const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
       await interaction.reply({
-        content: '🌐 ' + t(locale, 'voice.interface.promptBitrate'),
+        content: '🌐 ' + t(locale, 'voice.interface.promptRegion'),
         components: [row],
         flags: MessageFlags.Ephemeral,
       });
@@ -740,6 +754,24 @@ async function handleSelectMenu(interaction: Interaction, member: GuildMember, l
       content: `👑 ` + t(locale, 'voice.interface.transferred'),
       components: [],
     });
+  } else if (customId === 'tv_select_region') {
+    const selectedRegion = (interaction as StringSelectMenuInteraction).values[0];
+    const rtcRegion = selectedRegion === 'auto' ? null : selectedRegion;
+
+    try {
+      await voiceChannel.setRTCRegion(rtcRegion);
+      const regionName = selectedRegion === 'auto' ? 'Автоматически (Auto)' : selectedRegion;
+      await (interaction as StringSelectMenuInteraction).update({
+        content: `🌐 ${t(locale, 'voice.interface.regionSet')} (${regionName})`,
+        components: [],
+      });
+    } catch (err) {
+      console.error('[TempVoice Interface] Set RTC Region error:', err);
+      await (interaction as StringSelectMenuInteraction).update({
+        content: '❌ Не удалось изменить регион голосового канала.',
+        components: [],
+      });
+    }
   } else if (customId === 'tv_select_bitrate') {
     const bitrateVal = parseInt((interaction as StringSelectMenuInteraction).values[0], 10);
     const maxBitrate = interaction.guild!.maximumBitrate;
