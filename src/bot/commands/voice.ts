@@ -10,7 +10,7 @@ import {
   VoiceChannel,
   GuildMember,
 } from 'discord.js';
-import { isTempVoiceChannel, getTempChannelOwner } from '../../voice/tempVoiceService.js';
+import { isTempVoiceChannel, getTempChannelOwner, updateTempChannelOwner } from '../../voice/tempVoiceService.js';
 import { getGuildSettings } from '../../database/repositories/settingsRepo.js';
 import { t, Locale } from '../../utils/i18n.js';
 
@@ -51,8 +51,49 @@ export async function handleVoice(interaction: ChatInputCommandInteraction): Pro
     return;
   }
 
-  // Check if user is the owner
   const ownerId = getTempChannelOwner(voiceChannel.id);
+
+  // Claim can be executed by non-owner if owner left
+  if (subcommand === 'claim') {
+    if (ownerId === userId) {
+      await interaction.reply({
+        content: t(locale, 'voice.interface.alreadyOwner'),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    if (ownerId && voiceChannel.members.has(ownerId)) {
+      await interaction.reply({
+        content: t(locale, 'voice.interface.ownerStillHere'),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    updateTempChannelOwner(voiceChannel.id, userId);
+    await voiceChannel.permissionOverwrites.edit(userId, {
+      ManageChannels: true,
+      MuteMembers: true,
+      DeafenMembers: true,
+      MoveMembers: true,
+      PrioritySpeaker: true,
+    });
+
+    await interaction.reply({
+      content: t(locale, 'voice.interface.claimSuccess'),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // Info can be viewed by anyone in the channel
+  if (subcommand === 'info') {
+    await handleInfo(interaction, voiceChannel, ownerId ?? 'Unknown', locale);
+    return;
+  }
+
+  // All other commands require ownership
   if (ownerId !== userId) {
     await interaction.reply({
       content: t(locale, 'voice.notOwner'),
@@ -83,9 +124,57 @@ export async function handleVoice(interaction: ChatInputCommandInteraction): Pro
     case 'reject':
       await handleReject(interaction, voiceChannel, locale);
       break;
-    case 'info':
-      await handleInfo(interaction, voiceChannel, ownerId, locale);
+    case 'transfer':
+      await handleTransfer(interaction, voiceChannel, userId, locale);
       break;
+    case 'region':
+      await handleRegion(interaction, voiceChannel, locale);
+      break;
+  }
+}
+
+async function handleTransfer(interaction: ChatInputCommandInteraction, channel: VoiceChannel, currentOwnerId: string, locale: Locale): Promise<void> {
+  const targetUser = interaction.options.getUser('user', true);
+  if (targetUser.id === currentOwnerId) {
+    await interaction.reply({
+      content: '❌ ' + t(locale, 'voice.interface.transferSelf'),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  updateTempChannelOwner(channel.id, targetUser.id);
+  await channel.permissionOverwrites.delete(currentOwnerId);
+  await channel.permissionOverwrites.edit(targetUser.id, {
+    ManageChannels: true,
+    MuteMembers: true,
+    DeafenMembers: true,
+    MoveMembers: true,
+    PrioritySpeaker: true,
+  });
+
+  await interaction.reply({
+    content: `👑 ` + t(locale, 'voice.interface.transferred'),
+    flags: MessageFlags.Ephemeral,
+  });
+}
+
+async function handleRegion(interaction: ChatInputCommandInteraction, channel: VoiceChannel, locale: Locale): Promise<void> {
+  const region = interaction.options.getString('region', true);
+  const rtcRegion = region === 'auto' ? null : region;
+
+  try {
+    await channel.setRTCRegion(rtcRegion);
+    await interaction.reply({
+      content: `🌐 ${t(locale, 'voice.interface.regionSet')} (${region})`,
+      flags: MessageFlags.Ephemeral,
+    });
+  } catch (error) {
+    console.error('[Voice] Failed to set region:', error);
+    await interaction.reply({
+      content: '❌ Failed to change voice channel region.',
+      flags: MessageFlags.Ephemeral,
+    });
   }
 }
 

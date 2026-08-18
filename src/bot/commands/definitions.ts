@@ -492,6 +492,44 @@ export const commands = [
             .setDescription('User to reject')
             .setRequired(true)))
     .addSubcommand(sub =>
+      sub.setName('claim')
+        .setDescription('Claim ownership of the channel if current owner left'))
+    .addSubcommand(sub =>
+      sub.setName('transfer')
+        .setDescription('Transfer channel ownership to another member')
+        .addUserOption(opt =>
+          opt.setName('user')
+            .setDescription('New owner')
+            .setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('region')
+        .setDescription('Change voice server region')
+        .addStringOption(opt =>
+          opt.setName('region')
+            .setDescription('Voice region')
+            .setRequired(true)
+            .addChoices(
+              { name: '🌐 Auto (Automatic)', value: 'auto' },
+              { name: '🇷🇺 Russia', value: 'russia' },
+              { name: '🇳🇱 Rotterdam', value: 'rotterdam' },
+              { name: '🇩🇪 Frankfurt', value: 'frankfurt' },
+              { name: '🇵🇱 Warsaw', value: 'warsaw' },
+              { name: '🇫🇮 Helsinki', value: 'helsinki' },
+              { name: '🇷🇴 Bucharest', value: 'bucharest' },
+              { name: '🇬🇧 London', value: 'london' },
+              { name: '🇪🇸 Madrid', value: 'madrid' },
+              { name: '🇸🇪 Stockholm', value: 'stockholm' },
+              { name: '🇺🇸 US East', value: 'us-east' },
+              { name: '🇺🇸 US Central', value: 'us-central' },
+              { name: '🇺🇸 US West', value: 'us-west' },
+              { name: '🇸🇬 Singapore', value: 'singapore' },
+              { name: '🇯🇵 Japan', value: 'japan' },
+              { name: '🇭🇰 Hong Kong', value: 'hongkong' },
+              { name: '🇧🇷 Brazil', value: 'brazil' },
+              { name: '🇦🇺 Sydney', value: 'sydney' },
+              { name: '🇮🇳 India', value: 'india' }
+            )))
+    .addSubcommand(sub =>
       sub.setName('info')
         .setDescription('View information about your channel')),
 

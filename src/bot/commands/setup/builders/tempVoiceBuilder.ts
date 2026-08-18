@@ -46,8 +46,8 @@ export function buildTempVoiceSettings(settings: GuildSettings, guild: any): Set
         inline: true 
       },
       { 
-        name: '🎛️ Interface Channel', 
-        value: settings.tempVoiceControlChannelId ? `#${controlChannelName}` : '❌ Not set', 
+        name: '🎛️ Interface Channel (Optional)', 
+        value: settings.tempVoiceControlChannelId ? `#${controlChannelName}` : '➖ Not set (Optional)', 
         inline: true 
       },
       { 
@@ -62,7 +62,7 @@ export function buildTempVoiceSettings(settings: GuildSettings, guild: any): Set
       },
       {
         name: '💡 How it works',
-        value: '1. User joins the **trigger channel**\n2. Bot creates a private voice channel\n3. User is moved to their new channel\n4. User can manage channel via buttons in **Interface Channel** or `/voice`\n5. Channel is deleted when empty',
+        value: '1. User joins the **trigger channel**\n2. Bot creates a private voice channel\n3. User is moved to their new channel\n4. User manages channel via `/voice` commands (or **Interface buttons** if channel set)\n5. Channel is deleted when empty',
         inline: false
       },
       {
@@ -113,7 +113,7 @@ export function buildTempVoiceSettings(settings: GuildSettings, guild: any): Set
     .addComponents(
       new ChannelSelectMenuBuilder()
         .setCustomId('setup_tempvoice_control_channel')
-        .setPlaceholder('🎛️ Select Interface / Control Text Channel')
+        .setPlaceholder('🎛️ Select Interface Text Channel (Optional)')
         .addChannelTypes(ChannelType.GuildText)
     );
 
