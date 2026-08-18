@@ -84,7 +84,7 @@ export function buildAISettingsButtons(settings: GuildSettings): ActionRowBuilde
 
   const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId('setup_main')
+      .setCustomId('setup_back')
       .setLabel('Back to Main Menu')
       .setStyle(ButtonStyle.Secondary)
       .setEmoji('◀️'),

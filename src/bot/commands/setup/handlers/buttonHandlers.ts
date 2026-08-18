@@ -329,7 +329,8 @@ async function handleModuleButtons(
       completeSetup(guildId);
       return { shouldReturn: false };
 
-    case 'setup_back': {
+    case 'setup_back':
+    case 'setup_main': {
       const view = buildCategoryView('main', settings, i.guild!, currentRoleSubCategory);
       await i.update({ embeds: view.embeds, components: view.components });
       return { shouldReturn: true, category: 'main' };
