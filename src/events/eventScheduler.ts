@@ -57,7 +57,15 @@ export async function checkAndTriggerEvents(client: Client): Promise<void> {
   }
 }
 
-function shouldTriggerEvent(event: any, now: Date): boolean {
+export function parseUtcDate(dateStr: string): Date {
+  if (dateStr.endsWith('Z')) {
+    return new Date(dateStr);
+  }
+  const iso = dateStr.includes('T') ? dateStr + 'Z' : dateStr.replace(' ', 'T') + 'Z';
+  return new Date(iso);
+}
+
+export function shouldTriggerEvent(event: any, now: Date): boolean {
   const { schedule } = event;
   
   // For interval-based events
@@ -68,7 +76,7 @@ function shouldTriggerEvent(event: any, now: Date): boolean {
     }
     
     // Parse lastTriggeredAt (stored as UTC string from SQLite)
-    const lastTriggered = new Date(event.lastTriggeredAt + 'Z'); // Add Z to ensure UTC parsing
+    const lastTriggered = parseUtcDate(event.lastTriggeredAt);
     const timeSinceLastTrigger = now.getTime() - lastTriggered.getTime();
     const minutesSinceLastTrigger = timeSinceLastTrigger / (1000 * 60);
     
@@ -98,7 +106,7 @@ function shouldTriggerEvent(event: any, now: Date): boolean {
 
     // Prevent duplicate triggers within 55 minutes
     if (event.lastTriggeredAt) {
-      const lastTriggered = new Date(event.lastTriggeredAt + 'Z');
+      const lastTriggered = parseUtcDate(event.lastTriggeredAt);
       const timeSinceLastTrigger = now.getTime() - lastTriggered.getTime();
       const minutesSinceLastTrigger = timeSinceLastTrigger / (1000 * 60);
       

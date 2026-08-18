@@ -52,7 +52,7 @@ export function buildReactionRolesSettings(settings: GuildSettings, guild: any):
       },
       {
         name: '💡 Quick Actions',
-        value: '• Create panel: `/reactionroles create`\n• Add role: `/reactionroles add`\n• List panels: `/reactionroles list`',
+        value: '• Create panel: `/reactionroles create`\n• Edit panel: `/reactionroles edit`\n• Add role: `/reactionroles add`\n• List panels: `/reactionroles list`\n• Remove role: `/reactionroles remove`\n• Delete panel: `/reactionroles delete`',
         inline: false
       }
     );

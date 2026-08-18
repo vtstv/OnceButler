@@ -16,6 +16,7 @@ import {
   getReactionRolesByPanel,
   deleteReactionRolePanel,
   removeReactionRole,
+  updateReactionRolePanel,
 } from '../../database/repositories/reactionRolesRepo.js';
 import { t, Locale } from '../../utils/i18n.js';
 
@@ -52,6 +53,9 @@ export async function handleReactionRoles(interaction: ChatInputCommandInteracti
       break;
     case 'list':
       await handleList(interaction, locale);
+      break;
+    case 'edit':
+      await handleEdit(interaction, locale);
       break;
     case 'remove':
       await handleRemove(interaction, locale);
@@ -163,9 +167,76 @@ async function handleList(interaction: ChatInputCommandInteraction, locale: Loca
     .setTitle('🎭 Reaction Role Panels')
     .setDescription(lines.join('\n\n'))
     .setColor(0x5865F2)
-    .setFooter({ text: 'Use /reactionroles remove to remove individual roles' });
+    .setFooter({ text: 'Use /reactionroles edit to edit panels, /reactionroles remove to remove roles' });
 
   await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+}
+
+async function handleEdit(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {
+  const panelId = interaction.options.getInteger('panel_id', true);
+  const newTitle = interaction.options.getString('title');
+  const newDescription = interaction.options.getString('description');
+
+  if (newTitle === null && newDescription === null) {
+    await interaction.reply({ 
+      content: '❌ Please provide at least a new `title` or `description` to update.', 
+      flags: MessageFlags.Ephemeral 
+    });
+    return;
+  }
+
+  const panels = getReactionRolePanels(interaction.guild!.id);
+  const panel = panels.find(p => p.id === panelId);
+
+  if (!panel) {
+    await interaction.reply({ content: '❌ Panel not found.', flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  const titleToSet = newTitle !== null ? newTitle : panel.title;
+  const descriptionToSet = newDescription !== null ? newDescription : panel.description;
+
+  try {
+    // Update Database
+    updateReactionRolePanel(panelId, {
+      title: titleToSet,
+      description: descriptionToSet,
+    });
+
+    // Update Discord message embed
+    const channel = interaction.guild!.channels.cache.get(panel.channelId) as TextChannel;
+    if (channel) {
+      const message = await channel.messages.fetch(panel.messageId).catch(() => null);
+      if (message) {
+        const roles = getReactionRolesByPanel(panelId);
+        const roleList = roles.length > 0
+          ? roles.map(r => {
+              const guildRole = interaction.guild!.roles.cache.get(r.roleId);
+              return `${r.emoji} → ${guildRole?.name || 'Unknown'}`;
+            }).join('\n')
+          : '';
+
+        const desc = (descriptionToSet || 'React to get a role!') + (roleList ? '\n\n' + roleList : '');
+        const embed = new EmbedBuilder()
+          .setTitle(titleToSet)
+          .setDescription(desc)
+          .setColor(0x5865F2)
+          .setFooter({ text: 'Click a reaction to get the role' });
+
+        await message.edit({ embeds: [embed] }).catch(() => {});
+      }
+    }
+
+    await interaction.reply({
+      content: `✅ Panel **#${panelId}** updated!\n` +
+        `**Title:** ${titleToSet}\n` +
+        `**Description:** ${descriptionToSet || '_None_'}`,
+      flags: MessageFlags.Ephemeral,
+    });
+  } catch (error) {
+    console.error('[ReactionRoles] Error editing panel:', error);
+    await interaction.reply({ content: '❌ Failed to edit reaction role panel.', flags: MessageFlags.Ephemeral });
+  }
 }
 
 async function handleRemove(interaction: ChatInputCommandInteraction, locale: Locale): Promise<void> {

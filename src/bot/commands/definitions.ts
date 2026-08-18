@@ -364,6 +364,12 @@ export const commands = [
       sub.setName('list')
         .setDescription('List all reaction role panels'))
     .addSubcommand(sub =>
+      sub.setName('edit')
+        .setDescription('Edit a reaction role panel title and/or description')
+        .addIntegerOption(opt => opt.setName('panel_id').setDescription('Panel ID to edit').setRequired(true))
+        .addStringOption(opt => opt.setName('title').setDescription('New panel title'))
+        .addStringOption(opt => opt.setName('description').setDescription('New panel description')))
+    .addSubcommand(sub =>
       sub.setName('remove')
         .setDescription('Remove a role from a panel')
         .addIntegerOption(opt => opt.setName('panel_id').setDescription('Panel ID').setRequired(true))

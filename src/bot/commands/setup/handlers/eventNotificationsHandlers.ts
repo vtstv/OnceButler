@@ -29,7 +29,7 @@ import {
 } from '../builders/eventNotificationsBuilder.js';
 import type { ButtonResult, SelectMenuResult } from './types.js';
 import type { RoleSubCategory } from '../types.js';
-import { setWizardState } from './wizardStateCache.js';
+import { setWizardState, getWizardState, clearWizardState } from './wizardStateCache.js';
 
 export async function handleEventNotificationsButton(
   i: ButtonInteraction,
@@ -39,7 +39,6 @@ export async function handleEventNotificationsButton(
   wizardData: any
 ): Promise<ButtonResult | null> {
   // Check if there's cached wizard state and merge it
-  const { getWizardState } = await import('./wizardStateCache.js');
   const cachedState = getWizardState(i.user.id, guildId);
   if (cachedState) {
     wizardData = { ...wizardData, ...cachedState };
@@ -77,6 +76,7 @@ export async function handleEventNotificationsButton(
 
   // Main buttons
   if (i.customId === 'setup_events_add') {
+    clearWizardState(i.user.id, guildId);
     const addView = buildEventNotificationsAdd(guildId);
     await i.update({ embeds: addView.embeds, components: addView.components });
     return { shouldReturn: true, wizardData: { guildId } };
@@ -89,6 +89,7 @@ export async function handleEventNotificationsButton(
   }
 
   if (i.customId === 'setup_events_cancel' || i.customId === 'setup_events_wizard_cancel') {
+    clearWizardState(i.user.id, guildId);
     const newSettings = getGuildSettings(guildId);
     const { buildCategoryView } = await import('./viewBuilder.js');
     const view = buildCategoryView('eventNotifications', newSettings, i.guild!, currentRoleSubCategory);
@@ -98,7 +99,8 @@ export async function handleEventNotificationsButton(
 
   // Wizard buttons
   if (i.customId === 'setup_events_wizard_skip_role') {
-    const newWizardData = { ...wizardData, roleId: null };
+    const newWizardData = { ...wizardData, roleId: null, wizardStep: 3 };
+    setWizardState(i.user.id, guildId, newWizardData);
     const wizardView = buildEventNotificationsWizard(3, newWizardData);
     await i.update({ embeds: wizardView.embeds, components: wizardView.components });
     return { shouldReturn: true, wizardData: newWizardData, wizardStep: 3 };
@@ -106,7 +108,8 @@ export async function handleEventNotificationsButton(
 
   if (i.customId === 'setup_events_wizard_message_default') {
     const preset = EVENT_PRESETS[wizardData.presetKey];
-    const newWizardData = { ...wizardData, messageTemplate: preset.defaultMessage };
+    const newWizardData = { ...wizardData, messageTemplate: preset?.defaultMessage, wizardStep: 4 };
+    setWizardState(i.user.id, guildId, newWizardData);
     const wizardView = buildEventNotificationsWizard(4, newWizardData);
     await i.update({ embeds: wizardView.embeds, components: wizardView.components });
     return { shouldReturn: true, wizardData: newWizardData, wizardStep: 4 };
@@ -127,7 +130,7 @@ export async function handleEventNotificationsButton(
       .setLabel('Notification Message')
       .setStyle(TextInputStyle.Paragraph)
       .setPlaceholder('Variables: {role}, {eventName}')
-      .setValue(wizardData.messageTemplate || preset.defaultMessage)
+      .setValue(wizardData.messageTemplate || preset?.defaultMessage || '')
       .setRequired(true)
       .setMaxLength(500);
 
@@ -138,29 +141,16 @@ export async function handleEventNotificationsButton(
 
   if (i.customId === 'setup_events_wizard_schedule_default') {
     const preset = EVENT_PRESETS[wizardData.presetKey];
-    const newWizardData = { ...wizardData, schedule: preset.defaultSchedule };
+    const newWizardData = { ...wizardData, schedule: preset?.defaultSchedule, wizardStep: 5 };
+    setWizardState(i.user.id, guildId, newWizardData);
     const wizardView = buildEventNotificationsWizard(5, newWizardData);
     await i.update({ embeds: wizardView.embeds, components: wizardView.components });
     return { shouldReturn: true, wizardData: newWizardData, wizardStep: 5 };
   }
 
   if (i.customId === 'setup_events_wizard_schedule_custom') {
-    // Check if there's a schedule from modal in cache first
-    const { getWizardState, clearWizardState } = await import('./wizardStateCache.js');
-    const cachedState = getWizardState(i.user.id, guildId);
-    
-    if (cachedState && cachedState.schedule) {
-      // User already set schedule via modal, apply it and continue
-      const newWizardData = { ...wizardData, schedule: cachedState.schedule };
-      clearWizardState(i.user.id, guildId);
-      const wizardView = buildEventNotificationsWizard(5, newWizardData);
-      await i.update({ embeds: wizardView.embeds, components: wizardView.components });
-      return { shouldReturn: true, wizardData: newWizardData, wizardStep: 5 };
-    }
-    
-    // Show modal for first time
     const preset = EVENT_PRESETS[wizardData.presetKey];
-    const currentSchedule = wizardData.schedule || preset.defaultSchedule;
+    const currentSchedule = wizardData.schedule || preset?.defaultSchedule || { hours: [0, 4, 8, 12, 16, 20], timezone: 'GMT' };
     
     // Store wizard state for modal submission
     setWizardState(i.user.id, guildId, { ...wizardData, wizardStep: 4 });
@@ -174,7 +164,7 @@ export async function handleEventNotificationsButton(
       .setLabel('Hours (comma-separated, 0-23)')
       .setStyle(TextInputStyle.Short)
       .setPlaceholder('0, 4, 8, 12, 16, 20')
-      .setValue(currentSchedule.hours.join(', '))
+      .setValue(currentSchedule.hours ? currentSchedule.hours.join(', ') : '0, 4, 8, 12, 16, 20')
       .setRequired(true)
       .setMaxLength(100);
 
@@ -190,20 +180,22 @@ export async function handleEventNotificationsButton(
     }
 
     const preset = EVENT_PRESETS[wizardData.presetKey];
-    const eventName = wizardData.eventName || preset.eventName;
-    const messageTemplate = wizardData.messageTemplate || preset.defaultMessage;
-    const schedule = wizardData.schedule || preset.defaultSchedule;
+    const eventName = wizardData.eventName || preset?.eventName || 'Event';
+    const messageTemplate = wizardData.messageTemplate || preset?.defaultMessage || 'Event Notification';
+    const schedule = wizardData.schedule || preset?.defaultSchedule || { hours: [0, 4, 8, 12, 16, 20], timezone: 'GMT' };
 
     try {
       createEventNotification(
         guildId,
-        preset.eventType,
+        preset ? preset.eventType : 'custom',
         eventName,
         wizardData.channelId,
         wizardData.roleId || null,
         messageTemplate,
         schedule
       );
+
+      clearWizardState(i.user.id, guildId);
 
       const newSettings = getGuildSettings(guildId);
       const { buildCategoryView } = await import('./viewBuilder.js');
@@ -383,7 +375,7 @@ export async function handleEventNotificationsSelectMenu(
 ): Promise<SelectMenuResult | null> {
   if (i.customId === 'setup_events_select_preset') {
     const presetKey = i.values[0];
-    let newWizardData = { ...wizardData, presetKey };
+    let newWizardData = { ...wizardData, presetKey, wizardStep: 1 };
     
     // For custom events, generate a unique name
     if (presetKey === 'custom') {
@@ -393,6 +385,8 @@ export async function handleEventNotificationsSelectMenu(
       const nextNumber = customEvents.length + 1;
       newWizardData.eventName = `Custom Event #${nextNumber}`;
     }
+    
+    setWizardState(i.user.id, guildId, newWizardData);
     
     // Start with channel selection (step 1)
     const wizardView = buildEventNotificationsWizard(1, newWizardData);
@@ -422,8 +416,10 @@ export async function handleEventNotificationsChannelSelect(
   wizardData: any
 ): Promise<SelectMenuResult | null> {
   if (i.customId === 'setup_events_wizard_channel') {
+    const guildId = i.guildId!;
     const channelId = i.values[0];
-    const newWizardData = { ...wizardData, channelId };
+    const newWizardData = { ...wizardData, channelId, wizardStep: 2 };
+    setWizardState(i.user.id, guildId, newWizardData);
     const wizardView = buildEventNotificationsWizard(2, newWizardData);
     await i.update({ embeds: wizardView.embeds, components: wizardView.components });
     return { shouldReturn: true, wizardData: newWizardData, wizardStep: 2 };
@@ -437,8 +433,10 @@ export async function handleEventNotificationsRoleSelect(
   wizardData: any
 ): Promise<SelectMenuResult | null> {
   if (i.customId === 'setup_events_wizard_role') {
+    const guildId = i.guildId!;
     const role = i.roles.first()!;
-    const newWizardData = { ...wizardData, roleId: role.id };
+    const newWizardData = { ...wizardData, roleId: role.id, wizardStep: 3 };
+    setWizardState(i.user.id, guildId, newWizardData);
     const wizardView = buildEventNotificationsWizard(3, newWizardData);
     await i.update({ embeds: wizardView.embeds, components: wizardView.components });
     return { shouldReturn: true, wizardData: newWizardData, wizardStep: 3 };

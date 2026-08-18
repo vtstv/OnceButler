@@ -51,6 +51,40 @@ export function getReactionRolePanels(guildId: string): ReactionRolePanel[] {
   return rows;
 }
 
+export function getReactionRolePanelById(panelId: number): ReactionRolePanel | null {
+  const db = getDb();
+  const row = db.prepare(`
+    SELECT id, guild_id as guildId, channel_id as channelId, message_id as messageId, 
+           title, description, created_at as createdAt
+    FROM reaction_role_panels
+    WHERE id = ?
+  `).get(panelId) as ReactionRolePanel | undefined;
+  return row || null;
+}
+
+export function updateReactionRolePanel(
+  panelId: number,
+  data: { title?: string; description?: string | null }
+): void {
+  const db = getDb();
+  const updates: string[] = [];
+  const params: any[] = [];
+
+  if (data.title !== undefined) {
+    updates.push('title = ?');
+    params.push(data.title);
+  }
+  if (data.description !== undefined) {
+    updates.push('description = ?');
+    params.push(data.description);
+  }
+
+  if (updates.length === 0) return;
+
+  params.push(panelId);
+  db.prepare(`UPDATE reaction_role_panels SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+}
+
 export function getReactionRolePanelByMessage(guildId: string, messageId: string): ReactionRolePanel | null {
   const db = getDb();
   const row = db.prepare(`

@@ -109,10 +109,18 @@ export function registerEvents(client: Client): void {
             return;
           }
           updateGuildSettings(guildId, { giveawayMaxWinners: winners });
-          await interaction.reply({ content: `✅ Max winners set to **${winners}**!`, flags: MessageFlags.Ephemeral });
+          
+          if (interaction.isFromMessage()) {
+            const { buildCategoryView } = await import('./commands/setup/handlers/viewBuilder.js');
+            const settings = getGuildSettings(guildId);
+            const view = buildCategoryView('giveaways', settings, interaction.guild);
+            await interaction.update({ embeds: view.embeds, components: view.components });
+          } else {
+            await interaction.reply({ content: `✅ Max winners set to **${winners}**!`, flags: MessageFlags.Ephemeral });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling giveaway winners modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -134,13 +142,20 @@ export function registerEvents(client: Client): void {
             updateGuildSettings(guildId, { leaveMessage: message });
           }
 
-          await interaction.reply({
-            content: `✅ ${isWelcome ? 'Welcome' : 'Leave'} message updated!`,
-            flags: MessageFlags.Ephemeral,
-          });
+          if (interaction.isFromMessage()) {
+            const { buildCategoryView } = await import('./commands/setup/handlers/viewBuilder.js');
+            const settings = getGuildSettings(guildId);
+            const view = buildCategoryView('welcome', settings, interaction.guild);
+            await interaction.update({ embeds: view.embeds, components: view.components });
+          } else {
+            await interaction.reply({
+              content: `✅ ${isWelcome ? 'Welcome' : 'Leave'} message updated!`,
+              flags: MessageFlags.Ephemeral,
+            });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling welcome modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -155,10 +170,18 @@ export function registerEvents(client: Client): void {
           }
           const apiKey = interaction.fields.getTextInputValue('api_key');
           updateGuildSettings(guildId, { imageGenApiKey: apiKey });
-          await interaction.reply({ content: '✅ API Key saved!', flags: MessageFlags.Ephemeral });
+          
+          if (interaction.isFromMessage()) {
+            const { buildCategoryView } = await import('./commands/setup/handlers/viewBuilder.js');
+            const settings = getGuildSettings(guildId);
+            const view = buildCategoryView('imageGen', settings, interaction.guild);
+            await interaction.update({ embeds: view.embeds, components: view.components });
+          } else {
+            await interaction.reply({ content: '✅ API Key saved!', flags: MessageFlags.Ephemeral });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling imagegen api modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -173,10 +196,18 @@ export function registerEvents(client: Client): void {
           }
           const accountId = interaction.fields.getTextInputValue('account_id');
           updateGuildSettings(guildId, { imageGenAccountId: accountId });
-          await interaction.reply({ content: '✅ Account ID saved!', flags: MessageFlags.Ephemeral });
+          
+          if (interaction.isFromMessage()) {
+            const { buildCategoryView } = await import('./commands/setup/handlers/viewBuilder.js');
+            const settings = getGuildSettings(guildId);
+            const view = buildCategoryView('imageGen', settings, interaction.guild);
+            await interaction.update({ embeds: view.embeds, components: view.components });
+          } else {
+            await interaction.reply({ content: '✅ Account ID saved!', flags: MessageFlags.Ephemeral });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling imagegen account modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -191,10 +222,18 @@ export function registerEvents(client: Client): void {
           }
           const nameTemplate = interaction.fields.getTextInputValue('name_template');
           updateGuildSettings(guildId, { tempVoiceNameTemplate: nameTemplate });
-          await interaction.reply({ content: '✅ Name template saved!', flags: MessageFlags.Ephemeral });
+          
+          if (interaction.isFromMessage()) {
+            const { buildCategoryView } = await import('./commands/setup/handlers/viewBuilder.js');
+            const settings = getGuildSettings(guildId);
+            const view = buildCategoryView('tempVoice', settings, interaction.guild);
+            await interaction.update({ embeds: view.embeds, components: view.components });
+          } else {
+            await interaction.reply({ content: '✅ Name template saved!', flags: MessageFlags.Ephemeral });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling tempvoice name modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -209,10 +248,18 @@ export function registerEvents(client: Client): void {
           }
           const geminiKey = interaction.fields.getTextInputValue('gemini_key');
           updateGuildSettings(guildId, { steamNewsGeminiKey: geminiKey });
-          await interaction.reply({ content: '✅ Gemini API Key saved!', flags: MessageFlags.Ephemeral });
+          
+          if (interaction.isFromMessage()) {
+            const { buildCategoryView } = await import('./commands/setup/handlers/viewBuilder.js');
+            const settings = getGuildSettings(guildId);
+            const view = buildCategoryView('steamNews', settings, interaction.guild);
+            await interaction.update({ embeds: view.embeds, components: view.components });
+          } else {
+            await interaction.reply({ content: '✅ Gemini API Key saved!', flags: MessageFlags.Ephemeral });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling steamnews gemini modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -227,10 +274,18 @@ export function registerEvents(client: Client): void {
           }
           const apiUrl = interaction.fields.getTextInputValue('api_url');
           updateGuildSettings(guildId, { twitchDropsApiUrl: apiUrl });
-          await interaction.reply({ content: '✅ Twitch Drops API URL saved!', flags: MessageFlags.Ephemeral });
+          
+          if (interaction.isFromMessage()) {
+            const { buildCategoryView } = await import('./commands/setup/handlers/viewBuilder.js');
+            const settings = getGuildSettings(guildId);
+            const view = buildCategoryView('twitchDrops', settings, interaction.guild);
+            await interaction.update({ embeds: view.embeds, components: view.components });
+          } else {
+            await interaction.reply({ content: '✅ Twitch Drops API URL saved!', flags: MessageFlags.Ephemeral });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling twitchdrops apiurl modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -245,10 +300,18 @@ export function registerEvents(client: Client): void {
           }
           const apiKey = interaction.fields.getTextInputValue('api_key');
           updateGuildSettings(guildId, { twitchDropsApiKey: apiKey });
-          await interaction.reply({ content: '✅ Twitch Drops API Key saved!', flags: MessageFlags.Ephemeral });
+          
+          if (interaction.isFromMessage()) {
+            const { buildCategoryView } = await import('./commands/setup/handlers/viewBuilder.js');
+            const settings = getGuildSettings(guildId);
+            const view = buildCategoryView('twitchDrops', settings, interaction.guild);
+            await interaction.update({ embeds: view.embeds, components: view.components });
+          } else {
+            await interaction.reply({ content: '✅ Twitch Drops API Key saved!', flags: MessageFlags.Ephemeral });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling twitchdrops apikey modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -263,10 +326,18 @@ export function registerEvents(client: Client): void {
           }
           const apiKey = interaction.fields.getTextInputValue('api_key');
           updateGuildSettings(guildId, { aiApiKey: apiKey });
-          await interaction.reply({ content: '✅ AI API Key saved!', flags: MessageFlags.Ephemeral });
+          
+          if (interaction.isFromMessage()) {
+            const { buildCategoryView } = await import('./commands/setup/handlers/viewBuilder.js');
+            const settings = getGuildSettings(guildId);
+            const view = buildCategoryView('ai', settings, interaction.guild);
+            await interaction.update({ embeds: view.embeds, components: view.components });
+          } else {
+            await interaction.reply({ content: '✅ AI API Key saved!', flags: MessageFlags.Ephemeral });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling AI api modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -281,10 +352,18 @@ export function registerEvents(client: Client): void {
           }
           const accountId = interaction.fields.getTextInputValue('account_id');
           updateGuildSettings(guildId, { aiAccountId: accountId });
-          await interaction.reply({ content: '✅ Cloudflare Account ID saved!', flags: MessageFlags.Ephemeral });
+          
+          if (interaction.isFromMessage()) {
+            const { buildCategoryView } = await import('./commands/setup/handlers/viewBuilder.js');
+            const settings = getGuildSettings(guildId);
+            const view = buildCategoryView('ai', settings, interaction.guild);
+            await interaction.update({ embeds: view.embeds, components: view.components });
+          } else {
+            await interaction.reply({ content: '✅ Cloudflare Account ID saved!', flags: MessageFlags.Ephemeral });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling AI account modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -307,22 +386,29 @@ export function registerEvents(client: Client): void {
           
           updateGuildSettings(guildId, { eventNotificationsKeepOldMessages: keepOldMessages });
           
-          let description: string;
-          if (keepOldMessages === 0) {
-            description = 'All old messages will be deleted immediately when a new event notification is posted.';
-          } else if (keepOldMessages === 1) {
-            description = 'The last message will be kept, older messages will be deleted.';
+          if (interaction.isFromMessage()) {
+            const { buildCategoryView } = await import('./commands/setup/handlers/viewBuilder.js');
+            const settings = getGuildSettings(guildId);
+            const view = buildCategoryView('eventNotifications', settings, interaction.guild);
+            await interaction.update({ embeds: view.embeds, components: view.components });
           } else {
-            description = `The last ${keepOldMessages} messages will be kept, older messages will be deleted.`;
+            let description: string;
+            if (keepOldMessages === 0) {
+              description = 'All old messages will be deleted immediately when a new event notification is posted.';
+            } else if (keepOldMessages === 1) {
+              description = 'The last message will be kept, older messages will be deleted.';
+            } else {
+              description = `The last ${keepOldMessages} messages will be kept, older messages will be deleted.`;
+            }
+            
+            await interaction.reply({ 
+              content: `✅ Keep old messages set to: **${keepOldMessages}**\n\n${description}`,
+              flags: MessageFlags.Ephemeral 
+            });
           }
-          
-          await interaction.reply({ 
-            content: `✅ Keep old messages set to: **${keepOldMessages}**\n\n${description}`,
-            flags: MessageFlags.Ephemeral 
-          });
         } catch (error) {
           console.error('[MODAL] Error handling keep old messages modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -340,16 +426,23 @@ export function registerEvents(client: Client): void {
           const newName = interaction.fields.getTextInputValue('event_name');
           
           const { updateEventNotification, getEventNotificationById } = await import('../database/repositories/eventNotificationsRepo.js');
+          const { buildEventNotificationEdit } = await import('./commands/setup/builders/eventNotificationsBuilder.js');
           
           updateEventNotification(eventId, { eventName: newName });
+          const updatedEvent = getEventNotificationById(eventId);
           
-          await interaction.reply({ 
-            content: `✅ Event name updated to: **${newName}**`,
-            flags: MessageFlags.Ephemeral 
-          });
+          if (interaction.isFromMessage() && updatedEvent) {
+            const editView = buildEventNotificationEdit(updatedEvent, interaction.guild);
+            await interaction.update({ embeds: editView.embeds, components: editView.components });
+          } else {
+            await interaction.reply({ 
+              content: `✅ Event name updated to: **${newName}**`,
+              flags: MessageFlags.Ephemeral 
+            });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling edit event name modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -366,17 +459,24 @@ export function registerEvents(client: Client): void {
           const eventId = parseInt(interaction.customId.replace('setup_events_edit_message_modal_', ''));
           const newMessage = interaction.fields.getTextInputValue('message');
           
-          const { updateEventNotification } = await import('../database/repositories/eventNotificationsRepo.js');
+          const { updateEventNotification, getEventNotificationById } = await import('../database/repositories/eventNotificationsRepo.js');
+          const { buildEventNotificationEdit } = await import('./commands/setup/builders/eventNotificationsBuilder.js');
           
           updateEventNotification(eventId, { messageTemplate: newMessage });
+          const updatedEvent = getEventNotificationById(eventId);
           
-          await interaction.reply({ 
-            content: `✅ Event message updated!`,
-            flags: MessageFlags.Ephemeral 
-          });
+          if (interaction.isFromMessage() && updatedEvent) {
+            const editView = buildEventNotificationEdit(updatedEvent, interaction.guild);
+            await interaction.update({ embeds: editView.embeds, components: editView.components });
+          } else {
+            await interaction.reply({ 
+              content: `✅ Event message updated!`,
+              flags: MessageFlags.Ephemeral 
+            });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling edit event message modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -392,6 +492,7 @@ export function registerEvents(client: Client): void {
           
           const eventId = parseInt(interaction.customId.replace('setup_events_edit_schedule_modal_', ''));
           const { updateEventNotification, getEventNotificationById } = await import('../database/repositories/eventNotificationsRepo.js');
+          const { buildEventNotificationEdit } = await import('./commands/setup/builders/eventNotificationsBuilder.js');
           
           const event = getEventNotificationById(eventId);
           if (!event) {
@@ -399,6 +500,7 @@ export function registerEvents(client: Client): void {
             return;
           }
           
+          let scheduleText = '';
           // Check if it's interval-based or hourly
           if (event.schedule.intervalMinutes) {
             const intervalMinutes = parseInt(interaction.fields.getTextInputValue('interval_minutes'));
@@ -411,11 +513,7 @@ export function registerEvents(client: Client): void {
             updateEventNotification(eventId, { 
               schedule: { intervalMinutes, timezone: 'GMT' }
             });
-            
-            await interaction.reply({ 
-              content: `✅ Schedule updated to: Every ${intervalMinutes} minutes`,
-              flags: MessageFlags.Ephemeral 
-            });
+            scheduleText = `Every ${intervalMinutes} minutes`;
           } else {
             const hoursStr = interaction.fields.getTextInputValue('hours');
             const minutesStr = interaction.fields.getTextInputValue('minutes');
@@ -439,15 +537,22 @@ export function registerEvents(client: Client): void {
             
             const minuteStr = minutes.toString().padStart(2, '0');
             const times = hours.map(h => `${h}:${minuteStr}`).join(', ');
-            
+            scheduleText = `${times} GMT`;
+          }
+          
+          const updatedEvent = getEventNotificationById(eventId);
+          if (interaction.isFromMessage() && updatedEvent) {
+            const editView = buildEventNotificationEdit(updatedEvent, interaction.guild);
+            await interaction.update({ embeds: editView.embeds, components: editView.components });
+          } else {
             await interaction.reply({ 
-              content: `✅ Schedule updated to: ${times} GMT`,
+              content: `✅ Schedule updated to: ${scheduleText}`,
               flags: MessageFlags.Ephemeral 
             });
           }
         } catch (error) {
           console.error('[MODAL] Error handling edit event schedule modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -461,20 +566,27 @@ export function registerEvents(client: Client): void {
             return;
           }
           
-          const { setWizardState } = await import('../bot/commands/setup/handlers/wizardStateCache.js');
+          const { setWizardState, getWizardState } = await import('./commands/setup/handlers/wizardStateCache.js');
+          const { buildEventNotificationsWizard } = await import('./commands/setup/builders/eventNotificationsBuilder.js');
           
           const eventName = interaction.fields.getTextInputValue('event_name');
+          const currentState = getWizardState(interaction.user.id, guildId) || {};
+          const newWizardData = { ...currentState, eventName, presetKey: 'custom', wizardStep: 1 };
           
-          // Save the event name to wizard state cache so the collector can pick it up
-          setWizardState(interaction.user.id, guildId, { eventName, fromModal: true });
+          setWizardState(interaction.user.id, guildId, newWizardData);
           
-          await interaction.reply({ 
-            content: `✅ Event name set to: **${eventName}**\n\n⚠️ Click the **"✏️ Set Custom Name"** button again in the setup message above to apply the name.`,
-            flags: MessageFlags.Ephemeral 
-          });
+          if (interaction.isFromMessage()) {
+            const wizardView = buildEventNotificationsWizard(1, newWizardData);
+            await interaction.update({ embeds: wizardView.embeds, components: wizardView.components });
+          } else {
+            await interaction.reply({ 
+              content: `✅ Event name set to: **${eventName}**`,
+              flags: MessageFlags.Ephemeral 
+            });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling events name modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -491,28 +603,22 @@ export function registerEvents(client: Client): void {
           const { getWizardState, setWizardState } = await import('../bot/commands/setup/handlers/wizardStateCache.js');
           const { buildEventNotificationsWizard } = await import('../bot/commands/setup/builders/eventNotificationsBuilder.js');
           
-          const wizardState = getWizardState(interaction.user.id, guildId);
-          if (!wizardState) {
-            await interaction.reply({ content: '❌ Wizard session expired. Please start over.', flags: MessageFlags.Ephemeral });
-            return;
-          }
-          
+          const wizardState = getWizardState(interaction.user.id, guildId) || {};
           const message = interaction.fields.getTextInputValue('message');
           const newWizardData = { ...wizardState, messageTemplate: message, wizardStep: 4 };
           
-          // Update wizard state instead of clearing it
+          // Update wizard state in cache
           setWizardState(interaction.user.id, guildId, newWizardData);
           
           const wizardView = buildEventNotificationsWizard(4, newWizardData);
-          await interaction.reply({ 
-            content: '✅ Message saved! Continue with the wizard below:',
-            embeds: wizardView.embeds,
-            components: wizardView.components,
-            flags: MessageFlags.Ephemeral 
-          });
+          if (interaction.isFromMessage()) {
+            await interaction.update({ embeds: wizardView.embeds, components: wizardView.components });
+          } else {
+            await interaction.reply({ embeds: wizardView.embeds, components: wizardView.components, flags: MessageFlags.Ephemeral });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling events message modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }
@@ -526,7 +632,8 @@ export function registerEvents(client: Client): void {
             return;
           }
           
-          const { setWizardState } = await import('../bot/commands/setup/handlers/wizardStateCache.js');
+          const { getWizardState, setWizardState } = await import('../bot/commands/setup/handlers/wizardStateCache.js');
+          const { buildEventNotificationsWizard } = await import('../bot/commands/setup/builders/eventNotificationsBuilder.js');
           
           const hoursStr = interaction.fields.getTextInputValue('hours');
           const hours = hoursStr.split(',').map(h => parseInt(h.trim())).filter(h => !isNaN(h) && h >= 0 && h <= 23);
@@ -536,19 +643,25 @@ export function registerEvents(client: Client): void {
             return;
           }
           
-          // Save schedule to wizard state cache
-          setWizardState(interaction.user.id, guildId, { 
+          const wizardState = getWizardState(interaction.user.id, guildId) || {};
+          const newWizardData = {
+            ...wizardState,
             schedule: { hours, timezone: 'GMT' },
-            fromModal: true 
-          });
+            wizardStep: 5,
+          };
           
-          await interaction.reply({ 
-            content: `✅ Schedule saved: ${hours.join(', ')}:00 GMT\n\n⚠️ Click the **"✏️ Customize Schedule"** button again in the setup message above to apply the schedule.`,
-            flags: MessageFlags.Ephemeral 
-          });
+          // Save complete wizard state to cache
+          setWizardState(interaction.user.id, guildId, newWizardData);
+          
+          const wizardView = buildEventNotificationsWizard(5, newWizardData);
+          if (interaction.isFromMessage()) {
+            await interaction.update({ embeds: wizardView.embeds, components: wizardView.components });
+          } else {
+            await interaction.reply({ embeds: wizardView.embeds, components: wizardView.components, flags: MessageFlags.Ephemeral });
+          }
         } catch (error) {
           console.error('[MODAL] Error handling events schedule modal:', error);
-          if (!interaction.replied) {
+          if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }
         }

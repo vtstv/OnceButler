@@ -10,7 +10,6 @@ import { evaluateAllMembersInGuild } from '../roles/customRolesEngine.js';
 import { getActiveGiveaways, selectWinners, endGiveaway } from '../database/repositories/giveawaysRepo.js';
 import { processSteamNews } from '../steamnews/index.js';
 import { processTwitchDrops } from '../twitchdrops/index.js';
-import { checkAndTriggerEvents } from '../events/eventScheduler.js';
 
 let tickInterval: NodeJS.Timeout | null = null;
 let customRolesCounter = 0; // Process custom roles every 5th tick
@@ -66,13 +65,6 @@ export function startTickScheduler(client: Client): void {
         } catch (err) {
           console.error('[TWITCH DROPS] Error:', err);
         }
-      }
-      
-      // Check event notifications every tick (every minute)
-      try {
-        await checkAndTriggerEvents(client);
-      } catch (err) {
-        console.error('[EVENT NOTIFICATIONS] Error:', err);
       }
     } catch (err) {
       console.error('Tick scheduler error:', err);
