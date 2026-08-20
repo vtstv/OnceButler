@@ -9,7 +9,26 @@ import { formatWelcomeMessage, DEFAULT_WELCOME_MESSAGES, DEFAULT_LEAVE_MESSAGES 
 export async function handleGuildMemberAdd(member: GuildMember): Promise<void> {
   const settings = getGuildSettings(member.guild.id);
   
-  if (!settings.enableWelcome || !settings.welcomeChannelId) {
+  if (!settings.enableWelcome) {
+    return;
+  }
+
+  // 1. Assign auto-role if configured
+  if (settings.welcomeRoleId) {
+    try {
+      const role = member.guild.roles.cache.get(settings.welcomeRoleId) || await member.guild.roles.fetch(settings.welcomeRoleId).catch(() => null);
+      if (role) {
+        await member.roles.add(role, 'OnceButler Welcome Auto-Role');
+      } else {
+        console.warn(`[Welcome] Configured auto-role ${settings.welcomeRoleId} not found in guild ${member.guild.name}`);
+      }
+    } catch (error) {
+      console.error(`[Welcome] Failed to assign welcome auto-role to ${member.user.tag} in ${member.guild.name}:`, error);
+    }
+  }
+
+  // 2. Send welcome message if channel is configured
+  if (!settings.welcomeChannelId) {
     return;
   }
 

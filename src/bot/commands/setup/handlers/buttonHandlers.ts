@@ -340,6 +340,15 @@ async function handleModuleButtons(
     case 'setup_welcome_test':
       return handleWelcomeTest(i, settings);
 
+    case 'setup_welcome_clear_role': {
+      updateGuildSettings(guildId, { welcomeRoleId: null });
+      const newSettings = getGuildSettings(guildId);
+      const view = buildCategoryView('welcome', newSettings, i.guild!, currentRoleSubCategory);
+      await i.update({ embeds: view.embeds, components: view.components });
+      await i.followUp({ content: '✅ Auto-role cleared!', flags: MessageFlags.Ephemeral });
+      return { shouldReturn: true };
+    }
+
     case 'setup_steamnews_test':
       return handleSteamNewsTest(i, guildId, settings);
 

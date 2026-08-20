@@ -10,6 +10,7 @@ import {
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
   ChannelSelectMenuBuilder,
+  RoleSelectMenuBuilder,
   ChannelType,
 } from 'discord.js';
 import type { GuildSettings } from '../../../database/repositories/settingsRepo.js';
@@ -21,9 +22,13 @@ export function buildWelcomeSettings(settings: GuildSettings, guild: any): Setup
     ? guild?.channels.cache.get(settings.welcomeChannelId)?.name ?? 'Unknown'
     : 'Not set';
 
+  const roleName = settings.welcomeRoleId
+    ? guild?.roles.cache.get(settings.welcomeRoleId)?.name ?? 'Unknown'
+    : null;
+
   const embed = new EmbedBuilder()
-    .setTitle('👋 Welcome/Leave Messages')
-    .setDescription('Configure welcome and leave messages for new members.\n\n' +
+    .setTitle('👋 Welcome/Leave Messages & Auto-Role')
+    .setDescription('Configure welcome/leave messages and optional auto-role for new members.\n\n' +
       '**Variables you can use:**\n' +
       '`{user}` — Mention the user\n' +
       '`{username}` — Username\n' +
@@ -32,8 +37,8 @@ export function buildWelcomeSettings(settings: GuildSettings, guild: any): Setup
     .setColor(0x5865F2)
     .addFields(
       { name: '📊 Status', value: settings.enableWelcome ? '✅ Enabled' : '❌ Disabled', inline: true },
-      { name: '📢 Channel', value: `#${welcomeChannelName}`, inline: true },
-      { name: '\u200b', value: '\u200b', inline: true },
+      { name: '📢 Channel', value: settings.welcomeChannelId ? `#${welcomeChannelName}` : '❌ Not set', inline: true },
+      { name: '🎭 Auto-Role', value: settings.welcomeRoleId ? `@${roleName}` : '➖ None (Optional)', inline: true },
       { 
         name: '👋 Welcome Message', 
         value: settings.welcomeMessage ? `\`\`\`${settings.welcomeMessage.slice(0, 100)}${settings.welcomeMessage.length > 100 ? '...' : ''}\`\`\`` : '`Default message`', 
@@ -57,12 +62,22 @@ export function buildWelcomeSettings(settings: GuildSettings, guild: any): Setup
         .setLabel('🧪 Test Messages')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(!settings.enableWelcome),
+      new ButtonBuilder()
+        .setCustomId('setup_welcome_clear_role')
+        .setLabel('❌ Clear Auto-Role')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(!settings.enableWelcome || !settings.welcomeRoleId),
     );
 
   const channelSelect = new ChannelSelectMenuBuilder()
     .setCustomId('setup_welcome_channel')
     .setPlaceholder('Select Welcome Channel')
     .setChannelTypes(ChannelType.GuildText)
+    .setDisabled(!settings.enableWelcome);
+
+  const roleSelect = new RoleSelectMenuBuilder()
+    .setCustomId('setup_welcome_role')
+    .setPlaceholder('🎭 Select Auto-Role for new members (Optional)')
     .setDisabled(!settings.enableWelcome);
 
   const messageTypeSelect = new StringSelectMenuBuilder()
@@ -97,6 +112,7 @@ export function buildWelcomeSettings(settings: GuildSettings, guild: any): Setup
     components: [
       toggleButton,
       new ActionRowBuilder<ChannelSelectMenuBuilder>().addComponents(channelSelect),
+      new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(roleSelect),
       new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(messageTypeSelect),
       backButton,
     ],

@@ -575,4 +575,11 @@ export function runMigrations(): void {
   } catch (e: any) {
     if (!e.message.includes('duplicate column')) throw e;
   }
+
+  // Add welcomeRoleId column to guild_settings
+  try {
+    db.exec('ALTER TABLE guild_settings ADD COLUMN welcomeRoleId TEXT DEFAULT NULL');
+  } catch (e: any) {
+    if (!e.message.includes('duplicate column')) throw e;
+  }
 }

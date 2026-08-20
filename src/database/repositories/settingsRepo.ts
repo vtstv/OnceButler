@@ -23,6 +23,7 @@ export interface GuildSettings {
   // Welcome/Leave module
   enableWelcome: boolean;
   welcomeChannelId: string | null;
+  welcomeRoleId: string | null;
   welcomeMessage: string | null;
   leaveMessage: string | null;
   // Economy module
@@ -115,6 +116,7 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   // Welcome/Leave module
   enableWelcome: false,
   welcomeChannelId: null,
+  welcomeRoleId: null,
   welcomeMessage: null,
   leaveMessage: null,
   // Economy module
@@ -130,9 +132,9 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   economyTransferFee: 0,
   // Giveaways module
   enableGiveaways: true,
-  giveawayMinDuration: 5,
+  giveawayMinDuration: 1,
   giveawayMaxDuration: 10080,
-  giveawayMaxWinners: 10,
+  giveawayMaxWinners: 20,
   giveawayDmWinners: true,
   // Reaction Roles module
   enableReactionRoles: false,
@@ -196,7 +198,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
            enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser,
            enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes, leaderboardMessageId,
            statGainMultiplier, statDrainMultiplier,
-           enableWelcome, welcomeChannelId, welcomeMessage, leaveMessage,
+           enableWelcome, welcomeChannelId, welcomeRoleId, welcomeMessage, leaveMessage,
            enableEconomy, economyCurrencyName, economyCurrencyEmoji, economyDailyAmount, economyWorkMin, economyWorkMax,
            economyDailyReward, economyWorkCooldown, economyBankInterest, economyTransferFee,
            enableGiveaways, giveawayMinDuration, giveawayMaxDuration, giveawayMaxWinners, giveawayDmWinners,
@@ -237,6 +239,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
     statDrainMultiplier: row.statDrainMultiplier ?? 0.5,
     enableWelcome: row.enableWelcome === 1,
     welcomeChannelId: row.welcomeChannelId ?? null,
+    welcomeRoleId: row.welcomeRoleId ?? null,
     welcomeMessage: row.welcomeMessage ?? null,
     leaveMessage: row.leaveMessage ?? null,
     enableEconomy: row.enableEconomy === 1,
@@ -325,7 +328,7 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 enableRoleColors, enableChaosRoles, enableAchievements, maxRolesPerUser,
                                 enableAutoLeaderboard, leaderboardChannelId, leaderboardIntervalMinutes, leaderboardMessageId,
                                 statGainMultiplier, statDrainMultiplier,
-                                enableWelcome, welcomeChannelId, welcomeMessage, leaveMessage,
+                                enableWelcome, welcomeChannelId, welcomeRoleId, welcomeMessage, leaveMessage,
                                 enableEconomy, economyCurrencyName, economyCurrencyEmoji, economyDailyAmount, economyWorkMin, economyWorkMax,
                                 economyDailyReward, economyWorkCooldown, economyBankInterest, economyTransferFee,
                                 enableGiveaways, giveawayMinDuration, giveawayMaxDuration, giveawayMaxWinners, giveawayDmWinners,
@@ -341,7 +344,7 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 enableDynamicRoles,
                                 enableTwitchDrops, twitchDropsChannelId, twitchDropsApiUrl, twitchDropsApiKey, twitchDropsCheckInterval,
                                 enableEventNotifications, eventNotificationsKeepOldMessages)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -358,6 +361,7 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       statDrainMultiplier = excluded.statDrainMultiplier,
       enableWelcome = excluded.enableWelcome,
       welcomeChannelId = excluded.welcomeChannelId,
+      welcomeRoleId = excluded.welcomeRoleId,
       welcomeMessage = excluded.welcomeMessage,
       leaveMessage = excluded.leaveMessage,
       enableEconomy = excluded.enableEconomy,
@@ -437,6 +441,7 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.statDrainMultiplier,
     merged.enableWelcome ? 1 : 0,
     merged.welcomeChannelId,
+    merged.welcomeRoleId,
     merged.welcomeMessage,
     merged.leaveMessage,
     merged.enableEconomy ? 1 : 0,

@@ -232,6 +232,18 @@ export async function handleRoleSelectMenu(
     return { shouldReturn: true, levelingRoleToAdd: newLevelingData };
   }
 
+  if (i.customId === 'setup_welcome_role') {
+    const role = i.roles.first();
+    if (role) {
+      updateGuildSettings(guildId, { welcomeRoleId: role.id });
+      const newSettings = getGuildSettings(guildId);
+      const view = buildCategoryView('welcome', newSettings, i.guild!, currentRoleSubCategory);
+      await i.update({ embeds: view.embeds, components: view.components });
+      await i.followUp({ content: `✅ Auto-role set to **${role.name}**!`, flags: MessageFlags.Ephemeral });
+      return { shouldReturn: true };
+    }
+  }
+
   const eventNotificationsResult = await handleEventNotificationsRoleSelect(i, wizardData);
   if (eventNotificationsResult) return eventNotificationsResult;
 
