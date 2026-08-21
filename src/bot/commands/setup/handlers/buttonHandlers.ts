@@ -627,18 +627,21 @@ async function handleSteamNewsTest(
     
     // Convert dates to Discord timestamps before sending to Gemini
     const { replaceDatesWithTimestamps } = await import('../../../../steamnews/dateParser.js');
-    const contentWithTimestamps = replaceDatesWithTimestamps(cleaned);
+    const { sanitizeNewsDates } = await import('../../../../steamnews/steamNewsService.js');
+    const contentWithTimestamps = replaceDatesWithTimestamps(cleaned, latest.date);
     
     if (!settings.steamNewsGeminiKey) {
       await i.editReply({ content: '❌ Gemini API key not set.' });
       return { shouldReturn: true };
     }
     
-    const translated = await translateAndSummarize(contentWithTimestamps, settings.steamNewsGeminiKey);
+    const translated = await translateAndSummarize(contentWithTimestamps, settings.steamNewsGeminiKey, latest);
     if (!translated) {
       await i.editReply({ content: '❌ Failed to translate with Gemini. Check your API key.' });
       return { shouldReturn: true };
     }
+
+    const sanitized = sanitizeNewsDates(translated, latest.date);
     
     // Format as regular message (same as actual posts)
     const header = `# 📰 ${latest.title}\n🔗 <${latest.url}>\n\n`;
@@ -647,7 +650,7 @@ async function handleSteamNewsTest(
     // Split into chunks if needed (Discord message limit is 2000)
     const maxLength = 1900;
     const messages: string[] = [];
-    let remaining = translated;
+    let remaining = sanitized;
     let isFirst = true;
     
     while (remaining.length > 0) {

@@ -8,7 +8,7 @@ import { fetchSteamNews, isUpdateNews, shouldExcludeNews, cleanSteamContent, fil
 import { translateAndSummarize } from './geminiService.js';
 import { isNewsProcessed, markNewsProcessed, initSteamNewsTable } from './steamNewsRepo.js';
 import { getGuildSettings } from '../database/repositories/settingsRepo.js';
-import { replaceDatesWithTimestamps } from './dateParser.js';
+import { replaceDatesWithTimestamps, parseDateToUnix } from './dateParser.js';
 
 let initialized = false;
 
@@ -17,6 +17,36 @@ export function initSteamNews(): void {
   initSteamNewsTable();
   initialized = true;
   console.log('[STEAM NEWS] Initialized');
+}
+
+/**
+ * Sanitizes Gemini output to ensure date field uses valid Discord timestamp
+ * and replaces any raw text or hallucinated dates/years (like 2024).
+ */
+export function sanitizeNewsDates(translatedContent: string, publishTimestamp: number): string {
+  const defaultTs = `<t:${publishTimestamp}:F> (<t:${publishTimestamp}:R>)`;
+  const publishYear = new Date(publishTimestamp * 1000).getUTCFullYear();
+
+  // Look for section 2: "2. **🗓️ ВРЕМЯ ОБНОВЛЕНИЯ**" or "**🗓️ ВРЕМЯ ОБНОВЛЕНИЯ**" followed by text
+  const timeSectionRegex = /((\d+\.\s*)?\*{0,2}🗓️?\s*ВРЕМЯ ОБНОВЛЕНИЯ\*{0,2}\s*[\r\n]+)([^\r\n#]+)/i;
+
+  return translatedContent.replace(timeSectionRegex, (match, header, numPrefix, contentLine) => {
+    const trimmed = contentLine.trim();
+
+    // If the line already has a Discord timestamp <t:...>, keep it
+    if (trimmed.includes('<t:')) {
+      return `${header}${trimmed}`;
+    }
+
+    // Try to parse the content line with publication year
+    const parsedUnix = parseDateToUnix(trimmed, publishYear);
+    if (parsedUnix) {
+      return `${header}<t:${parsedUnix}:F> (<t:${parsedUnix}:R>)`;
+    }
+
+    // Otherwise fallback to publishTimestamp
+    return `${header}${defaultTs}`;
+  });
 }
 
 export async function processSteamNews(client: Client): Promise<void> {
@@ -135,16 +165,19 @@ async function processNewsForGuild(
     try {
       // Clean content and convert dates to Discord timestamps BEFORE sending to Gemini
       const cleanedContent = filterRaidZoneContent(cleanSteamContent(item.contents));
-      const contentWithTimestamps = replaceDatesWithTimestamps(cleanedContent);
-      const translated = await translateAndSummarize(contentWithTimestamps, geminiApiKey);
+      const contentWithTimestamps = replaceDatesWithTimestamps(cleanedContent, item.date);
+      const translated = await translateAndSummarize(contentWithTimestamps, geminiApiKey, item);
       
       if (!translated) {
         console.log(`[STEAM NEWS] Failed to translate news ${item.gid}`);
         continue;
       }
 
+      // Sanitize dates in the summary to prevent any hallucinated raw text or outdated years
+      const sanitizedContent = sanitizeNewsDates(translated, item.date);
+
       // Build formatted message instead of embed
-      const messages = buildNewsMessages(item, translated);
+      const messages = buildNewsMessages(item, sanitizedContent);
       for (const msg of messages) {
         await channel.send(msg);
         await delay(500);
