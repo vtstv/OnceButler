@@ -13,6 +13,7 @@ import {
   ChannelType,
 } from 'discord.js';
 import type { GuildSettings } from '../../../database/repositories/settingsRepo.js';
+import { getAllPresetRoleNames } from '../../../roles/roleRules.js';
 import type { SetupView } from './types.js';
 
 export function buildGeneralSettings(settings: GuildSettings): SetupView {
@@ -73,13 +74,31 @@ export function buildGeneralSettings(settings: GuildSettings): SetupView {
   };
 }
 
-export function buildFeatureSettings(settings: GuildSettings): SetupView {
+function getGuildRoles(guild: any): any[] {
+  if (!guild?.roles?.cache) return [];
+  if (Array.isArray(guild.roles.cache)) return guild.roles.cache;
+  if (typeof guild.roles.cache.values === 'function') return Array.from(guild.roles.cache.values());
+  return [];
+}
+
+export function buildFeatureSettings(settings: GuildSettings, guild?: any): SetupView {
+  const allPresetRoles = getAllPresetRoleNames();
+  const allGuildRoles = getGuildRoles(guild);
+  const existingBotRoles = allGuildRoles.filter((r: any) => allPresetRoles.includes(r.name));
+  const botRolesCount = existingBotRoles.length;
+
   const embed = new EmbedBuilder()
     .setTitle('🎮 Feature Settings')
     .setDescription('Toggle bot features on or off.')
     .setColor(0x5865F2)
     .addFields(
-      { name: '🎭 Dynamic Roles', value: settings.enableDynamicRoles ? '✅ Enabled' : '❌ Disabled', inline: true },
+      { 
+        name: '🎭 Dynamic Roles', 
+        value: settings.enableDynamicRoles 
+          ? `✅ Enabled${botRolesCount > 0 ? ` (${botRolesCount} preset roles)` : ''}` 
+          : `❌ Disabled${botRolesCount > 0 ? ` (${botRolesCount} preset roles on server)` : ''}`, 
+        inline: true 
+      },
       { name: '🎨 Role Colors', value: settings.enableRoleColors ? '✅ Enabled' : '❌ Disabled', inline: true },
       { name: '🎲 Chaos Roles', value: settings.enableChaosRoles ? '✅ Enabled' : '❌ Disabled', inline: true },
       { name: '🏆 Achievements', value: settings.enableAchievements ? '✅ Enabled' : '❌ Disabled', inline: true },
@@ -119,6 +138,19 @@ export function buildFeatureSettings(settings: GuildSettings): SetupView {
         .setStyle(settings.enableGiveaways ? ButtonStyle.Secondary : ButtonStyle.Success),
     );
 
+  const roleActionsRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('setup_cat_roles')
+        .setLabel('🎭 Role Management')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('setup_roles_delete_unused')
+        .setLabel(botRolesCount > 0 ? `🗑️ Delete Bot Roles (${botRolesCount})` : '🗑️ Delete Bot Roles')
+        .setStyle(botRolesCount > 0 ? ButtonStyle.Danger : ButtonStyle.Secondary)
+        .setDisabled(botRolesCount === 0),
+    );
+
   const backButton = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
@@ -129,7 +161,7 @@ export function buildFeatureSettings(settings: GuildSettings): SetupView {
 
   return {
     embeds: [embed],
-    components: [toggleButtons, toggleButtons2, backButton],
+    components: [toggleButtons, toggleButtons2, roleActionsRow, backButton],
   };
 }
 

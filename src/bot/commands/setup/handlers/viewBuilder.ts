@@ -31,7 +31,7 @@ export function buildCategoryView(
     case 'general':
       return buildGeneralSettings(settings);
     case 'features':
-      return buildFeatureSettings(settings);
+      return buildFeatureSettings(settings, guild);
     case 'leaderboard':
       return buildLeaderboardSettings(settings, guild);
     case 'stats':

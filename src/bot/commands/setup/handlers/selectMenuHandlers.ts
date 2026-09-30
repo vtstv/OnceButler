@@ -4,6 +4,7 @@
 
 import {
   MessageFlags,
+  EmbedBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -62,6 +63,36 @@ export async function handleStringSelectMenu(
     case 'setup_roles_category': {
       const roleView = buildCategoryView('roles', settings, i.guild!, i.values[0] as RoleSubCategory);
       await i.update({ embeds: roleView.embeds, components: roleView.components });
+      return { shouldReturn: true };
+    }
+
+    case 'setup_roles_delete_single': {
+      await i.deferUpdate();
+      const roleIdOrName = i.values[0];
+      const role = i.guild!.roles.cache.get(roleIdOrName) || i.guild!.roles.cache.find(r => r.name === roleIdOrName);
+      let success = false;
+      let roleName = roleIdOrName;
+      if (role) {
+        roleName = role.name;
+        try {
+          await role.delete('OnceButler role cleanup');
+          success = true;
+        } catch (err) {
+          console.error(`Failed to delete role ${role.name}:`, err);
+        }
+      }
+      
+      const resultEmbed = new EmbedBuilder()
+        .setTitle(success ? '🗑️ Role Deleted' : '❌ Failed to Delete Role')
+        .setDescription(success 
+          ? `Successfully deleted role **${roleName}**.`
+          : `Could not delete role **${roleName}**. Please verify bot permissions and role hierarchy.`)
+        .setColor(success ? 0x00FF00 : 0xFF0000);
+        
+      await i.followUp({ embeds: [resultEmbed], flags: MessageFlags.Ephemeral });
+      const newSettings = getGuildSettings(guildId);
+      const view = buildCategoryView(currentCategory, newSettings, i.guild!, currentRoleSubCategory);
+      await i.editReply({ embeds: view.embeds, components: view.components });
       return { shouldReturn: true };
     }
 

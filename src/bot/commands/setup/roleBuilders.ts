@@ -13,28 +13,44 @@ import {
 } from 'discord.js';
 import type { GuildSettings } from '../../../database/repositories/settingsRepo.js';
 import { getMapping } from '../../../roles/roleStore.js';
-import { getAllBotRoles, getMoodRoles, getEnergyRoles, getActivityRoles, getTimeRoles, getChaosRoles } from '../../../roles/roleRules.js';
+import { getAllBotRoles, getMoodRoles, getEnergyRoles, getActivityRoles, getTimeRoles, getChaosRoles, getAllPresetRoleNames } from '../../../roles/roleRules.js';
 import type { RoleCategory } from '../../../roles/types.js';
 import type { SetupView, RoleSubCategory } from './types.js';
 import { ROLE_COLORS } from './types.js';
 
+function getGuildRoles(guild: any): any[] {
+  if (!guild?.roles?.cache) return [];
+  if (Array.isArray(guild.roles.cache)) return guild.roles.cache;
+  if (typeof guild.roles.cache.values === 'function') return Array.from(guild.roles.cache.values());
+  return [];
+}
+
 export function buildRolesSettings(settings: GuildSettings, guild: any, subCategory: RoleSubCategory): SetupView {
   const preset = settings.rolePreset;
   const mapping = getMapping(preset);
-  const allRoles = getAllBotRoles(preset);
+  const allRoles = getAllPresetRoleNames();
+  const allGuildRoles = getGuildRoles(guild);
   
-  const existingRoles = guild?.roles.cache.filter((r: any) => allRoles.includes(r.name)) ?? new Map();
-  const existingCount = existingRoles.size;
-  const totalCount = allRoles.length;
+  const existingRoles = allGuildRoles.filter((r: any) => allRoles.includes(r.name));
+  const existingCount = existingRoles.length;
+  const totalCount = getAllBotRoles(preset).length;
   
   if (subCategory === 'overview') {
-    return buildRolesOverview(settings, guild, existingCount, totalCount, mapping);
+    return buildRolesOverview(settings, guild, existingCount, totalCount, mapping, existingRoles, allGuildRoles);
   }
   
-  return buildRoleCategoryEditor(settings, guild, subCategory as RoleCategory, mapping);
+  return buildRoleCategoryEditor(settings, guild, subCategory as RoleCategory, mapping, allGuildRoles);
 }
 
-function buildRolesOverview(settings: GuildSettings, guild: any, existingCount: number, totalCount: number, mapping: any): SetupView {
+function buildRolesOverview(
+  settings: GuildSettings, 
+  guild: any, 
+  existingCount: number, 
+  totalCount: number, 
+  mapping: any,
+  existingRoles: any[],
+  allGuildRoles: any[]
+): SetupView {
   const preset = settings.rolePreset;
   
   const moodRoles = [mapping.mood.high2, mapping.mood.high1, mapping.mood.mid, mapping.mood.low1, mapping.mood.low2];
@@ -44,7 +60,7 @@ function buildRolesOverview(settings: GuildSettings, guild: any, existingCount: 
   const chaosRoles = mapping.chaos;
   
   const countExisting = (roles: string[]) => {
-    return roles.filter(r => guild?.roles.cache.find((gr: any) => gr.name === r)).length;
+    return roles.filter(r => allGuildRoles.some((gr: any) => gr.name === r)).length;
   };
   
   const embed = new EmbedBuilder()
@@ -78,8 +94,9 @@ function buildRolesOverview(settings: GuildSettings, guild: any, existingCount: 
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId('setup_roles_delete_unused')
-        .setLabel('🗑️ Delete Bot Roles')
-        .setStyle(ButtonStyle.Danger),
+        .setLabel(existingCount > 0 ? `🗑️ Delete All Bot Roles (${existingCount})` : '🗑️ Delete All Bot Roles')
+        .setStyle(existingCount > 0 ? ButtonStyle.Danger : ButtonStyle.Secondary)
+        .setDisabled(existingCount === 0),
     );
 
   const backButton = new ActionRowBuilder<ButtonBuilder>()
@@ -90,17 +107,44 @@ function buildRolesOverview(settings: GuildSettings, guild: any, existingCount: 
         .setStyle(ButtonStyle.Secondary),
     );
 
+  const components: ActionRowBuilder<any>[] = [
+    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(categorySelect),
+  ];
+
+  if (existingCount > 0) {
+    const roleOptions = existingRoles
+      .slice(0, 25)
+      .map((r: any) =>
+        new StringSelectMenuOptionBuilder()
+          .setLabel(r.name.slice(0, 100))
+          .setValue(r.id)
+          .setDescription(`Delete "${r.name.slice(0, 80)}" from server`)
+          .setEmoji('🗑️')
+      );
+
+    const deleteSingleSelect = new StringSelectMenuBuilder()
+      .setCustomId('setup_roles_delete_single')
+      .setPlaceholder('🗑️ Delete a specific bot role...')
+      .addOptions(roleOptions);
+
+    components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(deleteSingleSelect));
+  }
+
+  components.push(actionButtons, backButton);
+
   return {
     embeds: [embed],
-    components: [
-      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(categorySelect),
-      actionButtons,
-      backButton,
-    ],
+    components,
   };
 }
 
-function buildRoleCategoryEditor(settings: GuildSettings, guild: any, category: RoleCategory, mapping: any): SetupView {
+function buildRoleCategoryEditor(
+  settings: GuildSettings, 
+  guild: any, 
+  category: RoleCategory, 
+  mapping: any,
+  allGuildRoles?: any[]
+): SetupView {
   const categoryNames: Record<string, string> = {
     mood: '😊 Mood Roles',
     energy: '⚡ Energy Roles',
@@ -143,8 +187,10 @@ function buildRoleCategoryEditor(settings: GuildSettings, guild: any, category: 
       break;
   }
   
+  const guildRoles = allGuildRoles ?? getGuildRoles(guild);
+
   const roleStatus = roles.map((r: string) => {
-    const exists = guild?.roles.cache.find((gr: any) => gr.name === r);
+    const exists = guildRoles.some((gr: any) => gr.name === r);
     return exists ? '✅' : '❌';
   });
   
@@ -160,6 +206,9 @@ function buildRoleCategoryEditor(settings: GuildSettings, guild: any, category: 
       }))
     );
 
+  const categoryExistingRoles = guildRoles.filter((gr: any) => roles.includes(gr.name));
+  const categoryExistingCount = categoryExistingRoles.length;
+
   const actionButtons = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
@@ -168,8 +217,11 @@ function buildRoleCategoryEditor(settings: GuildSettings, guild: any, category: 
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId(`setup_roles_delete_${category}`)
-        .setLabel(`🗑️ Delete ${categoryNames[category].split(' ')[1]} Roles`)
-        .setStyle(ButtonStyle.Danger),
+        .setLabel(categoryExistingCount > 0 
+          ? `🗑️ Delete ${categoryNames[category].split(' ')[1]} Roles (${categoryExistingCount})` 
+          : `🗑️ Delete ${categoryNames[category].split(' ')[1]} Roles`)
+        .setStyle(categoryExistingCount > 0 ? ButtonStyle.Danger : ButtonStyle.Secondary)
+        .setDisabled(categoryExistingCount === 0),
     );
 
   const backButton = new ActionRowBuilder<ButtonBuilder>()
@@ -184,10 +236,40 @@ function buildRoleCategoryEditor(settings: GuildSettings, guild: any, category: 
         .setStyle(ButtonStyle.Secondary),
     );
 
+  const components: ActionRowBuilder<any>[] = [];
+
+  if (categoryExistingCount > 0) {
+    const roleOptions = categoryExistingRoles
+      .slice(0, 25)
+      .map((r: any) =>
+        new StringSelectMenuOptionBuilder()
+          .setLabel(r.name.slice(0, 100))
+          .setValue(r.id)
+          .setDescription(`Delete "${r.name.slice(0, 80)}" from server`)
+          .setEmoji('🗑️')
+      );
+
+    const deleteSingleSelect = new StringSelectMenuBuilder()
+      .setCustomId('setup_roles_delete_single')
+      .setPlaceholder(`🗑️ Delete a ${categoryNames[category].split(' ')[1]} role...`)
+      .addOptions(roleOptions);
+
+    components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(deleteSingleSelect));
+  }
+
+  components.push(actionButtons, backButton);
+
   return {
     embeds: [embed],
-    components: [actionButtons, backButton],
+    components,
   };
+}
+
+function findGuildRole(guild: any, predicate: (r: any) => boolean): any {
+  if (typeof guild?.roles?.cache?.find === 'function') {
+    return guild.roles.cache.find(predicate);
+  }
+  return getGuildRoles(guild).find(predicate);
 }
 
 // Role creation/deletion helpers
@@ -205,7 +287,8 @@ export async function createRolesByCategory(guild: Guild, settings: GuildSetting
   
   const created: string[] = [];
   for (const roleName of roles) {
-    if (!guild.roles.cache.find(r => r.name === roleName)) {
+    const existing = findGuildRole(guild, (r: any) => r.name === roleName);
+    if (!existing) {
       try {
         const options: any = { name: roleName, reason: 'OnceButler role creation' };
         if (settings.enableRoleColors && ROLE_COLORS[category]) {
@@ -222,20 +305,19 @@ export async function createRolesByCategory(guild: Guild, settings: GuildSetting
 }
 
 export async function deleteRolesByCategory(guild: Guild, settings: GuildSettings, category: RoleCategory): Promise<string[]> {
-  const preset = settings.rolePreset;
   let roles: string[] = [];
   
   switch (category) {
-    case 'mood': roles = getMoodRoles(preset); break;
-    case 'energy': roles = getEnergyRoles(preset); break;
-    case 'activity': roles = getActivityRoles(preset); break;
-    case 'time': roles = getTimeRoles(preset); break;
-    case 'chaos': roles = getChaosRoles(preset); break;
+    case 'mood': roles = [...new Set([...getMoodRoles('en'), ...getMoodRoles('ru')])]; break;
+    case 'energy': roles = [...new Set([...getEnergyRoles('en'), ...getEnergyRoles('ru')])]; break;
+    case 'activity': roles = [...new Set([...getActivityRoles('en'), ...getActivityRoles('ru')])]; break;
+    case 'time': roles = [...new Set([...getTimeRoles('en'), ...getTimeRoles('ru')])]; break;
+    case 'chaos': roles = [...new Set([...getChaosRoles('en'), ...getChaosRoles('ru')])]; break;
   }
   
   const deleted: string[] = [];
   for (const roleName of roles) {
-    const role = guild.roles.cache.find(r => r.name === roleName);
+    const role = findGuildRole(guild, (r: any) => r.name === roleName);
     if (role) {
       try {
         await role.delete('OnceButler role cleanup');

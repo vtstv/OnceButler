@@ -4,7 +4,7 @@
 
 import type { MemberStats } from '../database/repositories/memberStatsRepo.js';
 import { getTimePeriod, type TimePeriod } from '../utils/time.js';
-import { getMapping, getRoles } from './roleStore.js';
+import { getMapping, getRoles, getAchievementNames } from './roleStore.js';
 import type { RoleMapping } from './types.js';
 
 export interface RoleAssignment {
@@ -149,4 +149,23 @@ export function getRoleCategory(roleName: string, preset: string = 'en'): string
   if (getTimeRoles(preset).includes(roleName)) return 'time';
   if (getChaosRoles(preset).includes(roleName)) return 'chaos';
   return null;
+}
+
+export function getAllPresetRoleNames(includeAchievements: boolean = true): string[] {
+  const presets = ['en', 'ru'];
+  const names = new Set<string>();
+  for (const p of presets) {
+    for (const r of getAllBotRoles(p)) {
+      names.add(r);
+    }
+    if (includeAchievements) {
+      try {
+        const ach = getAchievementNames(p);
+        for (const a of Object.values(ach)) {
+          names.add(a);
+        }
+      } catch {}
+    }
+  }
+  return Array.from(names);
 }

@@ -21,7 +21,7 @@ import {
   type CustomRoleRule,
 } from '../../../../database/repositories/customRolesRepo.js';
 import { importRolesToGuild } from '../../../../roles/roleImporter.js';
-import { getAllBotRoles } from '../../../../roles/roleRules.js';
+import { getAllBotRoles, getAllPresetRoleNames } from '../../../../roles/roleRules.js';
 import type { RoleCategory } from '../../../../roles/types.js';
 import type { SetupCategory, RoleSubCategory } from '../types.js';
 import { buildCategoryView } from './viewBuilder.js';
@@ -55,7 +55,7 @@ export async function handleButton(
   const wizardResult = await handleWizardButtons(i, guildId, settings, currentRoleSubCategory, wizardData);
   if (wizardResult) return wizardResult;
 
-  const roleResult = await handleRoleManagementButtons(i, guildId, settings, currentRoleSubCategory);
+  const roleResult = await handleRoleManagementButtons(i, guildId, settings, currentCategory, currentRoleSubCategory);
   if (roleResult) return roleResult;
 
   const dynamicResult = await handleDynamicButtons(i, guildId, settings, currentRoleSubCategory);
@@ -481,6 +481,7 @@ async function handleRoleManagementButtons(
   i: ButtonInteraction,
   guildId: string,
   settings: any,
+  currentCategory: SetupCategory,
   currentRoleSubCategory: RoleSubCategory
 ): Promise<ButtonResult | null> {
   switch (i.customId) {
@@ -502,8 +503,7 @@ async function handleRoleManagementButtons(
 
     case 'setup_roles_delete_unused': {
       await i.deferUpdate();
-      const preset = settings.rolePreset;
-      const botRoles = getAllBotRoles(preset);
+      const botRoles = getAllPresetRoleNames();
       const deleted: string[] = [];
       
       for (const roleName of botRoles) {
@@ -526,7 +526,7 @@ async function handleRoleManagementButtons(
         .setColor(0xFF6600);
       await i.followUp({ embeds: [resultEmbed], flags: MessageFlags.Ephemeral });
       const newSettings = getGuildSettings(guildId);
-      const view = buildCategoryView('roles', newSettings, i.guild!, currentRoleSubCategory);
+      const view = buildCategoryView(currentCategory, newSettings, i.guild!, currentRoleSubCategory);
       await i.editReply({ embeds: view.embeds, components: view.components });
       return { shouldReturn: true };
     }
@@ -578,7 +578,7 @@ async function handleDynamicButtons(
     return { shouldReturn: true };
   }
 
-  if (i.customId.startsWith('setup_roles_delete_') && i.customId !== 'setup_roles_delete_unused') {
+  if (i.customId.startsWith('setup_roles_delete_') && i.customId !== 'setup_roles_delete_unused' && i.customId !== 'setup_roles_delete_single') {
     const category = i.customId.replace('setup_roles_delete_', '') as RoleCategory;
     await i.deferUpdate();
     const deleted = await deleteRolesByCategory(i.guild!, settings, category);
