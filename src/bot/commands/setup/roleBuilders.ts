@@ -18,7 +18,7 @@ import type { RoleCategory } from '../../../roles/types.js';
 import type { SetupView, RoleSubCategory } from './types.js';
 import { ROLE_COLORS } from './types.js';
 
-function getGuildRoles(guild: any): any[] {
+export function getGuildRoles(guild: any): any[] {
   if (!guild?.roles?.cache) return [];
   if (Array.isArray(guild.roles.cache)) return guild.roles.cache;
   if (typeof guild.roles.cache.values === 'function') return Array.from(guild.roles.cache.values());
@@ -316,14 +316,27 @@ export async function deleteRolesByCategory(guild: Guild, settings: GuildSetting
   }
   
   const deleted: string[] = [];
-  for (const roleName of roles) {
-    const role = findGuildRole(guild, (r: any) => r.name === roleName);
-    if (role) {
+  const guildRoles = getGuildRoles(guild);
+  if (guildRoles.length > 0) {
+    const matchingRoles = guildRoles.filter((r: any) => roles.includes(r.name) && !r.managed && r.editable !== false);
+    for (const role of matchingRoles) {
       try {
         await role.delete('OnceButler role cleanup');
-        deleted.push(roleName);
+        deleted.push(role.name);
       } catch (err) {
-        console.error(`Failed to delete role ${roleName}:`, err);
+        console.error(`Failed to delete role ${role.name}:`, err);
+      }
+    }
+  } else {
+    for (const roleName of roles) {
+      const role = findGuildRole(guild, (r: any) => r.name === roleName);
+      if (role && !role.managed && role.editable !== false) {
+        try {
+          await role.delete('OnceButler role cleanup');
+          deleted.push(roleName);
+        } catch (err) {
+          console.error(`Failed to delete role ${roleName}:`, err);
+        }
       }
     }
   }

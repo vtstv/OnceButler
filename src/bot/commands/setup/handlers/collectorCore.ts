@@ -83,11 +83,12 @@ export async function startCollector(message: Message, userId: string, guildId: 
         await i.update({ embeds: view.embeds, components: view.components });
       }
     } catch (error: any) {
+      const customId = (i as any).customId || 'unknown';
       if (error.code === 10062) {
-        console.warn(`[SETUP] Interaction expired for ${i.user.tag}`);
+        console.warn(`[SETUP] Interaction expired for ${i.user.tag} (customId: ${customId})`);
         return;
       }
-      console.error('[SETUP] Error handling interaction:', error);
+      console.error(`[SETUP] Error handling interaction (customId: ${customId}):`, error);
     }
   });
 

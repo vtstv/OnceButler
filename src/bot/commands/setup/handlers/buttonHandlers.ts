@@ -27,7 +27,7 @@ import type { SetupCategory, RoleSubCategory } from '../types.js';
 import { buildCategoryView } from './viewBuilder.js';
 import { buildCustomRoleAddWizard, buildCustomRoleManage, buildCustomRuleEdit } from '../customRolesBuilder.js';
 import { formatWelcomeMessage, DEFAULT_WELCOME_MESSAGES, DEFAULT_LEAVE_MESSAGES } from '../welcomeBuilder.js';
-import { createRolesByCategory, deleteRolesByCategory } from '../roleBuilders.js';
+import { createRolesByCategory, deleteRolesByCategory, getGuildRoles } from '../roleBuilders.js';
 import { postOrUpdateTempVoiceInterface } from '../../../../voice/tempVoiceInterface.js';
 import { buildLevelingAddRole, buildLevelingManageRoles, buildReactionRolesManage } from '../newModulesBuilders.js';
 import type { ButtonResult, LevelingRoleData } from './types.js';
@@ -486,48 +486,76 @@ async function handleRoleManagementButtons(
 ): Promise<ButtonResult | null> {
   switch (i.customId) {
     case 'setup_roles_create_all': {
-      await i.deferUpdate();
+      const loadingEmbed = new EmbedBuilder()
+        .setTitle('⏳ Creating Bot Roles...')
+        .setDescription('Creating preset roles for the server. This may take a few moments due to Discord rate limits.\nPlease wait...')
+        .setColor(0x5865F2);
+
+      await i.update({ embeds: [loadingEmbed], components: [] });
       const created = await importRolesToGuild(i.guild!);
       const resultEmbed = new EmbedBuilder()
         .setTitle('📥 Role Import Complete')
         .setDescription(created.length > 0 
-          ? `Created ${created.length} roles:\n${created.map((r: string) => `• ${r}`).join('\n')}`
+          ? `Created **${created.length}** roles:\n${created.slice(0, 15).map((r: string) => `• ${r}`).join('\n')}${created.length > 15 ? `\n*...and ${created.length - 15} more*` : ''}`
           : 'All roles already exist.')
         .setColor(0x00FF00);
-      await i.followUp({ embeds: [resultEmbed], flags: MessageFlags.Ephemeral });
+
       const newSettings = getGuildSettings(guildId);
       const view = buildCategoryView('roles', newSettings, i.guild!, currentRoleSubCategory);
-      await i.editReply({ embeds: view.embeds, components: view.components });
+      try {
+        await i.editReply({ embeds: [resultEmbed, ...view.embeds], components: view.components });
+      } catch (err) {
+        console.warn('[SETUP] editReply failed, attempting message.edit:', err);
+        try {
+          await (i.message as any)?.edit?.({ embeds: [resultEmbed, ...view.embeds], components: view.components });
+        } catch {}
+      }
       return { shouldReturn: true };
     }
 
     case 'setup_roles_delete_unused': {
-      await i.deferUpdate();
+      const loadingEmbed = new EmbedBuilder()
+        .setTitle('⏳ Deleting Bot Roles...')
+        .setDescription('Deleting preset roles from the server. This may take a few moments due to Discord rate limits.\nPlease wait...')
+        .setColor(0xFFAA00);
+
+      await i.update({ embeds: [loadingEmbed], components: [] });
+
+      try {
+        await i.guild!.roles.fetch();
+      } catch {}
+
       const botRoles = getAllPresetRoleNames();
+      const allRoles = getGuildRoles(i.guild);
+      const matchingRoles = allRoles.filter((r: any) => botRoles.includes(r.name) && !r.managed && r.editable !== false);
+
       const deleted: string[] = [];
-      
-      for (const roleName of botRoles) {
-        const role = i.guild!.roles.cache.find((r: any) => r.name === roleName);
-        if (role) {
-          try {
-            await role.delete('OnceButler role cleanup');
-            deleted.push(roleName);
-          } catch (err) {
-            console.error(`Failed to delete role ${roleName}:`, err);
-          }
+      for (const role of matchingRoles) {
+        try {
+          await role.delete('OnceButler role cleanup');
+          deleted.push(role.name);
+        } catch (err) {
+          console.error(`Failed to delete role ${role.name}:`, err);
         }
       }
       
       const resultEmbed = new EmbedBuilder()
         .setTitle('🗑️ Role Cleanup Complete')
         .setDescription(deleted.length > 0 
-          ? `Deleted ${deleted.length} roles:\n${deleted.map(r => `• ${r}`).join('\n')}`
+          ? `Deleted **${deleted.length}** roles:\n${deleted.slice(0, 15).map(r => `• ${r}`).join('\n')}${deleted.length > 15 ? `\n*...and ${deleted.length - 15} more*` : ''}`
           : 'No bot roles found to delete.')
-        .setColor(0xFF6600);
-      await i.followUp({ embeds: [resultEmbed], flags: MessageFlags.Ephemeral });
+        .setColor(deleted.length > 0 ? 0x00FF00 : 0xFF6600);
+
       const newSettings = getGuildSettings(guildId);
       const view = buildCategoryView(currentCategory, newSettings, i.guild!, currentRoleSubCategory);
-      await i.editReply({ embeds: view.embeds, components: view.components });
+      try {
+        await i.editReply({ embeds: [resultEmbed, ...view.embeds], components: view.components });
+      } catch (err) {
+        console.warn('[SETUP] editReply failed, attempting message.edit:', err);
+        try {
+          await (i.message as any)?.edit?.({ embeds: [resultEmbed, ...view.embeds], components: view.components });
+        } catch {}
+      }
       return { shouldReturn: true };
     }
   }
@@ -563,35 +591,57 @@ async function handleDynamicButtons(
 
   if (i.customId.startsWith('setup_roles_create_') && i.customId !== 'setup_roles_create_all') {
     const category = i.customId.replace('setup_roles_create_', '') as RoleCategory;
-    await i.deferUpdate();
+    const loadingEmbed = new EmbedBuilder()
+      .setTitle(`⏳ Creating ${category.charAt(0).toUpperCase() + category.slice(1)} Roles...`)
+      .setDescription(`Creating ${category} roles. Please wait...`)
+      .setColor(0x5865F2);
+
+    await i.update({ embeds: [loadingEmbed], components: [] });
     const created = await createRolesByCategory(i.guild!, settings, category);
     const resultEmbed = new EmbedBuilder()
       .setTitle(`📥 ${category.charAt(0).toUpperCase() + category.slice(1)} Roles Created`)
       .setDescription(created.length > 0 
-        ? `Created ${created.length} roles:\n${created.map(r => `• ${r}`).join('\n')}`
+        ? `Created **${created.length}** roles:\n${created.map(r => `• ${r}`).join('\n')}`
         : 'All roles in this category already exist.')
       .setColor(0x00FF00);
-    await i.followUp({ embeds: [resultEmbed], flags: MessageFlags.Ephemeral });
+      
     const newSettings = getGuildSettings(guildId);
     const view = buildCategoryView('roles', newSettings, i.guild!, currentRoleSubCategory);
-    await i.editReply({ embeds: view.embeds, components: view.components });
+    try {
+      await i.editReply({ embeds: [resultEmbed, ...view.embeds], components: view.components });
+    } catch (err) {
+      try {
+        await (i.message as any)?.edit?.({ embeds: [resultEmbed, ...view.embeds], components: view.components });
+      } catch {}
+    }
     return { shouldReturn: true };
   }
 
   if (i.customId.startsWith('setup_roles_delete_') && i.customId !== 'setup_roles_delete_unused' && i.customId !== 'setup_roles_delete_single') {
     const category = i.customId.replace('setup_roles_delete_', '') as RoleCategory;
-    await i.deferUpdate();
+    const loadingEmbed = new EmbedBuilder()
+      .setTitle(`⏳ Deleting ${category.charAt(0).toUpperCase() + category.slice(1)} Roles...`)
+      .setDescription(`Deleting ${category} roles from the server. Please wait...`)
+      .setColor(0xFFAA00);
+
+    await i.update({ embeds: [loadingEmbed], components: [] });
     const deleted = await deleteRolesByCategory(i.guild!, settings, category);
     const resultEmbed = new EmbedBuilder()
       .setTitle(`🗑️ ${category.charAt(0).toUpperCase() + category.slice(1)} Roles Deleted`)
       .setDescription(deleted.length > 0 
-        ? `Deleted ${deleted.length} roles:\n${deleted.map(r => `• ${r}`).join('\n')}`
+        ? `Deleted **${deleted.length}** roles:\n${deleted.map(r => `• ${r}`).join('\n')}`
         : 'No roles found to delete in this category.')
-      .setColor(0xFF6600);
-    await i.followUp({ embeds: [resultEmbed], flags: MessageFlags.Ephemeral });
+      .setColor(deleted.length > 0 ? 0x00FF00 : 0xFF6600);
+
     const newSettings = getGuildSettings(guildId);
     const view = buildCategoryView('roles', newSettings, i.guild!, currentRoleSubCategory);
-    await i.editReply({ embeds: view.embeds, components: view.components });
+    try {
+      await i.editReply({ embeds: [resultEmbed, ...view.embeds], components: view.components });
+    } catch (err) {
+      try {
+        await (i.message as any)?.edit?.({ embeds: [resultEmbed, ...view.embeds], components: view.components });
+      } catch {}
+    }
     return { shouldReturn: true };
   }
 

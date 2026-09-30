@@ -24,6 +24,7 @@ import { buildLevelingManageRoles, buildReactionRolesManage } from '../newModule
 import type { SelectMenuResult, LevelingRoleData } from './types.js';
 import { handleEventNotificationsSelectMenu, handleEventNotificationsChannelSelect, handleEventNotificationsRoleSelect } from './eventNotificationsHandlers.js';
 import { postOrUpdateTempVoiceInterface } from '../../../../voice/tempVoiceInterface.js';
+import { getGuildRoles } from '../roleBuilders.js';
 
 export async function handleStringSelectMenu(
   i: StringSelectMenuInteraction,
@@ -69,10 +70,11 @@ export async function handleStringSelectMenu(
     case 'setup_roles_delete_single': {
       await i.deferUpdate();
       const roleIdOrName = i.values[0];
-      const role = i.guild!.roles.cache.get(roleIdOrName) || i.guild!.roles.cache.find(r => r.name === roleIdOrName);
+      const allRoles = getGuildRoles(i.guild);
+      const role = allRoles.find((r: any) => r.id === roleIdOrName || r.name === roleIdOrName);
       let success = false;
       let roleName = roleIdOrName;
-      if (role) {
+      if (role && role.editable !== false && !role.managed) {
         roleName = role.name;
         try {
           await role.delete('OnceButler role cleanup');
@@ -89,10 +91,15 @@ export async function handleStringSelectMenu(
           : `Could not delete role **${roleName}**. Please verify bot permissions and role hierarchy.`)
         .setColor(success ? 0x00FF00 : 0xFF0000);
         
-      await i.followUp({ embeds: [resultEmbed], flags: MessageFlags.Ephemeral });
       const newSettings = getGuildSettings(guildId);
       const view = buildCategoryView(currentCategory, newSettings, i.guild!, currentRoleSubCategory);
-      await i.editReply({ embeds: view.embeds, components: view.components });
+      try {
+        await i.editReply({ embeds: [resultEmbed, ...view.embeds], components: view.components });
+      } catch (err) {
+        try {
+          await (i.message as any)?.edit?.({ embeds: [resultEmbed, ...view.embeds], components: view.components });
+        } catch {}
+      }
       return { shouldReturn: true };
     }
 
