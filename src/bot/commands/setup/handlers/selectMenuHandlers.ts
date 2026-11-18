@@ -165,6 +165,15 @@ export async function handleStringSelectMenu(
       updateGuildSettings(guildId, { steamNewsCheckInterval: parseInt(i.values[0]) });
       return { shouldReturn: false };
 
+    case 'setup_steamnews_remove_game': {
+      const appId = parseInt(i.values[0]);
+      if (!isNaN(appId)) {
+        const { removeGuildSteamGame } = await import('../../../../database/repositories/guildSteamGamesRepo.js');
+        removeGuildSteamGame(guildId, appId);
+      }
+      return { shouldReturn: false };
+    }
+
     case 'setup_twitchdrops_interval':
       updateGuildSettings(guildId, { twitchDropsCheckInterval: parseInt(i.values[0]) });
       return { shouldReturn: false };

@@ -2,9 +2,10 @@
 // OnceButler Discord Bot - Steam News API Client
 // Licensed under MIT License
 
-import type { SteamNewsResponse, SteamNewsItem, SteamNewsConfig } from './types.js';
+import { getGameConfig, type SteamNewsResponse, type SteamNewsItem, type SteamNewsConfig } from './types.js';
 
-export async function fetchSteamNews(config: SteamNewsConfig): Promise<SteamNewsItem[]> {
+export async function fetchSteamNews(configOrAppId: SteamNewsConfig | number): Promise<SteamNewsItem[]> {
+  const config = typeof configOrAppId === 'number' ? getGameConfig(configOrAppId) : configOrAppId;
   const url = `https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=${config.appId}&count=${config.maxNewsToCheck}`;
   
   try {

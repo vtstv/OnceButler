@@ -40,6 +40,11 @@ export function handleAdminDM(client: Client, message: Message): void {
     case 'checkguild':
       handleCheckGuildCommand(client, message, args);
       break;
+    case 'steamadmin':
+    case 'steammodel':
+    case 'steamnews':
+      handleSteamAdminDM(client, message, args);
+      break;
     case 'help':
       handleHelpCommand(message);
       break;
@@ -230,11 +235,35 @@ function handleHelpCommand(message: Message): void {
       { name: '!leave <id>', value: 'Leave a specific server' },
       { name: '!register', value: 'Register/update slash commands' },
       { name: '!checkguild <id>', value: 'Check guild settings and manager roles' },
+      { name: '!steamadmin [model]', value: 'Manage Steam News Gemini model and settings' },
       { name: '!help', value: 'Show this help message' }
     )
     .setTimestamp();
 
   message.reply({ embeds: [embed] });
+}
+
+async function handleSteamAdminDM(client: Client, message: Message, args: string[]): Promise<void> {
+  try {
+    const { buildSteamAdminView } = await import('./commands/steamAdmin.js');
+    const { setSelectedSteamNewsModel } = await import('../database/repositories/botSettingsRepo.js');
+
+    if (args.length > 0) {
+      const newModel = args[0].trim();
+      setSelectedSteamNewsModel(newModel);
+      message.reply(`✅ Модель Steam News успешно установлена на: \`${newModel}\``);
+      return;
+    }
+
+    const view = await buildSteamAdminView(client);
+    message.reply({
+      embeds: view.embeds,
+      components: view.components,
+    });
+  } catch (err: any) {
+    console.error('[ADMIN DM] Error in handleSteamAdminDM:', err);
+    message.reply(`❌ Ошибка открытия панели Steam News: ${err.message}`);
+  }
 }
 
 async function handleCheckGuildCommand(client: Client, message: Message, args: string[]): Promise<void> {

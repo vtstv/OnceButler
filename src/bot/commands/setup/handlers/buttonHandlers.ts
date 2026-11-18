@@ -115,6 +115,12 @@ async function handleToggleButtons(
     }
   }
 
+  if (i.customId === 'setup_toggle_steamnews_mode') {
+    const nextMode = settings.steamNewsMode === 'original' ? 'localized' : 'original';
+    updateGuildSettings(guildId, { steamNewsMode: nextMode });
+    return { shouldReturn: false };
+  }
+
   const toggleMappings: Record<string, string> = {
     'setup_toggle_dynamicroles': 'enableDynamicRoles',
     'setup_toggle_colors': 'enableRoleColors',
@@ -220,6 +226,44 @@ async function handleModalButtons(
         .setMaxLength(100);
       
       modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(apiKeyInput));
+      await i.showModal(modal);
+      return { shouldReturn: true };
+    }
+
+    case 'setup_steamnews_add_game_modal': {
+      const modal = new ModalBuilder()
+        .setCustomId('setup_steamnews_add_game_submit')
+        .setTitle('🎮 Add Steam Game for News');
+
+      const appIdInput = new TextInputBuilder()
+        .setCustomId('steam_app_id')
+        .setLabel('Steam AppID (e.g. 2139460, 252490)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('2139460')
+        .setRequired(true)
+        .setMaxLength(12);
+
+      const nameInput = new TextInputBuilder()
+        .setCustomId('steam_game_name')
+        .setLabel('Game Name (Leave blank to auto-fetch)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Once Human')
+        .setRequired(false)
+        .setMaxLength(100);
+
+      const channelInput = new TextInputBuilder()
+        .setCustomId('steam_channel_id')
+        .setLabel('Channel ID (Optional: leave blank for default)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Discord Channel ID')
+        .setRequired(false)
+        .setMaxLength(30);
+
+      modal.addComponents(
+        new ActionRowBuilder<TextInputBuilder>().addComponents(appIdInput),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(nameInput),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(channelInput)
+      );
       await i.showModal(modal);
       return { shouldReturn: true };
     }
@@ -685,7 +729,14 @@ async function handleSteamNewsTest(
       return { shouldReturn: true };
     }
     
-    const translated = await translateAndSummarize(contentWithTimestamps, settings.steamNewsGeminiKey, latest);
+    const translated = await translateAndSummarize(
+      contentWithTimestamps,
+      settings.steamNewsGeminiKey,
+      latest,
+      'Once Human',
+      undefined,
+      settings.steamNewsMode
+    );
     if (!translated) {
       await i.editReply({ content: '❌ Failed to translate with Gemini. Check your API key.' });
       return { shouldReturn: true };

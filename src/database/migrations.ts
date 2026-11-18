@@ -411,6 +411,7 @@ export function runMigrations(): void {
     { name: 'steamNewsChannelId', sql: 'ALTER TABLE guild_settings ADD COLUMN steamNewsChannelId TEXT DEFAULT NULL' },
     { name: 'steamNewsGeminiKey', sql: 'ALTER TABLE guild_settings ADD COLUMN steamNewsGeminiKey TEXT DEFAULT NULL' },
     { name: 'steamNewsCheckInterval', sql: 'ALTER TABLE guild_settings ADD COLUMN steamNewsCheckInterval INTEGER DEFAULT 15' },
+    { name: 'steamNewsMode', sql: "ALTER TABLE guild_settings ADD COLUMN steamNewsMode TEXT DEFAULT 'localized'" },
   ];
 
   for (const col of steamNewsColumns) {
@@ -581,5 +582,68 @@ export function runMigrations(): void {
     db.exec('ALTER TABLE guild_settings ADD COLUMN welcomeRoleId TEXT DEFAULT NULL');
   } catch (e: any) {
     if (!e.message.includes('duplicate column')) throw e;
+  }
+
+  // Global bot settings table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bot_global_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  `);
+
+  // Monitored Steam Games per guild
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS guild_steam_games (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      app_id INTEGER NOT NULL,
+      game_name TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      is_active INTEGER DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      UNIQUE(guild_id, app_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_guild_steam_games_guild
+    ON guild_steam_games(guild_id);
+
+    CREATE INDEX IF NOT EXISTS idx_guild_steam_games_app
+    ON guild_steam_games(app_id);
+  `);
+
+  // Optional app_id column in steam_news_processed for multi-game tracking
+  try {
+    db.exec('ALTER TABLE steam_news_processed ADD COLUMN app_id INTEGER DEFAULT 2139460');
+  } catch (e: any) {
+    if (!e.message.includes('duplicate column')) throw e;
+  }
+
+  // steamNewsCustomized column to track whether guild customized their games list
+  try {
+    db.exec('ALTER TABLE guild_settings ADD COLUMN steamNewsCustomized INTEGER DEFAULT 0');
+  } catch (e: any) {
+    if (!e.message.includes('duplicate column')) throw e;
+  }
+
+  // steamNewsMode column to track localization vs original mode ('localized' | 'original')
+  try {
+    db.exec("ALTER TABLE guild_settings ADD COLUMN steamNewsMode TEXT DEFAULT 'localized'");
+  } catch (e: any) {
+    if (!e.message.includes('duplicate column')) throw e;
+  }
+
+  // Seamless migration for existing production guilds:
+  // Pre-populate guild_steam_games with Once Human so current channels keep working seamlessly
+  try {
+    db.exec(`
+      INSERT OR IGNORE INTO guild_steam_games (guild_id, app_id, game_name, channel_id, is_active, created_at)
+      SELECT guildId, 2139460, 'Once Human', steamNewsChannelId, 1, strftime('%s', 'now') * 1000
+      FROM guild_settings
+      WHERE enableSteamNews = 1 AND steamNewsChannelId IS NOT NULL;
+    `);
+  } catch (e: any) {
+    console.error('[MIGRATION] Error migrating existing Once Human channels to guild_steam_games:', e);
   }
 }

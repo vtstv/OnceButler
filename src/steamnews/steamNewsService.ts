@@ -1,13 +1,14 @@
-// Copyright (c) 2025 Murr (https://github.com/vtstv)
+// Copyright (c) 2026 Murr (https://github.com/vtstv)
 // OnceButler Discord Bot - Steam News Service
 // Licensed under MIT License
 
-import { Client, EmbedBuilder, TextChannel } from 'discord.js';
-import { ONCE_HUMAN_CONFIG, type SteamNewsItem } from './types.js';
+import { Client, TextChannel } from 'discord.js';
+import { ONCE_HUMAN_CONFIG, getGameConfig, type SteamNewsItem } from './types.js';
 import { fetchSteamNews, isUpdateNews, shouldExcludeNews, cleanSteamContent, filterRaidZoneContent } from './steamNewsApi.js';
 import { translateAndSummarize } from './geminiService.js';
 import { isNewsProcessed, markNewsProcessed, initSteamNewsTable } from './steamNewsRepo.js';
 import { getGuildSettings } from '../database/repositories/settingsRepo.js';
+import { getEffectiveGuildSteamGames } from '../database/repositories/guildSteamGamesRepo.js';
 import { replaceDatesWithTimestamps, parseDateToUnix } from './dateParser.js';
 
 let initialized = false;
@@ -27,8 +28,8 @@ export function sanitizeNewsDates(translatedContent: string, publishTimestamp: n
   const defaultTs = `<t:${publishTimestamp}:F> (<t:${publishTimestamp}:R>)`;
   const publishYear = new Date(publishTimestamp * 1000).getUTCFullYear();
 
-  // Look for section 2: "2. **🗓️ ВРЕМЯ ОБНОВЛЕНИЯ**" or "**🗓️ ВРЕМЯ ОБНОВЛЕНИЯ**" followed by text
-  const timeSectionRegex = /((\d+\.\s*)?\*{0,2}🗓️?\s*ВРЕМЯ ОБНОВЛЕНИЯ\*{0,2}\s*[\r\n]+)([^\r\n#]+)/i;
+  // Look for section 2: "2. **🗓️ ВРЕМЯ ОБНОВЛЕНИЯ**" or "**🗓️ UPDATE TIME**" followed by text
+  const timeSectionRegex = /((\d+\.\s*)?\*{0,2}🗓️?\s*(?:ВРЕМЯ ОБНОВЛЕНИЯ|UPDATE TIME|MAINTENANCE TIME)\*{0,2}\s*[\r\n]+)([^\r\n#]+)/i;
 
   return translatedContent.replace(timeSectionRegex, (match, header, numPrefix, contentLine) => {
     const trimmed = contentLine.trim();
@@ -49,108 +50,131 @@ export function sanitizeNewsDates(translatedContent: string, publishTimestamp: n
   });
 }
 
+interface GuildGameTarget {
+  guildId: string;
+  appId: number;
+  gameName: string;
+  channelId: string;
+  geminiApiKey: string;
+  mode: 'localized' | 'original';
+}
+
+function getGuildGameTargets(client: Client): GuildGameTarget[] {
+  const targets: GuildGameTarget[] = [];
+
+  for (const guild of client.guilds.cache.values()) {
+    const settings = getGuildSettings(guild.id);
+    if (!settings.enableSteamNews || !settings.steamNewsGeminiKey) {
+      continue;
+    }
+
+    const effectiveGames = getEffectiveGuildSteamGames(guild.id);
+    for (const game of effectiveGames) {
+      if (game.channelId) {
+        targets.push({
+          guildId: guild.id,
+          appId: game.appId,
+          gameName: game.gameName,
+          channelId: game.channelId,
+          geminiApiKey: settings.steamNewsGeminiKey,
+          mode: settings.steamNewsMode ?? 'localized',
+        });
+      }
+    }
+  }
+
+  return targets;
+}
+
 export async function processSteamNews(client: Client): Promise<void> {
   initSteamNews();
-  // console.log('[STEAM NEWS] Starting check...');
-  
-  const guildsWithNews = getGuildsWithSteamNews(client);
-  if (guildsWithNews.length === 0) {
-    console.log('[STEAM NEWS] No configured guilds found');
-    return;
-  }
-  // console.log(`[STEAM NEWS] Checking for ${guildsWithNews.length} configured guild(s)`);
 
-  const newsItems = await fetchSteamNews(ONCE_HUMAN_CONFIG);
-  if (newsItems.length === 0) {
-    console.log('[STEAM NEWS] No news items fetched');
+  const targets = getGuildGameTargets(client);
+  if (targets.length === 0) {
     return;
   }
 
-  const updateNews = newsItems.filter(item => 
-    isUpdateNews(item, ONCE_HUMAN_CONFIG) && !shouldExcludeNews(item, ONCE_HUMAN_CONFIG)
-  );
+  // Group targets by appId to fetch news from Steam once per game
+  const distinctAppIds = Array.from(new Set(targets.map(t => t.appId)));
 
-  if (updateNews.length === 0) {
-    console.log('[STEAM NEWS] No relevant update news found');
-    return;
-  }
+  for (const appId of distinctAppIds) {
+    const config = getGameConfig(appId);
+    const newsItems = await fetchSteamNews(config);
+    if (newsItems.length === 0) {
+      continue;
+    }
 
-  for (const guild of guildsWithNews) {
-    await processNewsForGuild(client, guild.guildId, guild.channelId, guild.geminiApiKey, updateNews);
+    const updateNews = newsItems.filter(item =>
+      isUpdateNews(item, config) && !shouldExcludeNews(item, config)
+    );
+
+    if (updateNews.length === 0) {
+      continue;
+    }
+
+    const appTargets = targets.filter(t => t.appId === appId);
+    for (const target of appTargets) {
+      await processNewsForTarget(client, target, updateNews);
+    }
   }
 }
 
 /**
- * Force post latest news to a specific guild, ignoring already-posted check
+ * Force post latest news to a specific guild, ignoring already-posted check.
+ * Defaults to Once Human (2139460) if not specified for backward compatibility.
  */
 export async function forceSteamNewsPost(
   client: Client,
   guildId: string,
   channelId: string,
-  geminiApiKey: string
+  geminiApiKey: string,
+  appId: number = 2139460,
+  gameName: string = 'Once Human'
 ): Promise<number> {
   initSteamNews();
-  console.log(`[STEAM NEWS] Force posting to guild ${guildId}`);
+  console.log(`[STEAM NEWS] Force posting ${gameName} (AppID: ${appId}) to guild ${guildId}`);
 
-  const newsItems = await fetchSteamNews(ONCE_HUMAN_CONFIG);
+  const config = getGameConfig(appId);
+  const newsItems = await fetchSteamNews(config);
   if (newsItems.length === 0) {
     console.log('[STEAM NEWS] No news items fetched');
     return 0;
   }
 
-  const updateNews = newsItems.filter(item => 
-    isUpdateNews(item, ONCE_HUMAN_CONFIG) && !shouldExcludeNews(item, ONCE_HUMAN_CONFIG)
+  const updateNews = newsItems.filter(item =>
+    isUpdateNews(item, config) && !shouldExcludeNews(item, config)
   );
+
+  const settings = getGuildSettings(guildId);
+  const target: GuildGameTarget = {
+    guildId,
+    appId,
+    gameName,
+    channelId,
+    geminiApiKey,
+    mode: settings.steamNewsMode ?? 'localized',
+  };
 
   if (updateNews.length === 0) {
     console.log('[STEAM NEWS] No relevant update news found');
-    // Fallback: try to post the latest non-excluded news item, or the first item
-    const fallback = newsItems.find(item => !shouldExcludeNews(item, ONCE_HUMAN_CONFIG)) ?? newsItems[0];
+    const fallback = newsItems.find(item => !shouldExcludeNews(item, config)) ?? newsItems[0];
     if (!fallback) return 0;
-    console.log('[STEAM NEWS] Fallback: posting latest available news item (not classified as update)');
-    return await processNewsForGuild(client, guildId, channelId, geminiApiKey, [fallback], true);
+    console.log('[STEAM NEWS] Fallback: posting latest available news item');
+    return await processNewsForTarget(client, target, [fallback], true);
   }
 
-  // Only post the latest news item
-  const latestNews = [updateNews[0]];
-  
-  return await processNewsForGuild(client, guildId, channelId, geminiApiKey, latestNews, true);
+  return await processNewsForTarget(client, target, [updateNews[0]], true);
 }
 
-interface GuildNewsConfig {
-  guildId: string;
-  channelId: string;
-  geminiApiKey: string;
-}
-
-function getGuildsWithSteamNews(client: Client): GuildNewsConfig[] {
-  const result: GuildNewsConfig[] = [];
-  
-  for (const guild of client.guilds.cache.values()) {
-    const settings = getGuildSettings(guild.id);
-    if (settings.enableSteamNews && settings.steamNewsChannelId && settings.steamNewsGeminiKey) {
-      result.push({
-        guildId: guild.id,
-        channelId: settings.steamNewsChannelId,
-        geminiApiKey: settings.steamNewsGeminiKey,
-      });
-    }
-  }
-  
-  return result;
-}
-
-async function processNewsForGuild(
+async function processNewsForTarget(
   client: Client,
-  guildId: string,
-  channelId: string,
-  geminiApiKey: string,
+  target: GuildGameTarget,
   newsItems: SteamNewsItem[],
-  forcePost: boolean = false
+  forcePost = false
 ): Promise<number> {
-  const channel = await client.channels.fetch(channelId).catch(() => null) as TextChannel | null;
+  const channel = await client.channels.fetch(target.channelId).catch(() => null) as TextChannel | null;
   if (!channel || !channel.isTextBased()) {
-    console.log(`[STEAM NEWS] Channel ${channelId} not found for guild ${guildId}`);
+    console.log(`[STEAM NEWS] Channel ${target.channelId} not found for guild ${target.guildId}`);
     return 0;
   }
 
@@ -158,64 +182,77 @@ async function processNewsForGuild(
 
   for (const item of newsItems) {
     // Skip already processed unless force mode
-    if (!forcePost && isNewsProcessed(item.gid, guildId, channelId)) {
+    if (!forcePost && isNewsProcessed(item.gid, target.guildId, target.channelId)) {
       continue;
     }
 
     try {
-      // Clean content and convert dates to Discord timestamps BEFORE sending to Gemini
-      const cleanedContent = filterRaidZoneContent(cleanSteamContent(item.contents));
+      // Content filtering: filter RaidZone only for Once Human (2139460)
+      const rawCleaned = cleanSteamContent(item.contents);
+      const cleanedContent = target.appId === 2139460
+        ? filterRaidZoneContent(rawCleaned)
+        : rawCleaned;
+
       const contentWithTimestamps = replaceDatesWithTimestamps(cleanedContent, item.date);
-      const translated = await translateAndSummarize(contentWithTimestamps, geminiApiKey, item);
-      
+      const translated = await translateAndSummarize(
+        contentWithTimestamps,
+        target.geminiApiKey,
+        { ...item, appid: target.appId },
+        target.gameName,
+        undefined,
+        target.mode
+      );
+
       if (!translated) {
-        console.log(`[STEAM NEWS] Failed to translate news ${item.gid}`);
+        console.log(`[STEAM NEWS] Failed to translate news ${item.gid} for ${target.gameName}`);
         continue;
       }
 
-      // Sanitize dates in the summary to prevent any hallucinated raw text or outdated years
+      // Sanitize dates in the summary to prevent hallucinated raw text or outdated years
       const sanitizedContent = sanitizeNewsDates(translated, item.date);
 
-      // Build formatted message instead of embed
-      const messages = buildNewsMessages(item, sanitizedContent);
+      // Build formatted messages
+      const messages = buildNewsMessages(item, sanitizedContent, target.gameName);
       for (const msg of messages) {
         await channel.send(msg);
         await delay(500);
       }
-      
-      markNewsProcessed(item.gid, guildId, channelId, item.title);
-      console.log(`[STEAM NEWS] Posted news "${item.title}" to ${channel.name} in guild ${guildId}`);
+
+      markNewsProcessed(item.gid, target.guildId, target.channelId, item.title);
+      console.log(`[STEAM NEWS] Posted ${target.gameName} news "${item.title}" to #${channel.name} in guild ${target.guildId}`);
       postedCount++;
-      
+
       await delay(2000);
     } catch (error) {
-      console.error(`[STEAM NEWS] Error processing news ${item.gid}:`, error);
+      console.error(`[STEAM NEWS] Error processing news ${item.gid} for ${target.gameName}:`, error);
     }
   }
-  
+
   return postedCount;
 }
 
-function buildNewsMessages(item: SteamNewsItem, translatedContent: string): string[] {
+export function buildNewsMessages(
+  item: SteamNewsItem,
+  translatedContent: string,
+  gameName: string = 'Once Human'
+): string[] {
   const header = `# 📰 ${item.title}\n🔗 <${item.url}>\n\n`;
-  const footer = `\n\n─────────────────────────────\n*Once Human | Новости*`;
-  
+  const footer = `\n\n─────────────────────────────\n*${gameName} | Новости*`;
+
   const messages: string[] = [];
   const maxLength = 1900; // Leave room for header/footer
-  
-  // First message with header
+
   let remaining = translatedContent;
   let isFirst = true;
-  
+
   while (remaining.length > 0) {
     let chunk: string;
     const availableLength = isFirst ? maxLength - header.length : maxLength;
-    
+
     if (remaining.length <= availableLength) {
       chunk = remaining;
       remaining = '';
     } else {
-      // Find a good break point (newline or space)
       let breakPoint = remaining.lastIndexOf('\n', availableLength);
       if (breakPoint < availableLength * 0.5) {
         breakPoint = remaining.lastIndexOf(' ', availableLength);
@@ -226,7 +263,7 @@ function buildNewsMessages(item: SteamNewsItem, translatedContent: string): stri
       chunk = remaining.slice(0, breakPoint);
       remaining = remaining.slice(breakPoint).trim();
     }
-    
+
     if (isFirst) {
       messages.push(header + chunk + (remaining.length === 0 ? footer : ''));
       isFirst = false;
@@ -234,7 +271,7 @@ function buildNewsMessages(item: SteamNewsItem, translatedContent: string): stri
       messages.push(chunk + (remaining.length === 0 ? footer : ''));
     }
   }
-  
+
   return messages;
 }
 

@@ -61,3 +61,27 @@ export const ONCE_HUMAN_CONFIG: SteamNewsConfig = {
     'Hotfix',
   ],
 };
+
+export function getGameConfig(appId: number): SteamNewsConfig {
+  if (appId === 2139460) return ONCE_HUMAN_CONFIG;
+  return {
+    appId,
+    checkIntervalMinutes: 60,
+    maxNewsToCheck: 5,
+    excludePatterns: ['fair play announcement'],
+    updateKeywords: [
+      'Update',
+      'Version',
+      'Patch',
+      'Maintenance',
+      'Content',
+      'Feature',
+      'Bug Fix',
+      'Hotfix',
+      'Changelog',
+      'Release',
+      'Notes',
+    ],
+  };
+}
+

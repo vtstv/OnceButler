@@ -76,6 +76,8 @@ export interface GuildSettings {
   steamNewsChannelId: string | null;
   steamNewsGeminiKey: string | null;
   steamNewsCheckInterval: number;
+  steamNewsCustomized: boolean;
+  steamNewsMode: 'localized' | 'original';
   // AI Module
   enableAI: boolean;
   aiProvider: 'cloudflare' | 'gemini';
@@ -169,6 +171,8 @@ const DEFAULT_SETTINGS: Omit<GuildSettings, 'guildId'> = {
   steamNewsChannelId: null,
   steamNewsGeminiKey: null,
   steamNewsCheckInterval: 60,
+  steamNewsCustomized: false,
+  steamNewsMode: 'localized',
   // AI Module
   enableAI: false,
   aiProvider: 'cloudflare',
@@ -209,7 +213,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
            imageGenUserDailyLimit, imageGenGuildDailyLimit, imageGenGeminiMethod,
            enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit,
            tempVoiceControlChannelId, tempVoiceControlMessageId,
-           enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval,
+           enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval, steamNewsCustomized, steamNewsMode,
            enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage,
            enableDynamicRoles,
            enableTwitchDrops, twitchDropsChannelId, twitchDropsApiUrl, twitchDropsApiKey, twitchDropsCheckInterval,
@@ -285,6 +289,8 @@ export function getGuildSettings(guildId: string): GuildSettings {
     steamNewsChannelId: row.steamNewsChannelId ?? null,
     steamNewsGeminiKey: row.steamNewsGeminiKey ?? null,
     steamNewsCheckInterval: row.steamNewsCheckInterval ?? 60,
+    steamNewsCustomized: row.steamNewsCustomized === 1,
+    steamNewsMode: (row.steamNewsMode === 'original' ? 'original' : 'localized') as 'localized' | 'original',
     enableAI: row.enableAI === 1,
     aiProvider: row.aiProvider ?? 'cloudflare',
     aiApiKey: row.aiApiKey ?? null,
@@ -339,12 +345,12 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
                                 imageGenUserDailyLimit, imageGenGuildDailyLimit, imageGenGeminiMethod,
                                 enableTempVoice, tempVoiceTriggerChannelId, tempVoiceCategoryId, tempVoiceNameTemplate, tempVoiceUserLimit,
                                 tempVoiceControlChannelId, tempVoiceControlMessageId,
-                                enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval,
+                                enableSteamNews, steamNewsChannelId, steamNewsGeminiKey, steamNewsCheckInterval, steamNewsCustomized, steamNewsMode,
                                 enableAI, aiProvider, aiApiKey, aiAccountId, aiChannelId, aiAllowAllChannels, aiAllowDMs, aiDefaultTranslateLanguage,
                                 enableDynamicRoles,
                                 enableTwitchDrops, twitchDropsChannelId, twitchDropsApiUrl, twitchDropsApiKey, twitchDropsCheckInterval,
                                 enableEventNotifications, eventNotificationsKeepOldMessages)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guildId) DO UPDATE SET 
       language = excluded.language,
       rolePreset = excluded.rolePreset,
@@ -407,6 +413,8 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
       steamNewsChannelId = excluded.steamNewsChannelId,
       steamNewsGeminiKey = excluded.steamNewsGeminiKey,
       steamNewsCheckInterval = excluded.steamNewsCheckInterval,
+      steamNewsCustomized = excluded.steamNewsCustomized,
+      steamNewsMode = excluded.steamNewsMode,
       enableAI = excluded.enableAI,
       aiProvider = excluded.aiProvider,
       aiApiKey = excluded.aiApiKey,
@@ -487,6 +495,8 @@ export function updateGuildSettings(guildId: string, updates: Partial<Omit<Guild
     merged.steamNewsChannelId,
     merged.steamNewsGeminiKey,
     merged.steamNewsCheckInterval,
+    merged.steamNewsCustomized ? 1 : 0,
+    merged.steamNewsMode,
     merged.enableAI ? 1 : 0,
     merged.aiProvider,
     merged.aiApiKey,

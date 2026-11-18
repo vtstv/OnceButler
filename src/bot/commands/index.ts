@@ -103,6 +103,11 @@ export async function handleInteraction(interaction: Interaction): Promise<void>
       case 'translate':
         await handleTranslateCommand(interaction);
         break;
+      case 'steamadmin': {
+        const { handleSteamAdminCommand } = await import('./steamAdmin.js');
+        await handleSteamAdminCommand(interaction);
+        break;
+      }
     }
     console.log(`[CMD] /${interaction.commandName} completed successfully`);
   } catch (error) {

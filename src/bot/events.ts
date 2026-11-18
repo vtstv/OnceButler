@@ -71,6 +71,12 @@ export function registerEvents(client: Client): void {
       return;
     }
 
+    if ('customId' in interaction && typeof interaction.customId === 'string' && interaction.customId.startsWith('steamadmin_')) {
+      const { handleSteamAdminComponent } = await import('./commands/steamAdmin.js');
+      await handleSteamAdminComponent(interaction as any);
+      return;
+    }
+
     if (interaction.isButton()) {
       if (interaction.customId.startsWith('giveaway_')) {
         await handleGiveawayButton(interaction);
@@ -265,6 +271,63 @@ export function registerEvents(client: Client): void {
           }
         } catch (error) {
           console.error('[MODAL] Error handling steamnews gemini modal:', error);
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
+          }
+        }
+        return;
+      }
+      if (interaction.customId === 'setup_steamnews_add_game_submit') {
+        try {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.reply({ content: 'Error: Not in a server.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+
+          const appIdStr = interaction.fields.getTextInputValue('steam_app_id')?.trim();
+          const appId = parseInt(appIdStr);
+          if (isNaN(appId) || appId <= 0) {
+            await interaction.reply({ content: '❌ Please enter a valid numeric Steam AppID.', flags: MessageFlags.Ephemeral });
+            return;
+          }
+
+          let gameName = interaction.fields.getTextInputValue('steam_game_name')?.trim();
+          const channelInput = interaction.fields.getTextInputValue('steam_channel_id')?.trim();
+
+          const settings = getGuildSettings(guildId);
+          const channelId = channelInput || settings.steamNewsChannelId;
+
+          if (!channelId) {
+            await interaction.reply({
+              content: '❌ Please select or enter a valid channel for news before adding a game.',
+              flags: MessageFlags.Ephemeral,
+            });
+            return;
+          }
+
+          if (!gameName) {
+            const { fetchSteamAppDetails } = await import('../steamnews/steamDetailsApi.js');
+            const details = await fetchSteamAppDetails(appId);
+            gameName = details?.name ?? `Steam App ${appId}`;
+          }
+
+          const { addGuildSteamGame } = await import('../database/repositories/guildSteamGamesRepo.js');
+          addGuildSteamGame(guildId, appId, gameName, channelId);
+
+          if (interaction.isFromMessage()) {
+            const { buildCategoryView } = await import('./commands/setup/handlers/viewBuilder.js');
+            const updatedSettings = getGuildSettings(guildId);
+            const view = buildCategoryView('steamNews', updatedSettings, interaction.guild);
+            await interaction.update({ embeds: view.embeds, components: view.components });
+          } else {
+            await interaction.reply({
+              content: `✅ Game **${gameName}** (\`${appId}\`) added for news!`,
+              flags: MessageFlags.Ephemeral,
+            });
+          }
+        } catch (error) {
+          console.error('[MODAL] Error handling steamnews add game modal:', error);
           if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: 'Something went wrong. Try again.', flags: MessageFlags.Ephemeral });
           }

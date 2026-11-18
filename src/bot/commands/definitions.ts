@@ -556,4 +556,18 @@ export const commands = [
         .setDescription('Target language code (e.g., ru, en, de, fr)')
         .setRequired(false)
         .setMaxLength(5)),
+
+  new SlashCommandBuilder()
+    .setName('steamadmin')
+    .setDescription('Steam News Bot Administration (Bot Owner only)')
+    .addSubcommand(sub =>
+      sub.setName('panel')
+        .setDescription('Open Steam News administration panel'))
+    .addSubcommand(sub =>
+      sub.setName('model')
+        .setDescription('Set or view Gemini model for Steam News processing')
+        .addStringOption(opt =>
+          opt.setName('name')
+            .setDescription('Gemini model name (e.g. gemini-2.5-flash)')
+            .setRequired(false))),
 ];
