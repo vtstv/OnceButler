@@ -253,7 +253,7 @@ async function handleModalButtons(
 
       const channelInput = new TextInputBuilder()
         .setCustomId('steam_channel_id')
-        .setLabel('Channel ID (Optional: leave blank for default)')
+        .setLabel('Channel ID (Optional: blank for default)')
         .setStyle(TextInputStyle.Short)
         .setPlaceholder('Discord Channel ID')
         .setRequired(false)
