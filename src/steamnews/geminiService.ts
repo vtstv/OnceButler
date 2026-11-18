@@ -18,9 +18,9 @@ interface GeminiResponse {
 // Built-in fallback order if primary model fails
 const FALLBACK_MODELS = [
   'gemini-2.5-flash',
-  'gemini-3.1-flash-lite-preview',
   'gemini-3-flash-preview',
-  'gemini-2.5-pro',
+  'gemini-3.1-flash-lite',
+  'gemini-3.1-flash-lite-preview',
 ];
 
 export function buildNewsPrompt(
@@ -184,7 +184,11 @@ export async function translateAndSummarize(
 
   for (const model of modelsToTry) {
     const result = await tryModel(model, apiKey, prompt);
-    if (result) return result;
+    if (result.text) {
+      console.log(`[GEMINI] Successfully processed news with ${model}`);
+      return result.text;
+    }
+    console.warn(`[GEMINI] ${model} failed (${result.error ?? 'unknown'}), trying next fallback...`);
   }
 
   console.error('[GEMINI] All models failed or rate limited');
@@ -197,74 +201,89 @@ export async function testGeminiModel(
 ): Promise<{ success: boolean; latencyMs: number; error?: string }> {
   const start = Date.now();
   const testPrompt = 'Say "OK" if you receive this message.';
-  const res = await tryModel(model, apiKey, testPrompt);
+  const res = await tryModel(model, apiKey, testPrompt, 8000);
   const latencyMs = Date.now() - start;
 
-  if (res) {
+  if (res.text) {
     return { success: true, latencyMs };
   }
-  return { success: false, latencyMs, error: 'Model failed or did not return text' };
+  return { success: false, latencyMs, error: res.error ?? 'Model failed or did not return text' };
 }
 
-async function tryModel(model: string, apiKey: string, prompt: string): Promise<string | null> {
+async function tryModel(
+  model: string,
+  apiKey: string,
+  prompt: string,
+  timeoutMs = 15000
+): Promise<{ text: string | null; error?: string }> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  try {
+  // Helper to execute request with optional thinkingConfig
+  const executeRequest = async (useThinkingBudgetZero: boolean) => {
+    const generationConfig: Record<string, any> = {
+      temperature: 0.2,
+      maxOutputTokens: 2500,
+    };
+
+    if (useThinkingBudgetZero) {
+      // Disabling thinking/reasoning significantly decreases latency and token consumption
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(timeoutMs),
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 4000,
-        },
+        generationConfig,
         safetySettings: [
-          {
-            category: 'HARM_CATEGORY_HARASSMENT',
-            threshold: 'BLOCK_ONLY_HIGH',
-          },
-          {
-            category: 'HARM_CATEGORY_HATE_SPEECH',
-            threshold: 'BLOCK_ONLY_HIGH',
-          },
-          {
-            category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-            threshold: 'BLOCK_ONLY_HIGH',
-          },
-          {
-            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-            threshold: 'BLOCK_ONLY_HIGH',
-          },
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
         ],
       }),
     });
 
     const data = (await response.json()) as GeminiResponse;
+    return { response, data };
+  };
+
+  try {
+    let { response, data } = await executeRequest(true);
+
+    // If model rejected thinkingConfig with 400 (e.g. thinking not supported), retry without it
+    if (response.status === 400 && data.error?.message?.toLowerCase().includes('thinking')) {
+      const fallbackAttempt = await executeRequest(false);
+      response = fallbackAttempt.response;
+      data = fallbackAttempt.data;
+    }
 
     if (data.error) {
-      console.error(`[GEMINI] ${model} Error:`, data.error.message);
-      return null;
+      console.error(`[GEMINI] ${model} Error (${response.status}):`, data.error.message);
+      return { text: null, error: data.error.message };
     }
 
     const candidate = data.candidates?.[0];
     const finishReason = candidate?.finishReason;
     const text = candidate?.content?.parts?.[0]?.text;
 
-    // Check finish reason - only STOP is acceptable
     if (finishReason && finishReason !== 'STOP') {
       console.warn(`[GEMINI] ${model} interrupted. Reason: ${finishReason}`);
-      return null;
+      return { text: null, error: `Interrupted (${finishReason})` };
     }
 
     if (!text) {
       console.error(`[GEMINI] No text in response from ${model}`);
-      return null;
+      return { text: null, error: 'Empty text in response' };
     }
 
-    return text.trim();
-  } catch (error) {
-    console.error(`[GEMINI] Request to ${model} failed:`, error);
-    return null;
+    return { text: text.trim() };
+  } catch (error: any) {
+    const isTimeout = error.name === 'TimeoutError' || error.message?.includes('timeout') || error.name === 'AbortError';
+    const errMessage = isTimeout ? `Timeout after ${timeoutMs / 1000}s` : (error.message ?? 'Unknown fetch error');
+    console.error(`[GEMINI] Request to ${model} failed:`, errMessage);
+    return { text: null, error: errMessage };
   }
 }
